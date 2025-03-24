@@ -43,8 +43,9 @@ export default function LeftSidebar(props) {
                  id="left-sidebar-toggle-container">
                 <Button
                     id="sidebar-toggle"
-                    type="icon"
-                    className="border bg-white"
+                    className="bg-white"
+                    outline={{ color: 'primary', depth: 1 }}
+                    contentType="icon"
                     tooltip="Toggle Sidebar"
                     tooltipPlacement="bottom"
                     onClick={props.toggleSidebar}
