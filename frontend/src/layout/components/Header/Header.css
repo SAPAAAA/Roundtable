@@ -1,0 +1,9 @@
+#header-left-sidebar-toggle {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    #header-left-sidebar-toggle {
+        display: inline-block !important;
+    }
+}
