@@ -16,7 +16,7 @@ export default function Header(props) {
                         <Button
                             id="header-left-sidebar-toggle"
                             onClick={props.toggleSidebar}
-                            type="icon"
+                            contentType="icon"
                             tooltip="Toggle Sidebar"
                             tooltipPlacement="bottom"
                         >
@@ -63,7 +63,7 @@ export default function Header(props) {
                             <Button
                                 className=""
                                 aria-current="page"
-                                type="icon"
+                                contentType="icon"
                                 tooltip="Chat"
                                 tooltipPlacement="bottom"
                             >
@@ -82,7 +82,7 @@ export default function Header(props) {
                         <li className="nav-item">
                             <Button
                                 className=""
-                                type="icon"
+                                contentType="icon"
                                 tooltip="Notifications"
                                 tooltipPlacement="bottom"
                             >
