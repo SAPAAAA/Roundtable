@@ -2,7 +2,6 @@
     background-color: #f8f9fa;
     color: #000;
     border-color: #f8f9fa;
-    box-shadow: 0 0 0 0.2rem rgba(248, 249, 250, 0.5);
 }
 
 .btn-icon {
@@ -10,3 +9,15 @@
     min-height: 20px;
     line-height: 0;
 }
+
+/* Outline depth */
+.btn-outline-depth-1 {
+    border-width: 1px;
+}
+.btn-outline-depth-2 {
+    border-width: 2px;
+}
+.btn-outline-depth-3 {
+    border-width: 3px;
+}
+

@@ -17,14 +17,22 @@ export default function Button(props) {
 
     const handleClick = (e) => {
         props.onClick?.(e);
-        // Hide tooltip after click
         tooltipInstance.current?.hide();
     };
+
+    // Build dynamic class names
+    const outlineClass = props.outline
+        ? `btn-outline-${props.outline.color}${props.outline.depth ? ` btn-outline-depth-${props.outline.depth}` : ''}`
+        : '';
+
+    const backgroundClass = props.background
+        ? `bg-${props.background.color}`
+        : '';
 
     const commonProps = {
         id: props.id,
         ref: buttonRef,
-        className: `btn btn-hover ${props.type === 'icon' ? 'btn-icon' : ''} rounded-pill d-flex justify-content-center align-items-center p-2 ${props.className}`,
+        className: `btn btn-hover ${props.contentType === 'icon' ? 'btn-icon' : ''} ${outlineClass} ${backgroundClass} rounded-pill d-flex justify-content-center align-items-center p-2 ${props.className || ''}`,
         onClick: handleClick,
         'data-bs-toggle': props.tooltip ? 'tooltip' : undefined,
         'data-bs-placement': props.tooltip ? props.tooltipPlacement || 'top' : undefined,
@@ -33,7 +41,7 @@ export default function Button(props) {
     };
 
     if (props.href) {
-        if (props.type === 'icon') {
+        if (props.contentType === 'icon') {
             return (
                 <button {...commonProps}>
                     <a href={props.href} className="text-decoration-none text-white">
