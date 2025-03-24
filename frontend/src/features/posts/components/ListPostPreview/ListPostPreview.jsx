@@ -1,6 +1,6 @@
 import React from "react";
 
-import PostPreview from "@shared/components/PostPreview/PostPreview";
+import PostPreview from "@features/posts/components/PostPreview/PostPreview";
 
 export default function ListPostPreview(props) {
     return (
