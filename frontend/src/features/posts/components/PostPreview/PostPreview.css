@@ -1,0 +1,28 @@
+[data-theme="dark"] .upvote-button:hover,
+[data-theme="dark"] .downvote-button:hover {
+    background-color: rgba(17, 17, 17, 0.4);
+}
+
+[data-theme="light"] .upvote-button:hover,
+[data-theme="light"] .downvote-button:hover {
+    background-color: rgba(238, 238, 238, 0.4);
+}
+
+
+.upvote-icon, .downvote-icon, .comment-icon, .share-icon {
+    fill: var(--var-icon-hover-color) !important;
+}
+
+.vote-container.upvoted {
+    --bs-bg-opacity: 1;
+    --bs-upvoted-rgb: 0, 0, 255;
+    background-color: rgba(var(--bs-upvoted-rgb), var(--bs-bg-opacity)) !important;
+    color: white;
+}
+
+.vote-container.downvoted {
+    --bs-bg-opacity: 1;
+    --bs-downvoted-rgb: 255, 0, 0;
+    background-color: rgba(var(--bs-downvoted-rgb), var(--bs-bg-opacity)) !important;
+    color: white;
+}
