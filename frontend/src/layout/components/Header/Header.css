@@ -7,3 +7,25 @@
         display: inline-block !important;
     }
 }
+
+[data-theme="dark"] #header {
+    background-color: var(--var-cultured);
+    color: var(--var-space-cadet) !important;
+}
+
+[data-theme="light"] #header {
+    background-color: var(--var-space-cadet);
+    color: var(--var-cultured) !important;
+}
+
+[data-theme="light"] #header a,
+[data-theme="light"] #header a:visited {
+    color: var(--var-cultured) !important;
+    text-decoration: none;
+}
+
+[data-theme="dark"] #header a,
+[data-theme="dark"] #header a:visited {
+    color: var(--var-space-cadet) !important;
+    text-decoration: none;
+}
