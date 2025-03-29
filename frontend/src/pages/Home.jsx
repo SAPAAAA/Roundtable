@@ -38,7 +38,12 @@ import ListPostPreview from "@features/posts/components/ListPostPreview/ListPost
 export default function Home() {
     const posts = [
         {
-            subreddit: "r/AskReddit",
+            subtable: {
+                namespace: "AskAnything",
+                avatar: {
+                    src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80"
+                }
+            },
             time: "1 hr. ago",
             title: "What is the most interesting fact you know?",
             content: "I'm curious to know what interesting facts you all know...",
@@ -46,7 +51,12 @@ export default function Home() {
             comments: 100,
         },
         {
-            subreddit: "r/technology",
+            subtable: {
+                namespace: "CoolTech",
+                avatar: {
+                    src: "https://images.unsplash.com/photo-1581091012184-7e0cdfbb6791?w=100&q=80"
+                }
+            },
             time: "2 hr. ago",
             title: "What is the best tech stack for web development?",
             content: "I'm looking to start a new project and need some advice...",
@@ -54,7 +64,12 @@ export default function Home() {
             comments: 200,
         },
         {
-            subreddit: "r/programming",
+            subtable: {
+                namespace: "CodeTalk",
+                avatar: {
+                    src: "https://images.unsplash.com/photo-1587620931283-d91f5f6d9984?w=100&q=80"
+                }
+            },
             time: "3 hr. ago",
             title: "What is the best programming language to learn?",
             content: "I'm new to programming and want to learn a new language...",
@@ -62,9 +77,10 @@ export default function Home() {
             comments: 150,
         },
     ];
+
     return (
         <div>
-            <ListPostPreview posts={posts} />
+            <ListPostPreview posts={posts}/>
         </div>
     );
 }
