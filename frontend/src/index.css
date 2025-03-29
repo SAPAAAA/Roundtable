@@ -50,5 +50,43 @@ html, body {
     font-size: 0.375em !important;
 }
 
+/* Light Gray Background */
+.bg-light-gray {
+    background-color: #F9F7F7;
+}
+
+/* Pale Blue Background */
+.bg-pale-blue {
+    background-color: #DBE2EF;
+}
+
+/* Strong Blue Background */
+.bg-strong-blue {
+    background-color: #3F72AF;
+}
+
+/* Deep Navy Background */
+.bg-deep-navy {
+    background-color: #112D4E;
+}
+
+/* Text versions */
+.text-light-gray {
+    color: #F9F7F7;
+}
+
+.text-pale-blue {
+    color: #DBE2EF;
+}
+
+.text-strong-blue {
+    color: #3F72AF;
+}
+
+.text-deep-navy {
+    color: #112D4E;
+}
+
+
 
 
