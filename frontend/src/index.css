@@ -5,8 +5,20 @@
     font-optical-sizing: auto;
     font-weight: 400;
     font-style: normal;
-    font-variation-settings:
-            "wdth" 100;
+    font-variation-settings: "wdth" 100;
+
+    --var-icon-hover-color: #111;
+    --var-icon-primary-color: #eee;
+}
+
+[data-theme="dark"] {
+    --var-icon-hover-color: #eee;
+    --var-icon-primary-color: #111;
+}
+
+[data-theme="light"] {
+    --var-icon-hover-color: #111;
+    --var-icon-primary-color: #eee;
 }
 
 /* Apply to entire app */
@@ -15,9 +27,28 @@ html, body {
     height: 100%;
 }
 
-/* Optional: apply to all elements */
+/* Apply to all elements */
 * {
     box-sizing: border-box;
     font-family: inherit; /* Makes sure everything inherits from :root */
 }
+
+/* Font size classes */
+.fs-7 {
+    font-size: 0.75em !important; /* Smaller than fs-6 (0.875rem) */
+}
+
+.fs-8 {
+    font-size: 0.625em !important; /* Very small */
+}
+
+.fs-9 {
+    font-size: 0.5em !important;
+}
+
+.fs-10 {
+    font-size: 0.375em !important;
+}
+
+
 
