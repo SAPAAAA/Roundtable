@@ -79,8 +79,133 @@ export default function Home() {
     ];
 
     return (
-        <div>
-            <ListPostPreview posts={posts}/>
-        </div>
-    );
+        <ListPostPreview posts={posts}/>
+    )
+
+    // const [formData, setFormData] = useState({
+    //     username: '',
+    //     password: ''
+    // });
+    //
+    // const [isValid, setIsValid] = useState({
+    //     username: false,
+    //     password: false
+    // });
+    //
+    // const handleChange = (e) => {
+    //     const { id, value } = e.target;
+    //     setFormData((prev) => ({
+    //         ...prev,
+    //         [id]: value
+    //     }));
+    //
+    //     setIsValid((prev) => ({
+    //         ...prev,
+    //         [id]: value.trim() !== ''
+    //     }));
+    // };
+    //
+    // const handleSubmit = (e) => {
+    //     e.preventDefault();
+    //     alert(`Logging in as ${formData.username}`);
+    // };
+    //
+    // return (
+    //     <Form
+    //         id="login-form"
+    //         mainClass="w-100 p-4 rounded shadow"
+    //         addClass="p-3"
+    //         onSubmit={handleSubmit}
+    //         style={{ maxWidth: '400px', margin: 'auto' }}
+    //     >
+    //         <h2 className="mb-3">Login</h2>
+    //
+    //         <Input
+    //             id="username"
+    //             type="text"
+    //             label="Username"
+    //             placeholder="Enter your username"
+    //             value={formData.username}
+    //             onChange={handleChange}
+    //             isValid={isValid.username}
+    //             isInvalid={!isValid.username && formData.username !== ''}
+    //             feedback="Username is required"
+    //             addon={ <Icon name="person" size="20px"/> }
+    //             required
+    //         />
+    //
+    //         <Input
+    //             id="password"
+    //             type="password"
+    //             label="Password"
+    //             placeholder="Enter your password"
+    //             value={formData.password}
+    //             onChange={handleChange}
+    //             isValid={isValid.password}
+    //             isInvalid={!isValid.password && formData.password !== ''}
+    //             feedback="Password is required"
+    //             addon={ <Icon name="key" size="20px"/> }
+    //             required
+    //         />
+    //
+    //         <button type="submit" className="btn btn-primary w-100">
+    //             Log In
+    //         </button>
+    //     </Form>
+    // );
+
+    // const handleConfirm = () => {
+    //     console.log('Confirmed!');
+    // };
+    //
+    // const handleCancel = () => {
+    //     console.log('Cancelled!');
+    // };
+    //
+    // return (
+    //     <div>
+    //         <Button
+    //             id="openModalBtn"
+    //             contentType="text"
+    //             dataBsToggle="modal"
+    //             dataBsTarget="#exampleModal"
+    //             background={{ color: 'primary' }}
+    //             padding="2"
+    //         >
+    //             Open Modal
+    //         </Button>
+    //         <Modal
+    //             id="exampleModal"
+    //             title="Sample Modal Title"
+    //             footerButtons={[
+    //                 <Button
+    //                     key="cancel"
+    //                     contentType="text"
+    //                     onClick={handleCancel}
+    //                     dataBsDismiss="modal"
+    //                     outline={{ color: 'secondary' }}
+    //                     padding="2"
+    //                 >
+    //                     <div className="d-flex align-items-center justify-content-center gap-2 px-2">
+    //                         <span className="fs-6">Cancel</span>
+    //                     </div>
+    //                 </Button>,
+    //                 <Button
+    //                     key="confirm"
+    //                     contentType="text"
+    //                     onClick={handleConfirm}
+    //                     background={{ color: 'primary' }}
+    //                     padding="2"
+    //                 >
+    //                     <div className="d-flex align-items-center justify-content-center gap-2 px-2">
+    //                         <Icon name="floppy" size="15px"/>
+    //                         <span className="fs-6">Confirm</span>
+    //                     </div>
+    //                 </Button>,
+    //             ]}
+    //         >
+    //             <p>This is a sample modal body. You can put any content here including forms, text, or images.</p>
+    //         </Modal>
+    //     </div>
+    // );
 }
