@@ -13,12 +13,33 @@
 }
 
 #sidebar-toggle {
+    border: #dee2e6 1px solid;
+
     z-index: 1000;
     display: block !important;
+}
+
+#sidebar-toggle:hover {
+    border: black 1px solid;
+!important;
+}
+
+[data-theme="dark"] #sidebar-toggle-icon {
+    fill: #eee;
+!important;
+}
+
+[data-theme="light"] #sidebar-toggle-icon {
+    fill: #111;
+!important;
 }
 
 @media (max-width: 768px) {
     #sidebar-toggle {
         display: none !important;
+    }
+
+    #left-sidebar-container {
+        margin-left: -250px;
     }
 }
