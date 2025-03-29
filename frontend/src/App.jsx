@@ -6,9 +6,9 @@ import Content from "@layout/components/Content/Content";
 const App = () => {
     return (
         <div>
-            <Header />
-            <Content />
-            <Footer />
+            <Header/>
+            <Content/>
+            <Footer/>
         </div>
     );
 };
