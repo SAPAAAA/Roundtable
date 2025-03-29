@@ -7,18 +7,38 @@
     font-style: normal;
     font-variation-settings: "wdth" 100;
 
-    --var-icon-hover-color: #111;
-    --var-icon-primary-color: #eee;
+    --var-icon-hover-color: var(--var-space-cadet);
+    --var-icon-primary-color: var(--var-cultured);
+
+    --var-cultured: #F9F7F7;
+    --var-azureish-white: #DBE2EF;
+    --var-steel-blue: #3F72AF;
+    --var-deer: #c08d50;
+    --var-space-cadet: #112D4E;
+
+    --cultured-rgb: 249, 247, 247;
+    --azureish-white-rgb: 219, 226, 239;
+    --steel-blue-rgb: 63, 114, 175;
+    --deer-rgb: 192, 141, 80;
+    --space-cadet-rgb: 17, 45, 78;
 }
 
 [data-theme="dark"] {
-    --var-icon-hover-color: #eee;
-    --var-icon-primary-color: #111;
+    --var-icon-hover-color: var(--var-cultured);
+    --var-icon-primary-color: var(--var-space-cadet);
+
+    html, body {
+        background-color: var(--var-space-cadet);
+    }
 }
 
 [data-theme="light"] {
-    --var-icon-hover-color: #111;
-    --var-icon-primary-color: #eee;
+    --var-icon-hover-color: var(--var-space-cadet);
+    --var-icon-primary-color: var(--var-cultured);
+
+    html, body {
+        background-color: var(--var-cultured);
+    }
 }
 
 /* Apply to entire app */
@@ -51,40 +71,40 @@ html, body {
 }
 
 /* Light Gray Background */
-.bg-light-gray {
-    background-color: #F9F7F7;
+.bg-cultured {
+    background-color: var(--var-cultured);
 }
 
 /* Pale Blue Background */
-.bg-pale-blue {
-    background-color: #DBE2EF;
+.bg-azureish-white {
+    background-color: var(--var-azureish-white);
 }
 
 /* Strong Blue Background */
 .bg-strong-blue {
-    background-color: #3F72AF;
+    background-color: var(--var-steel-blue);
 }
 
 /* Deep Navy Background */
 .bg-deep-navy {
-    background-color: #112D4E;
+    background-color: var(--var-space-cadet);
 }
 
 /* Text versions */
-.text-light-gray {
-    color: #F9F7F7;
+.text-cultured {
+    color: var(--var-cultured);
 }
 
-.text-pale-blue {
-    color: #DBE2EF;
+.text-azureish-white {
+    color: var(--var-azureish-white);
 }
 
 .text-strong-blue {
-    color: #3F72AF;
+    color: var(--var-steel-blue);
 }
 
 .text-deep-navy {
-    color: #112D4E;
+    color: var(--var-space-cadet);
 }
 
 
