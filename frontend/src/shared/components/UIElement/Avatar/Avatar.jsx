@@ -6,7 +6,7 @@ export default function Avatar(props) {
         <img
             src={props.src}
             alt={props.alt}
-            className={`avatar rounded-circle ${props.className}`}
+            className={`${props.mainClass} avatar rounded-circle ${props.addClass}`}
             width={props.width}
             height={props.height}
             style={props.style}
