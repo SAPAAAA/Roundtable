@@ -1,4 +1,11 @@
 #main-container {
-    flex-grow: 1;
     padding: 1rem;
+    width: 600px;
+}
+
+/* @media normal screen */
+@media screen and (max-width: 768px) {
+    #main-container {
+        flex-grow: 1;
+    }
 }
