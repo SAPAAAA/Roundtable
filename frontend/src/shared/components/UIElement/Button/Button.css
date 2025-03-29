@@ -1,7 +1,6 @@
 .btn-hover:hover {
     background-color: #f8f9fa;
     color: #000;
-    border-color: #f8f9fa;
 }
 
 .btn-icon {
@@ -14,10 +13,22 @@
 .btn-outline-depth-1 {
     border-width: 1px;
 }
+
 .btn-outline-depth-2 {
     border-width: 2px;
 }
+
 .btn-outline-depth-3 {
     border-width: 3px;
 }
+
+.btn-icon:hover .icon {
+    fill: var(--var-icon-hover-color);
+}
+
+.btn-icon .icon {
+    fill: var(--var-icon-primary-color);
+}
+
+
 
