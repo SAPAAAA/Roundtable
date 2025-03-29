@@ -1,13 +1,19 @@
-import React from 'react';
+import React, {useState} from 'react';
 import Header from '@layout/components/Header/Header';
 import Footer from "@layout/components/Footer/Footer";
 import Content from "@layout/components/Content/Content";
 
 const App = () => {
+    const [isSidebarVisible, setSidebarVisible] = useState(false);
+
+    const toggleSidebar = () => {
+        setSidebarVisible(prev => !prev);
+    };
+
     return (
         <div>
-            <Header/>
-            <Content/>
+            <Header toggleSidebar={toggleSidebar} isSidebarVisible={isSidebarVisible}/>
+            <Content toggleSidebar={toggleSidebar} isSidebarVisible={isSidebarVisible}/>
             <Footer/>
         </div>
     );
