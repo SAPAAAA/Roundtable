@@ -51,7 +51,9 @@ export default function LeftSidebar(props) {
                         id="sidebar-toggle"
                         addClass="bg-white"
                         contentType="icon"
-                        tooltip="Toggle Sidebar"
+                        dataBsToggle="tooltip"
+                        dataBsTrigger="hover focus"
+                        tooltipTitle="Toggle Sidebar"
                         tooltipPlacement="bottom"
                         onClick={props.toggleSidebar}
                     >

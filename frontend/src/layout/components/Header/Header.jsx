@@ -6,10 +6,10 @@ import Icon from "@shared/components/UIElement/Icon/Icon.jsx";
 
 export default function Header(props) {
     return (
-        <header>
+        <header id="header-container">
             <nav
-                className="navbar navbar-expand-lg bg-primary fixed-top d-flex align-items-center"
-                data-bs-theme="dark"
+                className="navbar navbar-expand-lg fixed-top d-flex align-items-center"
+                id="header"
             >
                 <div className="container-fluid d-flex align-items-center justify-content-between flex-nowrap">
 
@@ -19,7 +19,9 @@ export default function Header(props) {
                             id="header-left-sidebar-toggle"
                             onClick={props.toggleSidebar}
                             contentType="icon"
-                            tooltip="Toggle Sidebar"
+                            dataBsToggle="tooltip"
+                            dataBsTrigger="hover focus"
+                            tooltipTitle="Toggle Sidebar"
                             tooltipPlacement="bottom"
                         >
                             <Icon
@@ -27,7 +29,10 @@ export default function Header(props) {
                                 size="20px"
                             />
                         </Button>
-                        <a className="navbar-brand mb-0 h1" href="#">
+                        <a
+                            className="nav-brand mb-0"
+                            id="header-brand"
+                            href="#">
                             Navbar
                         </a>
                     </div>
@@ -59,7 +64,9 @@ export default function Header(props) {
                             <Button
                                 aria-current="page"
                                 contentType="icon"
-                                tooltip="Chat"
+                                dataBsToggle="tooltip"
+                                dataBsTrigger="hover focus"
+                                tooltipTitle="Chat"
                                 tooltipPlacement="bottom"
                             >
                                 <Icon
@@ -71,7 +78,9 @@ export default function Header(props) {
                         <li className="nav-item">
                             <Button
                                 contentType="icon"
-                                tooltip="Notifications"
+                                dataBsToggle="tooltip"
+                                dataBsTrigger="hover focus"
+                                tooltipTitle="Notifications"
                                 tooltipPlacement="bottom"
                             >
                                 <Icon
@@ -83,7 +92,9 @@ export default function Header(props) {
                         <li className="nav-item">
                             <Button
                                 dropdown
-                                tooltip="User menu"
+                                dataBsToggle="tooltip"
+                                dataBsTrigger="hover focus"
+                                tooltipTitle="User menu"
                                 tooltipPlacement="bottom"
                                 contentType="icon"
                                 padding="1"
