@@ -2,59 +2,82 @@ import React, {useEffect, useRef} from 'react';
 import './Button.css';
 
 export default function Button(props) {
+
+    const {
+        id,                // Unique identifier for the button
+        href,              // URL to navigate to when the button is clicked
+        contentType,       // Type of content inside the button (e.g., 'icon', 'text')
+        onClick,           // Click event handler function
+        outline,           // Outline style configuration for the button
+        background,        // Background style configuration for the button
+        padding,           // Padding size for the button
+        mainClass,         // Main CSS class for the button
+        addClass,          // Additional CSS classes for the button
+        tooltipPlacement,  // Tooltip placement position
+        tooltipTitle,      // Tooltip text
+        dataBsToggle,      // Bootstrap toggle attribute (e.g., 'tooltip', 'modal')
+        dataBsTarget,      // Bootstrap target attribute
+        dataBsTrigger,     // Bootstrap trigger attribute
+        dataBsDismiss,     // Bootstrap dismiss attribute
+        ariaLabel,         // ARIA label for accessibility
+    } = props;
+
     const buttonRef = useRef(null);
     const tooltipInstance = useRef(null);
 
     useEffect(() => {
-        if (props.tooltip && window.bootstrap && buttonRef.current) {
+        if (tooltipTitle && window.bootstrap && buttonRef.current) {
             tooltipInstance.current = new window.bootstrap.Tooltip(buttonRef.current);
         }
 
         return () => {
             tooltipInstance.current?.dispose();
         };
-    }, [props.tooltip]);
+    }, [tooltipTitle]);
 
     const handleClick = (e) => {
-        props.onClick?.(e);
+        onClick?.(e);
         tooltipInstance.current?.hide();
     };
 
     // Build dynamic class names
-    const outlineClass = props.outline
-        ? `btn-outline-${props.outline.color}${props.outline.depth ? ` btn-outline-depth-${props.outline.depth}` : ''}`
+    const outlineClass = outline
+        ? `btn-outline-${outline.color}${outline.depth ? ` btn-outline-depth-${outline.depth}` : ''}`
         : '';
 
-    const backgroundClass = props.background
-        ? `bg-${props.background.color}`
+    const backgroundClass = background
+        ? `bg-${background.color}`
         : '';
 
     // Use the passed padding prop or default to "p-2"
-    const paddingClass = props.padding ? props.padding : "2";
+    const paddingClass = padding ? padding : "2";
 
     const commonProps = {
-        id: props.id,
+        id: id,
         ref: buttonRef,
-        className: `${props.mainClass || ''} btn btn-hover ${props.contentType === 'icon' ? 'btn-icon' : ''} ${outlineClass} ${backgroundClass} rounded-pill d-flex justify-content-center align-items-center p-${paddingClass} ${props.addClass || ''}`,
+        className: `${mainClass || ''} btn btn-hover ${contentType === 'icon' ? 'btn-icon' : ''} ${outlineClass} ${backgroundClass} rounded-pill d-flex justify-content-center align-items-center p-${paddingClass} ${addClass || ''}`,
         onClick: handleClick,
-        'data-bs-toggle': props.tooltip ? 'tooltip' : undefined,
-        'data-bs-placement': props.tooltip ? props.tooltipPlacement || 'top' : undefined,
-        'data-bs-trigger': props.tooltip ? 'hover focus' : undefined,
-        'data-bs-title': props.tooltip || undefined
+        'data-bs-toggle': dataBsToggle || undefined,
+        'data-bs-placement': dataBsToggle === 'tooltip' ? tooltipPlacement : undefined,
+        'data-bs-trigger': dataBsTrigger || undefined,
+        'data-bs-target': dataBsTarget || undefined,
+        'data-bs-title': tooltipTitle || undefined,
+        'data-bs-dismiss': dataBsDismiss || undefined,
+        'aria-label': ariaLabel || undefined,
     };
 
-    if (props.href) {
-        if (props.contentType === 'icon') {
+    if (href) {
+        if (contentType === 'icon') {
             return (
                 <button {...commonProps}>
-                    <a href={props.href} className="text-decoration-none text-white">
+                    <a href={href} className="text-decoration-none text-white">
                         {props.children}
                     </a>
                 </button>
             );
-        } else {
+        } else if (contentType === 'text') {
             return (
-                <a {...commonProps} href={props.href}>
+                <a {...commonProps} href={href}>
                     {props.children}
                 </a>
             );
