@@ -2,25 +2,55 @@ import React, {useEffect, useRef} from 'react';
 import './Button.css';
 
 /**
+ * A highly flexible and Bootstrap-compatible button component.
+ *
+ * Supports:
+ * - Dynamic rendering as `<button>` or `<a>` based on `href`
+ * - Optional outline/background styles
+ * - Tooltip integration via Bootstrap
+ * - External link handling
+ * - Icon or text-based content types
+ * - Utility props for accessibility, spacing, and interaction
+ *
+ * @component
+ *
  * @param {object} props
- * @param {string} [props.id]
- * @param {string} [props.href]
- * @param {('icon'|'text')} [props.contentType]
- * @param {(event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void} [props.onClick]
- * @param {object} [props.outline]
- * @param {object} [props.background]
- * @param {string|number} [props.padding]
- * @param {string} [props.mainClass]
- * @param {string} [props.addClass]
- * @param {string} [props.tooltipPlacement]
- * @param {string} [props.tooltipTitle]
- * @param {string} [props.dataBsToggle]
- * @param {string} [props.dataBsTarget]
- * @param {string} [props.dataBsTrigger]
- * @param {string} [props.dataBsDismiss]
- * @param {string} [props.ariaLabel]
- * @param {boolean} [props.disabled]
- * @param {React.ReactNode} props.children
+ * @param {string} [props.id] - Unique ID for the element.
+ * @param {string} [props.href] - If set, renders as a link (anchor) instead of a button.
+ * @param {'icon'|'text'} [props.contentType] - Controls visual layout styling (e.g. icon buttons).
+ * @param {(event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void} [props.onClick] - Click handler.
+ * @param {{ color: string, depth?: string }} [props.outline] - Outline styling (e.g. `{ color: 'primary', depth: '2' }`).
+ * @param {{ color: string }} [props.background] - Background styling (e.g. `{ color: 'success' }`).
+ * @param {string|number} [props.padding] - Bootstrap padding size (e.g. `'3'`, `'p-1'`).
+ * @param {string} [props.mainClass] - Main CSS class(es).
+ * @param {string} [props.addClass] - Extra CSS class(es).
+ * @param {string} [props.tooltipPlacement] - Tooltip placement (e.g., `'top'`, `'bottom'`).
+ * @param {string} [props.tooltipTitle] - Tooltip text.
+ * @param {string} [props.dataBsToggle] - Bootstrap toggle attribute (e.g., `'tooltip'`, `'modal'`).
+ * @param {string} [props.dataBsTarget] - Bootstrap target attribute.
+ * @param {string} [props.dataBsTrigger] - Bootstrap trigger attribute.
+ * @param {string} [props.dataBsDismiss] - Bootstrap dismiss attribute.
+ * @param {string} [props.ariaLabel] - ARIA label for accessibility.
+ * @param {boolean} [props.disabled=false] - Whether the button is disabled.
+ * @param {React.ReactNode} props.children - The button's content.
+ *
+ * @returns {JSX.Element} A fully styled, behavior-rich button or anchor element.
+ *
+ * @example
+ * // Basic usage
+ * <Button onClick={() => alert('Clicked!')}>Click Me</Button>
+ *
+ * @example
+ * // With icon styling and tooltip
+ * <Button
+ *   href="https://example.com"
+ *   contentType="icon"
+ *   tooltipTitle="Go to site"
+ *   tooltipPlacement="bottom"
+ *   mainClass="text-primary"
+ * >
+ *   <Icon name="menu" size="24px" />
+ * </Button>
  */
 export default function Button(props) {
     const {
