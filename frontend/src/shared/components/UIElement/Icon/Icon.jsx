@@ -1,6 +1,24 @@
 import React from 'react';
 import './Icon.css';
 
+/**
+ * Renders a customizable SVG icon based on a predefined icon set.
+ *
+ * @component
+ *
+ * @param {object} props
+ * @param {string} props.name - The name of the icon to display (e.g., `'menu'`, `'chat'`, `'upvote'`).
+ * @param {string | number} [props.size] - Width and height of the icon (e.g., `'24px'`, `16`).
+ * @param {string} [props.padding] - Padding around the icon container (e.g., `'0.5rem'`, `'10px'`).
+ * @param {string} [props.mainClass] - Main CSS class for styling the icon.
+ * @param {string} [props.addClass] - Additional CSS classes for the icon.
+ * @param {string} [props.id] - Optional `id` for the `<svg>` element.
+ *
+ * @returns {JSX.Element | null} A styled SVG icon, or `null` if the name is invalid.
+ *
+ * @example
+ * <Icon name="menu" size="20px" padding="0.25rem" mainClass="text-primary" />
+ */
 export default function Icon(props) {
     const iconStyle = {
         width: props.size,
