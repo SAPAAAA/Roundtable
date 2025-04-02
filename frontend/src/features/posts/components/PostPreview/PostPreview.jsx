@@ -48,7 +48,9 @@ export default function PostPreview(props) {
 					<Button
 						mainClass="upvote-button"
 						contentType="icon"
-						tooltip="Upvote"
+						dataBsToggle="tooltip"
+						dataBsTrigger="hover focus"
+						tooltipTitle="Upvote"
 						tooltipPlacement="top"
 						padding="2"
 						onClick={handleUpvote}
@@ -62,7 +64,9 @@ export default function PostPreview(props) {
 					<Button
 						mainClass="downvote-button"
 						contentType="icon"
-						tooltip="Downvote"
+						dataBsToggle="tooltip"
+						dataBsTrigger="hover focus"
+						tooltipTitle="Downvote"
 						tooltipPlacement="top"
 						padding="2"
 						onClick={handleDownvote}
@@ -76,7 +80,9 @@ export default function PostPreview(props) {
 				<div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
 					<Button
 						contentType="icon"
-						tooltip="Comment"
+						dataBsToggle="tooltip"
+						dataBsTrigger="hover focus"
+						tooltipTitle="Comment"
 						tooltipPlacement="top"
 						padding="2"
 					>
@@ -89,7 +95,9 @@ export default function PostPreview(props) {
 				<div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
 					<Button
 						contentType="icon"
-						tooltip="Share"
+						dataBsToggle="tooltip"
+						dataBsTrigger="hover focus"
+						tooltipTitle="Share"
 						tooltipPlacement="top"
 						padding="2"
 					>
