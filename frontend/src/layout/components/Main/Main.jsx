@@ -8,7 +8,7 @@ import "./Main.css";
 export default function Main(props) {
     return (
         <BrowserRouter>
-            {/* <Routes>
+            <Routes>
                 <Route path="/" element={
                     <div id={props.id} className="d-flex flex-row mx-auto">
                         <main className="container-fluid mx-auto">
@@ -19,8 +19,6 @@ export default function Main(props) {
                         </RightSidebar>
                     </div>
                 }/>
-            </Routes> */}
-            <Routes>
                 <Route path="/comment" element={
                     <div id={props.id} className="d-flex flex-row mx-auto">
                         <main className="container-fluid mx-auto">

@@ -137,7 +137,7 @@ export default function Icon(props) {
                 </>
             ),
         },
-        dots:{
+        three_dots: {
             viewBox: "0 0 16 16",
             path:(
                 <>
