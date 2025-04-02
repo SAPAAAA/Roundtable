@@ -9,7 +9,7 @@
 }
 
 
-.upvote-icon, .downvote-icon, .comment-icon, .share-icon {
+.upvote-icon, .downvote-icon, .comment-icon, .share-icon, .option-icon {
     fill: var(--var-icon-hover-color) !important;
 }
 

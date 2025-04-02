@@ -107,6 +107,21 @@ export default function PostPreview(props) {
 							size="15px"/>
 					</Button>
 				</div>
+				<div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
+					<Button
+						contentType="icon"
+						dataBsToggle="tooltip"
+						dataBsTrigger="hover focus"
+						tooltipTitle="Options"
+						tooltipPlacement="top"
+						padding="2"
+					>
+						<Icon
+							mainClass="option-icon"
+							name="three_dots"
+							size="15px"/>
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

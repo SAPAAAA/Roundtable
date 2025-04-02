@@ -19,6 +19,16 @@ export default function Main(props) {
                         </RightSidebar>
                     </div>
                 }/>
+                <Route path="/comment" element={
+                    <div id={props.id} className="d-flex flex-row mx-auto">
+                        <main className="container-fluid mx-auto">
+                            <Home/>
+                        </main>
+                        <RightSidebar id="right-sidebar-container">
+                            <div/>
+                        </RightSidebar>
+                    </div>
+                }/>
             </Routes>
         </BrowserRouter>
     );

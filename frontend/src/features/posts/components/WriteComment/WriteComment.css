@@ -1,0 +1,21 @@
+.customCancel{
+    background-color:rgba(216, 211, 211, 0.4) ;
+}
+.customComment{
+    background-color: #112D4E;
+    color: #fff;
+}
+.customComment:hover{
+    background-color: #112D4E !important;
+    color: #fff;
+
+}
+.customCancel:hover{
+    background-color:rgba(216, 211, 211, 0.4) !important;
+}
+/* .btn-small {
+    font-size: 15px;
+    font-weight: bold;
+    line-height: normal; 
+
+} */
