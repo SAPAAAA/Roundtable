@@ -4,7 +4,6 @@
     border-radius: 6px;
     background-color: #fff;
     padding: 1rem;
-    font-family: sans-serif;
   }
   
   .right-sidebar__header {
@@ -36,6 +35,18 @@
     border-bottom: 1px solid #eee;
   }
   
+  .post-item__info:hover{
+    text-decoration: underline;
+  }
+  
+  .post-item__subtable:hover{
+    text-decoration: underline;
+  }
+
+  .post-item__title:hover{
+    text-decoration: underline;
+  }
+
   .post-item__subreddit {
     color: #555;
     font-weight: bold;
