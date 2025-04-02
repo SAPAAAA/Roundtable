@@ -11,21 +11,37 @@
 [data-theme="dark"] #header {
     background-color: var(--var-cultured);
     color: var(--var-space-cadet) !important;
+    text-decoration: none;
 }
 
 [data-theme="light"] #header {
     background-color: var(--var-space-cadet);
     color: var(--var-cultured) !important;
+    text-decoration: none;
 }
 
+[data-theme="light"] .btn,
 [data-theme="light"] #header a,
 [data-theme="light"] #header a:visited {
     color: var(--var-cultured) !important;
     text-decoration: none;
 }
 
+[data-theme="light"] .btn:hover {
+    color: var(--var-space-cadet) !important;
+    text-decoration: none;
+}
+
+[data-theme="dark"] .btn,
 [data-theme="dark"] #header a,
 [data-theme="dark"] #header a:visited {
     color: var(--var-space-cadet) !important;
+    text-decoration: none;
+}
+
+[data-theme="dark"] .btn:hover,
+[data-theme="dark"] #header a:hover,
+[data-theme="dark"] #header a:active {
+    color: var(--var-cultured) !important;
     text-decoration: none;
 }
