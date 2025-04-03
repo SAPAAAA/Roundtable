@@ -9,12 +9,13 @@ import "./PostPreview.css";
 import {useVote} from "./vote-hook.js"
 
 export default function PostPreview(props) {
+
 	const {
 		voteStatus,
 		voteCount,
 		handleUpvote,
 		handleDownvote
-	} = useVote(props.post.upvotes);
+	} = useVote({initialCount: props.post.upvotes, initialVoteStatus: null}, props.post.id);
 
 	return (
 		<div className="card p-3 my-3">

@@ -17,7 +17,7 @@ import './Input.css';
  * @param {(e: React.InvalidEvent<HTMLInputElement>) => void} [props.onInvalid] - Validation fail handler.
  * @param {(e: React.FormEvent<HTMLInputElement>) => void} [props.onInput] - Input handler.
  * @param {React.CSSProperties} [props.style] - Inline styles for the input.
- * @param {string|React.ReactNode} [props.addon='@'] - Addon text or icon shown in the input group.
+ * @param {React.ReactNode} [props.addon] - Optional addon element (e.g., icon).
  * @param {string} [props.label] - Floating label text for the input.
  * @param {string} [props.mainClass] - Main class applied to the input.
  * @param {string} [props.addClass] - Additional class(es) for the input.
@@ -70,7 +70,7 @@ export default function Input(props) {
 
     return (
         <div className="input-group has-validation mb-3">
-            <span className="input-group-text">{addon || '@'}</span>
+            {addon && <span className="input-group-text">{addon}</span>}
             <div className={`form-floating ${validationClass}`}>
                 <input
                     id={id}
