@@ -50,7 +50,7 @@
     background-color: rgba(var(--bs-normal-rgb), var(--bs-bg-opacity)) !important;
 } */
 /* .upvote-icon, .downvote-icon, .comment-icon, .share-icon {
-    fill: var(--var-icon-hover-color) !important;
+    fill: var(--var-hover-color) !important;
 } */
 /* .vote-container.upvoted {
     --bs-bg-opacity: 1;

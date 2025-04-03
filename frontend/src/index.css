@@ -7,8 +7,8 @@
     font-style: normal;
     font-variation-settings: "wdth" 100;
 
-    --var-icon-hover-color: var(--var-space-cadet);
-    --var-icon-primary-color: var(--var-cultured);
+    --var-hover-color: var(--var-space-cadet);
+    --var-primary-color: var(--var-cultured);
 
     --var-cultured: #F9F7F7;
     --var-azureish-white: #DBE2EF;
@@ -24,8 +24,8 @@
 }
 
 [data-theme="dark"] {
-    --var-icon-hover-color: var(--var-cultured);
-    --var-icon-primary-color: var(--var-space-cadet);
+    --var-hover-color: var(--var-cultured);
+    --var-primary-color: var(--var-space-cadet);
 
     html, body {
         background-color: var(--var-space-cadet);
@@ -33,8 +33,8 @@
 }
 
 [data-theme="light"] {
-    --var-icon-hover-color: var(--var-space-cadet);
-    --var-icon-primary-color: var(--var-cultured);
+    --var-hover-color: var(--var-space-cadet);
+    --var-primary-color: var(--var-cultured);
 
     html, body {
         background-color: var(--var-cultured);

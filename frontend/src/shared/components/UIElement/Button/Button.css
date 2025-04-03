@@ -23,11 +23,11 @@
 }
 
 .btn-icon:hover .icon {
-    fill: var(--var-icon-hover-color);
+    fill: var(--var-hover-color);
 }
 
 .btn-icon .icon {
-    fill: var(--var-icon-primary-color);
+    fill: var(--var-primary-color);
 }
 
 
