@@ -24,7 +24,7 @@ import './Link.css';
 export default function Link(props) {
     // Destructure known props. Note reloadDocument is destructured WITHOUT a default value.
     const {
-        to: href,
+        href,
         children,
         className = '',
         isDropdown = false,

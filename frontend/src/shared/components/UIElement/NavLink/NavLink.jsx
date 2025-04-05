@@ -10,7 +10,7 @@ import './NavLink.css';
  * Leverages NavLink's ability to dynamically apply styles/classes based on matching state.
  *
  * @param {object} props - The component props.
- * @param {string|object} props.to - The path or location object to link to (required). Passed to React Router's NavLink.
+ * @param {string|object} props.href - The destination URL or location object.
  * @param {React.ReactNode} props.children - The content to display within the link. Can also be a render prop `({ isActive, isPending }) => ReactNode`.
  * @param {string} [props.className=''] - Base CSS classes to apply to the link, regardless of state.
  * @param {string} [props.activeClassName='active'] - CSS class to apply when the link is active.
@@ -34,7 +34,7 @@ export default function NavLink(props) {
     // Destructure known props, giving defaults where applicable.
     // Note: reloadDocument is destructured WITHOUT a default value for presence checking.
     const {
-        to: href,
+        href,
         children,
         className = '',
         style: baseStyle = {},
