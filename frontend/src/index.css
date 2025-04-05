@@ -7,59 +7,47 @@
     font-style: normal;
     font-variation-settings: "wdth" 100;
 
-    --var-hover-color: var(--var-space-cadet);
-    --var-primary-color: var(--var-cultured);
-
+    /* Light Theme Palette */
     --var-cultured: #F9F7F7;
     --var-azureish-white: #DBE2EF;
     --var-steel-blue: #3F72AF;
     --var-deer: #c08d50;
     --var-space-cadet: #112D4E;
 
-    --cultured-rgb: 249, 247, 247;
-    --azureish-white-rgb: 219, 226, 239;
-    --steel-blue-rgb: 63, 114, 175;
-    --deer-rgb: 192, 141, 80;
-    --space-cadet-rgb: 17, 45, 78;
-}
-
-[data-theme="dark"] {
-    --var-hover-color: var(--var-cultured);
-    --var-primary-color: var(--var-space-cadet);
-
-    html, body {
-        background-color: var(--var-space-cadet);
-    }
-}
-
-[data-theme="light"] {
     --var-hover-color: var(--var-space-cadet);
     --var-primary-color: var(--var-cultured);
+}
 
+/* Light Theme Application */
+[data-theme="light"] {
     html, body {
         background-color: var(--var-cultured);
+        color: var(--var-space-cadet);
     }
+
+    --var-hover-color: var(--var-space-cadet);
+    --var-primary-color: var(--var-cultured);
 }
 
-/* Apply to entire app */
+/* Base styles */
 html, body {
-    font-family: inherit; /* Use the font from :root */
+    font-family: inherit;
     height: 100%;
+    margin: 0;
 }
 
-/* Apply to all elements */
 * {
     box-sizing: border-box;
-    font-family: inherit; /* Makes sure everything inherits from :root */
+    font-family: inherit;
 }
 
-/* Font size classes */
+/* Font size utilities */
 .fs-7 {
-    font-size: 0.75em !important; /* Smaller than fs-6 (0.875rem) */
+    font-size: 0.75em !important;
 }
 
 .fs-8 {
-    font-size: 0.625em !important; /* Very small */
+    font-size: 0.625em !important;
 }
 
 .fs-9 {
@@ -70,27 +58,24 @@ html, body {
     font-size: 0.375em !important;
 }
 
-/* Light Gray Background */
+/* Background classes — Light Theme */
 .bg-cultured {
     background-color: var(--var-cultured);
 }
 
-/* Pale Blue Background */
 .bg-azureish-white {
     background-color: var(--var-azureish-white);
 }
 
-/* Strong Blue Background */
 .bg-strong-blue {
     background-color: var(--var-steel-blue);
 }
 
-/* Deep Navy Background */
 .bg-deep-navy {
     background-color: var(--var-space-cadet);
 }
 
-/* Text versions */
+/* Text classes — Light Theme */
 .text-cultured {
     color: var(--var-cultured);
 }
@@ -106,7 +91,3 @@ html, body {
 .text-deep-navy {
     color: var(--var-space-cadet);
 }
-
-
-
-
