@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Link} from 'react-router-dom';
+import Link from '@shared/components/UIElement/Link/Link';
 import './Login.css';
 import Input from '@shared/components/UIElement/Input/Input';
 import Button from '@shared/components/UIElement/Button/Button';
