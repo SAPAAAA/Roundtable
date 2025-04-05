@@ -18,7 +18,7 @@ export default function PostPreview(props) {
 	} = useVote({initialCount: props.post.upvotes, initialVoteStatus: null}, props.post.id);
 
 	return (
-		<div className="card p-3 my-3">
+		<div className="post-preview-container card p-3 my-3">
 			{/* Subreddit Info */}
 			<div className="d-flex align-items-center mb-2">
 				<Avatar
