@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Header.css';
 import Button from '@shared/components/UIElement/Button/Button';
 import Avatar from "@shared/components/UIElement/Avatar/Avatar";
@@ -42,7 +43,7 @@ export default function Header(props) {
                         className="container-fluid d-flex justify-content-center"
                         id="header-search-bar"
                         role="search"
-                        style={{maxWidth: "500px", minWidth: "40%"}}
+                        style={{ maxWidth: "500px", minWidth: "40%" }}
                     >
                         <input
                             className="form-control w-100 rounded-pill"
@@ -51,8 +52,8 @@ export default function Header(props) {
                             aria-label="Search"
                         />
                         <button className="btn btn-outline-light"
-                                type="submit"
-                                style={{display: "none"}}
+                            type="submit"
+                            style={{ display: "none" }}
                         >
                             Search
                         </button>
@@ -60,6 +61,17 @@ export default function Header(props) {
 
                     {/* Right Nav Items */}
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
+                        {/* button login/register */}
+                        <li className="nav-item">
+                            {/* <Link to="/login"> */}
+                                <Button
+                                    contentType="text"
+                                    className="btn-outline-light"
+                                >
+                                    Login
+                                </Button>
+                            {/* </Link> */}
+                        </li>
                         <li className="nav-item">
                             <Button
                                 aria-current="page"
