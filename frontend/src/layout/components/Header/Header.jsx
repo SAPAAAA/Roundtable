@@ -152,7 +152,7 @@ export default function Header(props) {
                                 >
                                     <div className="popover-user-info">
                                         <Link
-                                            href="#"
+                                            href="/"
                                             isDropdown>
                                             <div className="d-flex flex-row gap-2 align-items-center">
                                                 <div className="d-flex align-items-center justify-content-center">
@@ -179,10 +179,9 @@ export default function Header(props) {
                                     {/* Menu Items */}
                                     <div className="popover-menu-items">
                                         <Link
-                                            href="#"
+                                            href="/"
                                             isDropdown
                                             className="popover-menu-item"
-                                            role="menuitem"
                                             onClick={() => handleMenuItemClick()}
                                         >
                                             <Icon name="settings" size="18px"/>
@@ -195,10 +194,10 @@ export default function Header(props) {
                                     {/* Logout */}
                                     <div>
                                         <Link
-                                            href="#"
+                                            href="/"
                                             isDropdown
                                             className="popover-menu-item"
-                                            role="menuitem"
+                                            reloadDocument
                                             onClick={() => handleMenuItemClick(onLogout)}
                                         >
                                             <Icon name="logout" size="18px"/>
