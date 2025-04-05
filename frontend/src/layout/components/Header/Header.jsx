@@ -1,10 +1,48 @@
-import React from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import './Header.css';
 import Button from '@shared/components/UIElement/Button/Button';
 import Avatar from "@shared/components/UIElement/Avatar/Avatar";
-import Icon from "@shared/components/UIElement/Icon/Icon.jsx";
+import Icon from "@shared/components/UIElement/Icon/Icon";
+import Link from "@shared/components/UIElement/Link/Link";
+import Identifier from "@shared/components/UIElement/Identifier/Identifier"; // Make sure Icon component is available
 
 export default function Header(props) {
+    const {
+        toggleSidebar,
+        onLogout, // Expect function: () => void for logout action
+        user = {
+            username: 'User',
+            avatar: 'https://avatars.githubusercontent.com/u/55435868?v=4'
+        }
+    } = props;
+
+    const [showPopover, setShowPopover] = useState(false);
+    const avatarRef = useRef(null);
+    const popoverRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (
+                popoverRef.current &&
+                !popoverRef.current.contains(event.target) &&
+                avatarRef.current && // Check avatarRef exists
+                !avatarRef.current.contains(event.target)
+            ) {
+                setShowPopover(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []); // Removed popoverRef/avatarRef from deps as they don't change
+
+    const handleMenuItemClick = (action) => {
+        if (action) {
+            action();
+        }
+        setShowPopover(false); // Close popover after clicking an item
+    };
+
     return (
         <header id="header-container">
             <nav
@@ -17,17 +55,14 @@ export default function Header(props) {
                     <div className="d-flex align-items-center flex-shrink-0 column-gap-2">
                         <Button
                             id="header-left-sidebar-toggle"
-                            onClick={props.toggleSidebar}
+                            onClick={toggleSidebar} // Use prop directly
                             contentType="icon"
                             dataBsToggle="tooltip"
                             dataBsTrigger="hover focus"
                             tooltipTitle="Toggle Sidebar"
                             tooltipPlacement="bottom"
                         >
-                            <Icon
-                                name="menu"
-                                size="20px"
-                            />
+                            <Icon name="menu" size="20px"/>
                         </Button>
                         <a
                             className="nav-brand mb-0"
@@ -60,6 +95,7 @@ export default function Header(props) {
 
                     {/* Right Nav Items */}
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
+                        {/* Chat Button */}
                         <li className="nav-item">
                             <Button
                                 aria-current="page"
@@ -69,12 +105,10 @@ export default function Header(props) {
                                 tooltipTitle="Chat"
                                 tooltipPlacement="bottom"
                             >
-                                <Icon
-                                    name="chat"
-                                    size="20px"
-                                />
+                                <Icon name="chat" size="20px"/>
                             </Button>
                         </li>
+                        {/* Notifications Button */}
                         <li className="nav-item">
                             <Button
                                 contentType="icon"
@@ -83,29 +117,96 @@ export default function Header(props) {
                                 tooltipTitle="Notifications"
                                 tooltipPlacement="bottom"
                             >
-                                <Icon
-                                    name="bell"
-                                    size="20px"
-                                />
+                                <Icon name="bell" size="20px"/>
                             </Button>
                         </li>
-                        <li className="nav-item">
-                            <Button
-                                dropdown
-                                dataBsToggle="tooltip"
-                                dataBsTrigger="hover focus"
-                                tooltipTitle="User menu"
-                                tooltipPlacement="bottom"
-                                contentType="icon"
-                                padding="1"
-                            >
-                                <Avatar
-                                    src="https://avatars.githubusercontent.com/u/55435868?v=4"
-                                    alt="User"
-                                    width="25"
-                                    height="25"
-                                />
-                            </Button>
+                        {/* Avatar and Popover */}
+                        <li className="nav-item position-relative">
+                            {/* Ref added to the container div */}
+                            <div ref={avatarRef}>
+                                <Button
+                                    // Removed dropdown prop if not used by Button styling
+                                    dataBsToggle="tooltip"
+                                    dataBsTrigger="hover focus"
+                                    tooltipTitle="User menu"
+                                    tooltipPlacement="bottom"
+                                    contentType="icon"
+                                    padding="1" // Check if this prop works as intended
+                                    onClick={() => setShowPopover((prev) => !prev)}
+                                    aria-haspopup="true" // Accessibility
+                                    aria-expanded={showPopover} // Accessibility
+                                >
+                                    <Avatar
+                                        src="https://avatars.githubusercontent.com/u/55435868?v=4"
+                                        alt="User"
+                                        width="25"
+                                        height="25"
+                                    />
+                                </Button>
+                            </div>
+
+                            {showPopover && (
+                                <div
+                                    ref={popoverRef}
+                                    className="popover-menu fs-7"
+                                >
+                                    <div className="popover-user-info">
+                                        <Link
+                                            href="#"
+                                            isDropdown>
+                                            <div className="d-flex flex-row gap-2 align-items-center">
+                                                <div className="d-flex align-items-center justify-content-center">
+                                                    <Avatar
+                                                        src="https://avatars.githubusercontent.com/u/55435868?v=4"
+                                                        alt="User"
+                                                        width="25"
+                                                        height="25"
+                                                    />
+                                                </div>
+                                                <div className="d-flex flex-column">
+                                                    <div className="fw-bold">
+                                                        View Profile
+                                                    </div>
+                                                    <span className="text-muted fs-7">
+                                                        <Identifier type="username" namespace={user.username}/>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    </div>
+                                    <hr className="popover-divider"/>
+
+                                    {/* Menu Items */}
+                                    <div className="popover-menu-items">
+                                        <Link
+                                            href="#"
+                                            isDropdown
+                                            className="popover-menu-item"
+                                            role="menuitem"
+                                            onClick={() => handleMenuItemClick()}
+                                        >
+                                            <Icon name="settings" size="18px"/>
+                                            <span>Settings</span>
+                                        </Link>
+                                    </div>
+
+                                    <hr className="popover-divider"/>
+
+                                    {/* Logout */}
+                                    <div>
+                                        <Link
+                                            href="#"
+                                            isDropdown
+                                            className="popover-menu-item"
+                                            role="menuitem"
+                                            onClick={() => handleMenuItemClick(onLogout)}
+                                        >
+                                            <Icon name="logout" size="18px"/>
+                                            <span>Logout</span>
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                         </li>
                     </ul>
                 </div>
