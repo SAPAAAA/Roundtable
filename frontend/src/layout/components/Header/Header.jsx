@@ -62,7 +62,10 @@ export default function Header(props) {
                             tooltipTitle="Toggle Sidebar"
                             tooltipPlacement="bottom"
                         >
-                            <Icon name="menu" size="20px"/>
+                            <Icon
+                                name="menu"
+                                size="20px"
+                            />
                         </Button>
                         <a
                             className="nav-brand mb-0"
@@ -95,6 +98,17 @@ export default function Header(props) {
 
                     {/* Right Nav Items */}
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
+                        {/* button login/register */}
+                        <li className="nav-item">
+                            {/* <Link to="/login"> */}
+                            <Button
+                                contentType="text"
+                                className="btn-outline-light"
+                            >
+                                Login
+                            </Button>
+                            {/* </Link> */}
+                        </li>
                         {/* Chat Button */}
                         <li className="nav-item">
                             <Button
@@ -105,7 +119,10 @@ export default function Header(props) {
                                 tooltipTitle="Chat"
                                 tooltipPlacement="bottom"
                             >
-                                <Icon name="chat" size="20px"/>
+                                <Icon
+                                    name="chat"
+                                    size="20px"
+                                />
                             </Button>
                         </li>
                         {/* Notifications Button */}
@@ -117,7 +134,10 @@ export default function Header(props) {
                                 tooltipTitle="Notifications"
                                 tooltipPlacement="bottom"
                             >
-                                <Icon name="bell" size="20px"/>
+                                <Icon
+                                    name="bell"
+                                    size="20px"
+                                />
                             </Button>
                         </li>
                         {/* Avatar and Popover */}
