@@ -1,4 +1,4 @@
-.btn-hover:hover {
+.btn:hover {
     background-color: #f8f9fa;
     color: #000;
 }
@@ -23,11 +23,11 @@
 }
 
 .btn-icon:hover .icon {
-    fill: var(--var-hover-color);
+    fill: var(--header-btn-hover-color);
 }
 
 .btn-icon .icon {
-    fill: var(--var-primary-color);
+    fill: var(--header-btn-primary-color);
 }
 
 

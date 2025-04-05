@@ -3,6 +3,12 @@
     display: none !important;
 }
 
+/* Header */
+#header-container {
+    --header-btn-hover-color: var(--var-space-cadet);
+    --header-btn-primary-color: var(--var-cultured);
+}
+
 @media (max-width: 768px) {
     #header-left-sidebar-toggle {
         display: inline-block !important;
@@ -25,8 +31,6 @@
     margin: 0.5em 0;
 }
 
-/* ========== Header Styles ========== */
-
 /* Light Theme */
 [data-theme="light"] #header,
 [data-theme="light"] .popover-menu {
@@ -34,12 +38,12 @@
 }
 
 [data-theme="light"] #header,
-[data-theme="light"] #header * {
+[data-theme="light"] #header *,
+[data-theme="light"] #header .icon {
     color: var(--var-cultured);
     text-decoration: none;
 }
 
-[data-theme="light"] .btn:hover {
-    color: var(--var-space-cadet);
+[data-theme="light"] #header .btn:hover * {
+    color: var(--header-btn-hover-color) !important;
 }
-

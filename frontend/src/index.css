@@ -14,8 +14,11 @@
     --var-deer: #c08d50;
     --var-space-cadet: #112D4E;
 
-    --var-hover-color: var(--var-space-cadet);
-    --var-primary-color: var(--var-cultured);
+    --var-steel-blue-rgb: 63, 114, 175;
+    --var-deer-rgb: 192, 141, 80;
+    --var-space-cadet-rgb: 17, 45, 78;
+    --var-cultured-rgb: 249, 247, 247;
+    --var-azureish-white-rgb: 219, 226, 239;
 }
 
 /* Light Theme Application */
@@ -24,9 +27,6 @@
         background-color: var(--var-cultured);
         color: var(--var-space-cadet);
     }
-
-    --var-hover-color: var(--var-space-cadet);
-    --var-primary-color: var(--var-cultured);
 }
 
 /* Base styles */
