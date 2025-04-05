@@ -181,6 +181,7 @@ export default function Icon(props) {
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox={icon.viewBox}
+                fill="currentColor"
                 className={className}
                 style={iconStyle}
                 id={props.id}
