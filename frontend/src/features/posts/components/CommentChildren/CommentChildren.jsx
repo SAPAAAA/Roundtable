@@ -3,7 +3,7 @@ import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Button from "@shared/components/UIElement/Button/Button";
 import Icon from "@shared/components/UIElement/Icon/Icon";
 import './Comment.css'
-import {useVote} from "../PostPreview/vote-hook.js"
+import {useVote} from "../PostPreview/vote-hook.jsx"
 
 export default function CommentChildren(props) {
     const {
