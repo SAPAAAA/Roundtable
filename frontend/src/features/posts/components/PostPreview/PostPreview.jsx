@@ -6,7 +6,7 @@ import Button from "@shared/components/UIElement/Button/Button";
 import Icon from "@shared/components/UIElement/Icon/Icon";
 
 import "./PostPreview.css";
-import {useVote} from "./vote-hook.js"
+import {useVote} from "./vote-hook.jsx"
 
 export default function PostPreview(props) {
 
