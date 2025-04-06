@@ -4,17 +4,12 @@ import Button from '@shared/components/UIElement/Button/Button';
 import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Icon from "@shared/components/UIElement/Icon/Icon";
 import Link from "@shared/components/UIElement/Link/Link";
-import Identifier from "@shared/components/UIElement/Identifier/Identifier"; // Make sure Icon component is available
+import Identifier from "@shared/components/UIElement/Identifier/Identifier";
+import {useAuth} from "@features/auth/hooks/AuthContext.jsx";
 
 export default function Header(props) {
-    const {
-        toggleSidebar,
-        onLogout, // Expect function: () => void for logout action
-        user = {
-            username: 'User',
-            avatar: 'https://avatars.githubusercontent.com/u/55435868?v=4'
-        }
-    } = props;
+    const {toggleSidebar, openLoginModal} = props;
+    const {user, logout, isLoading} = useAuth();
 
     const [showPopover, setShowPopover] = useState(false);
     const avatarRef = useRef(null);
@@ -43,6 +38,12 @@ export default function Header(props) {
         setShowPopover(false); // Close popover after clicking an item
     };
 
+    const handleLogoutClick = async () => {
+        await logout();
+        // Maybe close popover if it was open
+        setShowPopover(false);
+    }
+
     return (
         <header id="header-container">
             <nav
@@ -67,12 +68,12 @@ export default function Header(props) {
                                 size="20px"
                             />
                         </Button>
-                        <a
+                        <Link
                             className="nav-brand mb-0"
                             id="header-brand"
-                            href="#">
+                            href="/">
                             Navbar
-                        </a>
+                        </Link>
                     </div>
 
                     {/* Center Search Bar */}
@@ -98,142 +99,143 @@ export default function Header(props) {
 
                     {/* Right Nav Items */}
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
-                        {/* button login/register */}
-                        <li className="nav-item">
-                            {/* <Link to="/login"> */}
-                            <Button
-                                contentType="text"
-                                dataBsToggle="tooltip"
-                                dataBsTrigger="hover focus"
-                                tooltipTitle="Login"
-                                tooltipPlacement="bottom"
-                            >
-                                <Link
-                                    href="/login"
-                                >
-                                    Login
-                                </Link>
-                            </Button>
-                            {/* </Link> */}
-                        </li>
-                        {/* Chat Button */}
-                        <li className="nav-item">
-                            <Button
-                                aria-current="page"
-                                contentType="icon"
-                                dataBsToggle="tooltip"
-                                dataBsTrigger="hover focus"
-                                tooltipTitle="Chat"
-                                tooltipPlacement="bottom"
-                            >
-                                <Icon
-                                    name="chat"
-                                    size="20px"
-                                />
-                            </Button>
-                        </li>
-                        {/* Notifications Button */}
-                        <li className="nav-item">
-                            <Button
-                                contentType="icon"
-                                dataBsToggle="tooltip"
-                                dataBsTrigger="hover focus"
-                                tooltipTitle="Notifications"
-                                tooltipPlacement="bottom"
-                            >
-                                <Icon
-                                    name="bell"
-                                    size="20px"
-                                />
-                            </Button>
-                        </li>
-                        {/* Avatar and Popover */}
-                        <li className="nav-item position-relative">
-                            {/* Ref added to the container div */}
-                            <div ref={avatarRef}>
+                        {isLoading ? (
+                            <li className="nav-item"><span className="navbar-text">Loading...</span></li> // Show loading indicator
+                        ) : !user ? ( // If not loading and no user
+                            <li className="nav-item">
                                 <Button
-                                    // Removed dropdown prop if not used by Button styling
+                                    contentType="text"
                                     dataBsToggle="tooltip"
                                     dataBsTrigger="hover focus"
-                                    tooltipTitle="User menu"
+                                    tooltipTitle="Login"
                                     tooltipPlacement="bottom"
-                                    contentType="icon"
-                                    padding="1" // Check if this prop works as intended
-                                    onClick={() => setShowPopover((prev) => !prev)}
-                                    aria-haspopup="true" // Accessibility
-                                    aria-expanded={showPopover} // Accessibility
+                                    onClick={openLoginModal}
                                 >
-                                    <Avatar
-                                        src="https://avatars.githubusercontent.com/u/55435868?v=4"
-                                        alt="User"
-                                        width="25"
-                                        height="25"
-                                    />
+                                    Login
                                 </Button>
-                            </div>
+                            </li>
+                        ) : (
+                            <>
+                                {/* Chat Button */}
+                                <li className="nav-item">
+                                    <Button
+                                        aria-current="page"
+                                        contentType="icon"
+                                        dataBsToggle="tooltip"
+                                        dataBsTrigger="hover focus"
+                                        tooltipTitle="Chat"
+                                        tooltipPlacement="bottom"
+                                    >
+                                        <Icon
+                                            name="chat"
+                                            size="20px"
+                                        />
+                                    </Button>
+                                </li>
+                                {/* Notifications Button */}
+                                <li className="nav-item">
+                                    <Button
+                                        contentType="icon"
+                                        dataBsToggle="tooltip"
+                                        dataBsTrigger="hover focus"
+                                        tooltipTitle="Notifications"
+                                        tooltipPlacement="bottom"
+                                    >
+                                        <Icon
+                                            name="bell"
+                                            size="20px"
+                                        />
+                                    </Button>
+                                </li>
+                                {/* Avatar and Popover */}
+                                <li className="nav-item position-relative">
+                                    {/* Ref added to the container div */}
+                                    <div ref={avatarRef}>
+                                        <Button
+                                            // Removed dropdown prop if not used by Button styling
+                                            dataBsToggle="tooltip"
+                                            dataBsTrigger="hover focus"
+                                            tooltipTitle="User menu"
+                                            tooltipPlacement="bottom"
+                                            contentType="icon"
+                                            padding="1" // Check if this prop works as intended
+                                            onClick={() => setShowPopover((prev) => !prev)}
+                                            aria-haspopup="true" // Accessibility
+                                            aria-expanded={showPopover} // Accessibility
+                                        >
+                                            <Avatar
+                                                src="https://avatars.githubusercontent.com/u/55435868?v=4"
+                                                alt="User"
+                                                width="25"
+                                                height="25"
+                                            />
+                                        </Button>
+                                    </div>
 
-                            {showPopover && (
-                                <div
-                                    ref={popoverRef}
-                                    className="popover-menu fs-7"
-                                >
-                                    <div className="popover-user-info">
-                                        <Link
-                                            href="/"
-                                            isDropdown>
-                                            <div className="d-flex flex-row gap-2 align-items-center">
-                                                <div className="d-flex align-items-center justify-content-center">
-                                                    <Avatar
-                                                        src="https://avatars.githubusercontent.com/u/55435868?v=4"
-                                                        alt="User"
-                                                        width="25"
-                                                        height="25"
-                                                    />
-                                                </div>
-                                                <div className="d-flex flex-column">
-                                                    <div className="fw-bold">
-                                                        View Profile
-                                                    </div>
-                                                    <span className="text-muted fs-7">
+                                    {showPopover && (
+                                        <div
+                                            ref={popoverRef}
+                                            className="popover-menu fs-7"
+                                        >
+                                            <div className="popover-user-info">
+                                                <Link
+                                                    href="/"
+                                                    isDropdown>
+                                                    <div className="d-flex flex-row gap-2 align-items-center">
+                                                        <div
+                                                            className="d-flex align-items-center justify-content-center">
+                                                            <Avatar
+                                                                src="https://avatars.githubusercontent.com/u/55435868?v=4"
+                                                                alt="User"
+                                                                width="25"
+                                                                height="25"
+                                                            />
+                                                        </div>
+                                                        <div className="d-flex flex-column">
+                                                            <div className="fw-bold">
+                                                                View Profile
+                                                            </div>
+                                                            <span className="text-muted fs-7">
                                                         <Identifier type="username" namespace={user.username}/>
                                                     </span>
-                                                </div>
+                                                        </div>
+                                                    </div>
+                                                </Link>
                                             </div>
-                                        </Link>
-                                    </div>
-                                    <hr className="popover-divider"/>
+                                            <hr className="popover-divider"/>
 
-                                    {/* Menu Items */}
-                                    <div className="popover-menu-items">
-                                        <Link
-                                            href="/"
-                                            isDropdown
-                                            className="popover-menu-item"
-                                            onClick={() => handleMenuItemClick()}
-                                        >
-                                            <Icon name="settings" size="18px"/>
-                                            <span>Settings</span>
-                                        </Link>
-                                    </div>
+                                            {/* Menu Items */}
+                                            <div className="popover-menu-items">
+                                                <Link
+                                                    href="/"
+                                                    isDropdown
+                                                    className="popover-menu-item"
+                                                    onClick={() => handleMenuItemClick()}
+                                                >
+                                                    <Icon name="settings" size="18px"/>
+                                                    <span>Settings</span>
+                                                </Link>
+                                            </div>
 
-                                    <hr className="popover-divider"/>
+                                            <hr className="popover-divider"/>
 
-                                    {/* Logout */}
-                                    <div>
-                                        <Link
-                                            href="/"
-                                            isDropdown
-                                            className="popover-menu-item"
-                                            reloadDocument
-                                            onClick={() => handleMenuItemClick(onLogout)}
-                                        >
-                                            <Icon name="logout" size="18px"/>
-                                            <span>Logout</span>
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
-                        </li>
+                                            {/* Logout */}
+                                            <div>
+                                                <Link
+                                                    href="/"
+                                                    isDropdown
+                                                    className="popover-menu-item"
+                                                    onClick={handleLogoutClick}
+                                                >
+                                                    <Icon name="logout" size="18px"/>
+                                                    <span>Logout</span>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
+                                </li>
+                            </>
+                        )}
                     </ul>
                 </div>
             </nav>
