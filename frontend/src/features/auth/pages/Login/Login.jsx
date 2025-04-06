@@ -1,6 +1,5 @@
 import {useAuth} from '@features/auth/hooks/AuthContext';
 import useLoginForm from '@features/auth/hooks/login-hook.jsx';
-import Link from '@shared/components/UIElement/Link/Link';
 import './Login.css';
 import Input from '@shared/components/UIElement/Input/Input';
 import Button from '@shared/components/UIElement/Button/Button';
@@ -67,21 +66,30 @@ function Login() {
                     </div>
                     <Button
                         type="submit"
-                        className="login-button w-100"
+                        mainName="login-button"
                         disabled={isLoading} // Use isLoading from context
                     >
                         {/* Use isLoading from context */}
                         {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
                     </Button>
                 </Form>
-                <div className="login-footer">
-                    <p>
-                        Chưa có tài khoản?{' '}
-                        {/* Assuming you have routing set up */}
-                        <Link href="/register" className="register-link">
+                <div className="login-footer mt-3">
+                    <div className="d-flex justify-content-center align-items-center">
+                        <span className="footer-text">
+                            Chưa có tài khoản?
+                        </span>
+                        <Button
+                            type="button"
+                            mainClass="register-link"
+                            contentType="text"
+                            addClass="p-0"
+                            onClick={() => {
+                                navigate('/register');
+                            }}
+                        >
                             Đăng ký
-                        </Link>
-                    </p>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>

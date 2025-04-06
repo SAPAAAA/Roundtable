@@ -3,7 +3,6 @@ import React, {useState} from 'react';
 // Import useAuth
 import {useAuth} from '@features/auth/hooks/AuthContext';
 import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
-import Link from '@shared/components/UIElement/Link/Link';
 import './Register.css';
 import Input from '@shared/components/UIElement/Input/Input';
 import Button from '@shared/components/UIElement/Button/Button';
@@ -216,12 +215,22 @@ function Register() {
                                 disabled={isLoading} // Use isLoading from useAuth
                             />
                             <label htmlFor="registerAgreeTerms">
-                                Tôi đồng ý với <a href="/terms" target="_blank" rel="noopener noreferrer"
-                                                  className="terms-link">điều khoản dịch vụ</a> và <a href="/privacy"
-                                                                                                      target="_blank"
-                                                                                                      rel="noopener noreferrer"
-                                                                                                      className="terms-link">chính
-                                sách bảo mật</a>
+                                Tôi đồng ý với&nbsp;
+                                <a
+                                    href="/terms"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="terms-link">
+                                    điều khoản dịch vụ
+                                </a>
+                                &nbsp;và&nbsp;
+                                <a
+                                    href="/privacy"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="terms-link">
+                                    chính sách bảo mật
+                                </a>
                             </label>
                         </div>
                         {formErrors.agreeTerms &&
@@ -238,13 +247,23 @@ function Register() {
                     </Button>
                 </Form>
 
-                <div className="register-footer">
-                    <p>
-                        Đã có tài khoản?{' '}
-                        <Link to="/login" className="login-link">
+                <div className="register-footer mt-3">
+                    <div className="d-flex justify-content-center align-items-center">
+                        <span className="footer-text">
+                            Đã có tài khoản?
+                        </span>
+                        <Button
+                            contentType="text"
+                            type="button"
+                            mainClass="login-link"
+                            addClass="p-0"
+                            onClick={() => {
+                                navigate('/login');
+                            }}
+                        >
                             Đăng nhập
-                        </Link>
-                    </p>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
