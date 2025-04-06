@@ -1,12 +1,10 @@
 import React, {useEffect, useRef} from 'react';
 import './Button.css';
-import Link from "@shared/components/UIElement/Link/Link";
 
 /**
  * A highly flexible and Bootstrap-compatible button component.
  *
  * Supports:
- * - Dynamic rendering as `<button>` or `<a>` based on `href`
  * - Optional outline/background styles
  * - Tooltip integration via Bootstrap
  * - External link handling
@@ -18,7 +16,6 @@ import Link from "@shared/components/UIElement/Link/Link";
  *
  * @param {object} props
  * @param {string} [props.id] - Unique ID for the element.
- * @param {string} [props.href] - If set, renders as a link (anchor) instead of a button.
  * @param {'icon'|'text'} [props.contentType] - Controls visual layout styling (e.g. icon buttons).
  * @param {(event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void} [props.onClick] - Click handler.
  * @param {{ color: string, depth?: string }} [props.outline] - Outline styling (e.g. `{ color: 'primary', depth: '2' }`).
@@ -45,7 +42,6 @@ import Link from "@shared/components/UIElement/Link/Link";
 export default function Button(props) {
     const {
         id,
-        href,
         contentType,
         onClick,
         outline,
@@ -86,9 +82,6 @@ export default function Button(props) {
         tooltipInstance.current?.hide();
     };
 
-    const isExternal = href && /^https?:\/\//.test(href);
-    const computedRel = isExternal ? 'noopener noreferrer' : undefined;
-
     const outlineClass = outline
         ? `btn-outline-${outline.color}${outline.depth ? ` btn-outline-depth-${outline.depth}` : ''}`
         : '';
@@ -108,26 +101,7 @@ export default function Button(props) {
         'data-bs-dismiss': dataBsDismiss || undefined,
         'aria-label': ariaLabel || undefined,
         disabled: disabled ? true : undefined,
-        rel: computedRel,
     };
 
-    if (href) {
-        if (contentType === 'icon') {
-            return (
-                <button {...commonProps}>
-                    <Link href={href} className="text-decoration-none text-white">
-                        {children}
-                    </Link>
-                </button>
-            );
-        } else {
-            return (
-                <Link {...commonProps} href={href}>
-                    {children}
-                </Link>
-            );
-        }
-    } else {
-        return <button {...commonProps} type={type}>{children}</button>;
-    }
+    return <button {...commonProps} type={type}>{children}</button>;
 }
