@@ -1,61 +1,27 @@
-import React, {useState} from 'react';
+import {useAuth} from '@features/auth/hooks/AuthContext';
+import useLoginForm from '@features/auth/hooks/login-hook.jsx';
 import Link from '@shared/components/UIElement/Link/Link';
 import './Login.css';
 import Input from '@shared/components/UIElement/Input/Input';
 import Button from '@shared/components/UIElement/Button/Button';
 import Icon from '@shared/components/UIElement/Icon/Icon';
+import Form from '@shared/components/UIElement/Form/Form';
+import {useNavigate} from "react-router";
 
+// Remove props: isOpen, onSubmit, isLoading, authError
 function Login() {
-    const [formData, setFormData] = useState({
-        username: '',
-        password: ''
-    });
+    const navigate = useNavigate();
 
-    const [errors, setErrors] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
+    const {login, isLoading, error: authError} = useAuth();
+    const {email, setEmail, password, setPassword} = useLoginForm(true, authError); // Remove this line
 
-    const handleChange = (e) => {
-        const {name, value} = e.target;
-        setFormData({
-            ...formData,
-            [name]: value
-        });
+    // --- Handle Submit ---
+    const handleSubmit = async (event) => { // Make async if you want to await the login result
+        event.preventDefault();
+        await login(email, password);
 
-        if (errors[name]) {
-            setErrors({
-                ...errors,
-                [name]: ''
-            });
-        }
-    };
-
-    const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.username.trim()) {
-            newErrors.username = 'Vui lòng nhập tên đăng nhập';
-        }
-
-        if (!formData.password) {
-            newErrors.password = 'Vui lòng nhập mật khẩu';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        if (validateForm()) {
-            setIsLoading(true);
-
-            setTimeout(() => {
-                console.log('Đăng nhập với thông tin:', formData);
-                setIsLoading(false);
-                alert('Đăng nhập thành công!');
-            }, 1500);
-        }
+        // Redirect to home page after successful login
+        navigate('/');
     };
 
     return (
@@ -65,48 +31,54 @@ function Login() {
                     <h1>Đăng nhập</h1>
                     <p>Vui lòng nhập thông tin để đăng nhập</p>
                 </div>
-
-                <form onSubmit={handleSubmit} className="login-form">
+                {/* Use the error state from the AuthContext */}
+                {authError && <div className="alert alert-danger mb-3">{authError}</div>}
+                <Form
+                    id="login-form"
+                    onSubmit={handleSubmit}
+                    mainClass="login-form"
+                    addClass="px-4"
+                >
                     <div className="form-group">
                         <Input
-                            id="username"
+                            id="loginUsername"
+                            type="text"
                             label="Tên đăng nhập"
-                            placeholder="Nhập tên đăng nhập"
-                            value={formData.username}
-                            onChange={handleChange}
-                            isInvalid={!!errors.username}
-                            feedback={errors.username}
+                            placeholder="Nhập email của bạn"
+                            value={email} // Use local state
+                            onChange={(e) => setEmail(e.target.value)} // Use local setter
+                            required
+                            disabled={isLoading} // Use isLoading from context
                             addon={<Icon name="user" size="16"/>}
                         />
                     </div>
-
                     <div className="form-group">
                         <Input
-                            id="password"
+                            id="loginPassword"
                             type="password"
                             label="Mật khẩu"
                             placeholder="Nhập mật khẩu"
-                            value={formData.password}
-                            onChange={handleChange}
-                            isInvalid={!!errors.password}
-                            feedback={errors.password}
+                            value={password} // Use local state
+                            onChange={(e) => setPassword(e.target.value)} // Use local setter
+                            required
+                            disabled={isLoading} // Use isLoading from context
                             addon={<Icon name="lock" size="16"/>}
                         />
                     </div>
-
                     <Button
                         type="submit"
-                        className="login-button"
-                        disabled={isLoading}
+                        className="login-button w-100"
+                        disabled={isLoading} // Use isLoading from context
                     >
+                        {/* Use isLoading from context */}
                         {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
                     </Button>
-                </form>
-
+                </Form>
                 <div className="login-footer">
                     <p>
                         Chưa có tài khoản?{' '}
-                        <Link to="/register" className="register-link">
+                        {/* Assuming you have routing set up */}
+                        <Link href="/register" className="register-link">
                             Đăng ký
                         </Link>
                     </p>
