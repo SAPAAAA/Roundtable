@@ -1,5 +1,6 @@
 import React, {useEffect, useRef} from 'react';
 import './Button.css';
+import Link from "@shared/components/UIElement/Link/Link";
 
 /**
  * A highly flexible and Bootstrap-compatible button component.
@@ -11,6 +12,7 @@ import './Button.css';
  * - External link handling
  * - Icon or text-based content types
  * - Utility props for accessibility, spacing, and interaction
+ * - Button types for form interactions
  *
  * @component
  *
@@ -32,25 +34,13 @@ import './Button.css';
  * @param {string} [props.dataBsDismiss] - Bootstrap dismiss attribute.
  * @param {string} [props.ariaLabel] - ARIA label for accessibility.
  * @param {boolean} [props.disabled=false] - Whether the button is disabled.
+ * @param {'button'|'submit'|'reset'} [props.type='button'] - Button type for forms.
  * @param {React.ReactNode} props.children - The button's content.
  *
  * @returns {JSX.Element} A fully styled, behavior-rich button or anchor element.
  *
  * @example
- * // Basic usage
- * <Button onClick={() => alert('Clicked!')}>Click Me</Button>
- *
- * @example
- * // With icon styling and tooltip
- * <Button
- *   href="https://example.com"
- *   contentType="icon"
- *   tooltipTitle="Go to site"
- *   tooltipPlacement="bottom"
- *   mainClass="text-primary"
- * >
- *   <Icon name="menu" size="24px" />
- * </Button>
+ * <Button type="submit" background={{ color: 'primary' }}>Submit</Button>
  */
 export default function Button(props) {
     const {
@@ -71,6 +61,7 @@ export default function Button(props) {
         dataBsDismiss,
         ariaLabel,
         disabled = false,
+        type = 'button',
         children,
     } = props;
 
@@ -124,19 +115,19 @@ export default function Button(props) {
         if (contentType === 'icon') {
             return (
                 <button {...commonProps}>
-                    <a href={href} className="text-decoration-none text-white">
+                    <Link href={href} className="text-decoration-none text-white">
                         {children}
-                    </a>
+                    </Link>
                 </button>
             );
         } else {
             return (
-                <a {...commonProps} href={href}>
+                <Link {...commonProps} href={href}>
                     {children}
-                </a>
+                </Link>
             );
         }
     } else {
-        return <button {...commonProps}>{children}</button>;
+        return <button {...commonProps} type={type}>{children}</button>;
     }
 }
