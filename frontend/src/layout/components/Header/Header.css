@@ -44,6 +44,6 @@
     text-decoration: none;
 }
 
-[data-theme="light"] #header .btn:hover * {
+[data-theme="light"] #header .btn:hover {
     color: var(--header-btn-hover-color) !important;
 }
