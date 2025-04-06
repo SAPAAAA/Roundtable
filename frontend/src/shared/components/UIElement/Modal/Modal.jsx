@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 
 /**
  * A reusable Bootstrap modal component.
@@ -9,7 +9,9 @@ import React from 'react';
  * @param {string} props.id - The unique ID of the modal (used for toggling and accessibility).
  * @param {string} props.title - The title displayed in the modal header.
  * @param {React.ReactNode} props.children - The main content/body of the modal.
- * @param {React.ReactNode[]} [props.footerButtons=[]] - An array of React elements (usually buttons) rendered in the modal footer.
+ * @param {React.ReactNode} [props.footer] - Custom footer content (can be buttons or any JSX).
+ * @param {boolean} props.isOpen - Controls the visibility of the modal.
+ * @param {function} props.onClose - Function to call when the modal is requested to be closed.
  *
  * @returns {JSX.Element} A Bootstrap-styled modal dialog.
  *
@@ -17,23 +19,39 @@ import React from 'react';
  * <Modal
  *   id="deleteConfirm"
  *   title="Confirm Deletion"
- *   footerButtons={[
- *      <Button key="cancel" contentType="text" onClick={handleCancel} dataBsDismiss="modal" outline={{ color: 'secondary' }}>
- *          <span className="fs-6">Cancel</span>
- *      </Button>,
- *      <Button key="confirm" contentType="text" onClick={handleConfirm} background={{ color: 'danger' }}>
- *          <span className="fs-6">Delete</span>
- *      </Button>,
- *   ]}
+ *   isOpen={isModalOpen}
+ *   onClose={handleClose}
+ *   footer={
+ *     <div className="d-flex justify-content-end gap-2">
+ *       <Button onClick={handleCancel}>Cancel</Button>
+ *       <Button onClick={handleConfirm} className="btn-danger">Delete</Button>
+ *     </div>
+ *   }
  * >
  *   Are you sure you want to delete this item?
  * </Modal>
  */
-export default function Modal({id, title, children, footerButtons = []}) {
+export default function Modal({id, title, children, footer, isOpen, onClose}) {
+    const modalRef = useRef(null);
+
+    useEffect(() => {
+        const modalElement = modalRef.current;
+        if (isOpen) {
+            const bootstrapModal = new window.bootstrap.Modal(modalElement);
+            bootstrapModal.show();
+        } else {
+            const bootstrapModal = window.bootstrap.Modal.getInstance(modalElement);
+            if (bootstrapModal) {
+                bootstrapModal.hide();
+            }
+        }
+    }, [isOpen]);
+
     return (
         <div
             className="modal fade"
             id={id}
+            ref={modalRef}
             tabIndex="-1"
             aria-labelledby={`${id}Label`}
             aria-hidden="true"
@@ -50,18 +68,18 @@ export default function Modal({id, title, children, footerButtons = []}) {
                             className="btn-close"
                             data-bs-dismiss="modal"
                             aria-label="Close"
+                            onClick={onClose}
                         ></button>
                     </div>
 
                     {/* Modal body */}
-                    <div className="modal-body">
+                    <div className="modal-body ">
                         {children}
                     </div>
 
-                    {/* Modal footer with dynamic buttons */}
-                    <div className="modal-footer">
-                        {footerButtons.map((btn) => btn)}
-                    </div>
+                    {/* Modal footer */}
+                    {footer && <div
+                        className="w-100 modal-footer d-flex justify-content-center align-items-center">{footer}</div>}
                 </div>
             </div>
         </div>
