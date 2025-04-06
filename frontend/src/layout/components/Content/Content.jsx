@@ -1,7 +1,7 @@
 import React from 'react';
 
 import LeftSidebar from '@layout/components/LeftSidebar/LeftSidebar';
-import Main from '@layout/components/Main/Main.jsx';
+import Main from "@layout/components/Main/Main";
 
 import './Content.css';
 
@@ -13,7 +13,8 @@ export default function Content(props) {
                 toggleSidebar={props.toggleSidebar}
                 isSidebarVisible={props.isSidebarVisible}
             />
-            <Main id="main-container"/>
+            <Main
+                id="main-container"/>
         </div>
     );
 }
