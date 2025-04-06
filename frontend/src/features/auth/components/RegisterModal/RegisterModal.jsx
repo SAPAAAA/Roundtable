@@ -113,11 +113,15 @@ export default function RegisterModal(props) {
             onClose={onClose}
             footer={
                 <div className="d-flex justify-content-center align-items-center">
-                    Đã có tài khoản?
+                        <span className="footer-text">
+                            Đã có tài khoản?
+                        </span>
                     <Button
+                        contentType="text"
                         type="button"
+                        mainClass="login-link"
+                        addClass="p-0"
                         onClick={onSwitchToLogin}
-                        className="login-link btn btn-link p-0"
                         disabled={isLoading}
                     >
                         Đăng nhập
