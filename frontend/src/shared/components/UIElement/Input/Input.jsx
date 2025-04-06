@@ -7,6 +7,7 @@ import './Input.css';
  * @component
  *
  * @param {object} props
+ * @param {string} props.name - Name of the input field (used for form submission).
  * @param {string} props.id - Unique ID for the input and associated label.
  * @param {string} [props.type='text'] - Type of input (e.g., 'text', 'email', 'password').
  * @param {string} [props.placeholder] - Placeholder text (required by Bootstrap's floating label).
@@ -31,6 +32,7 @@ import './Input.css';
  * @example
  * <Input
  *   id="username"
+ *   name="username"
  *   label="Username"
  *   placeholder="Username"
  *   value={username}
@@ -43,6 +45,7 @@ import './Input.css';
 export default function Input(props) {
     const {
         id,
+        name,
         type = 'text',
         placeholder,
         value,
@@ -74,6 +77,7 @@ export default function Input(props) {
             <div className={`form-floating ${validationClass}`}>
                 <input
                     id={id}
+                    name={name}
                     type={type}
                     className={`form-control ${mainClass} ${addClass} ${validationClass}`}
                     placeholder={placeholder}
