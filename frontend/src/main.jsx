@@ -12,9 +12,7 @@ import {AuthProvider} from "./features/auth/hooks/AuthContext.jsx";
 
 const router = createBrowserRouter([
     {
-        // Routes that use the MainLayout (with Header, Footer, LeftSidebar)
         element: <App/>,
-        // ErrorElement: <ErrorBoundary />, // Optional: Add error boundary for this layout
         children: [
             {
                 path: "/",
@@ -27,8 +25,7 @@ const router = createBrowserRouter([
         ],
     },
     {
-        // Routes that should NOT use MainLayout (e.g., Login, Register)
-        // These render directly without the MainLayout wrapper
+
         path: "/login",
         element: <Login/>, // Render Login page directly
     },
@@ -39,7 +36,7 @@ const router = createBrowserRouter([
     {
         // Catch-all or 404 route - decide which layout it belongs to or none
         path: "*",
-        // element: <NotFoundPage />, // Example: Render a 404 component
+        // element: <NotFoundPage />,
         element: <div>Page Not Found</div> // Simple placeholder
     }
 ]);
