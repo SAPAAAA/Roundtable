@@ -3,7 +3,7 @@ import './Header.css';
 import Button from '@shared/components/UIElement/Button/Button';
 import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Icon from "@shared/components/UIElement/Icon/Icon";
-import Link from "@shared/components/UIElement/Link/Link";
+import Link from "@shared/components/Navigation/Link/Link";
 import Identifier from "@shared/components/UIElement/Identifier/Identifier";
 import {useAuth} from "@features/auth/hooks/AuthContext.jsx";
 
