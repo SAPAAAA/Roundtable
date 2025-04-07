@@ -7,6 +7,8 @@ import Form from "@shared/components/UIElement/Form/Form.jsx";
 import Input from "@shared/components/UIElement/Input/Input.jsx";
 import Icon from '@shared/components/UIElement/Icon/Icon';
 
+import './LoginModal.css';
+
 export default function LoginModal(props) {
     const {
         isOpen,

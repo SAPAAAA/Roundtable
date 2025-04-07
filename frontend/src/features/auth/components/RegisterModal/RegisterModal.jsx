@@ -7,6 +7,8 @@ import Form from "@shared/components/UIElement/Form/Form";
 import Input from "@shared/components/UIElement/Input/Input";
 import Icon from '@shared/components/UIElement/Icon/Icon';
 
+import './RegisterModal.css';
+
 export default function RegisterModal(props) {
     const {
         isOpen,
