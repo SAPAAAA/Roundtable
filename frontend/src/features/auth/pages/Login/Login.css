@@ -101,19 +101,12 @@ input.error {
 }
 
 .login-button {
-    background-color: #4a69dd;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 12px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.3s;
+    color: var(--var-space-cadet);
 }
 
 .login-button:hover {
-    background-color: #3a59cc;
+    background-color: var(--var-azureish-white);
+    color: var(--var-space-cadet);
 }
 
 .login-button:disabled {

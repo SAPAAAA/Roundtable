@@ -84,7 +84,7 @@ export default function LoginModal(props) {
                         addon={<Icon name="lock" size="16"/>}
                     />
                 </div>
-                <Button type="submit" className="login-button w-100" disabled={isLoading}>
+                <Button type="submit" mainClass="login-button w-100" disabled={isLoading}>
                     {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
                 </Button>
             </Form>

@@ -91,7 +91,7 @@ export default function Button(props) {
     const commonProps = {
         id: id,
         ref: buttonRef,
-        className: `${mainClass || ''} btn btn-hover ${contentType === 'icon' ? 'btn-icon' : ''} ${outlineClass} ${backgroundClass} rounded-pill d-flex justify-content-center align-items-center ${paddingClass} ${addClass || ''} ${disabled ? 'disabled' : ''}`,
+        className: `${mainClass || ''} btn${contentType === 'icon' ? ' btn-icon ' : ''}${outlineClass} ${backgroundClass} rounded-pill d-flex justify-content-center align-items-center ${paddingClass} ${addClass || ''} ${disabled ? 'disabled' : ''}`,
         onClick: handleClick,
         'data-bs-toggle': dataBsToggle || undefined,
         'data-bs-placement': dataBsToggle === 'tooltip' ? tooltipPlacement : undefined,

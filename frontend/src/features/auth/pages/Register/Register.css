@@ -75,6 +75,15 @@
     border-top: 1px solid #eee;
 }
 
+.register-button {
+    color: var(--var-space-cadet);
+}
+
+.register-button:hover {
+    background-color: var(--var-azureish-white);
+    color: var(--var-space-cadet);
+}
+
 .login-link {
     color: var(--var-steel-blue);
     text-decoration: none;

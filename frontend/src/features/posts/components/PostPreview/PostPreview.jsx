@@ -47,7 +47,7 @@ export default function PostPreview(props) {
 				<div
 					className={`vote-container ${voteStatus} d-flex align-items-center rounded-pill gap-2 bg-light`}>
 					<Button
-						mainClass="upvote-button"
+						mainClass="upvote-btn"
 						contentType="icon"
 						dataBsToggle="tooltip"
 						dataBsTrigger="hover focus"
@@ -63,7 +63,7 @@ export default function PostPreview(props) {
 					</Button>
 					<span className="fs-8">{voteCount}</span>
 					<Button
-						mainClass="downvote-button"
+						mainClass="downvote-btn"
 						contentType="icon"
 						dataBsToggle="tooltip"
 						dataBsTrigger="hover focus"
@@ -80,6 +80,7 @@ export default function PostPreview(props) {
 				</div>
 				<div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
 					<Button
+						mainClass="comment-btn"
 						contentType="icon"
 						dataBsToggle="tooltip"
 						dataBsTrigger="hover focus"
@@ -95,6 +96,7 @@ export default function PostPreview(props) {
 				</div>
 				<div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
 					<Button
+						mainClass="share-btn"
 						contentType="icon"
 						dataBsToggle="tooltip"
 						dataBsTrigger="hover focus"
@@ -110,6 +112,7 @@ export default function PostPreview(props) {
 				</div>
 				<div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
 					<Button
+						mainClass="option-btn"
 						contentType="icon"
 						dataBsToggle="tooltip"
 						dataBsTrigger="hover focus"
