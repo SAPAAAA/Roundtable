@@ -2,6 +2,10 @@
     fill: var(--var-space-cadet) !important;
 }
 
+.upvote-btn:hover, .downvote-btn:hover, .comment-btn:hover, .share-btn:hover, .option-btn:hover {
+    background-color: var(--var-azureish-white) !important;
+}
+
 .vote-container.upvoted {
     --bs-bg-opacity: 1;
     --bs-upvoted-rgb: var(--var-steel-blue-rgb);

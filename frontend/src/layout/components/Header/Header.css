@@ -7,6 +7,9 @@
 #header-container {
     --header-btn-hover-color: var(--var-space-cadet);
     --header-btn-primary-color: var(--var-cultured);
+
+    --header-btn-hover-bg-color: var(--var-azureish-white);
+    --header-btn-primary-bg-color: var(--var-space-cadet);
 }
 
 @media (max-width: 768px) {
@@ -46,4 +49,5 @@
 
 [data-theme="light"] #header .btn:hover {
     color: var(--header-btn-hover-color) !important;
+    background-color: var(--header-btn-hover-bg-color) !important;
 }

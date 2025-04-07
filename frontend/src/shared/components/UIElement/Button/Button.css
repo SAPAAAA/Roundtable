@@ -1,6 +1,10 @@
-.btn:hover {
-    background-color: #f8f9fa;
-    color: #000;
+.btn:active {
+    border: none;
+}
+
+.btn:focus-visible {
+    /* Use the opposite of the background color */
+    outline: black solid 2px;
 }
 
 .btn-icon {

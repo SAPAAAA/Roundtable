@@ -239,7 +239,7 @@ function Register() {
                     {/* === Submit Button === */}
                     <Button
                         type="submit"
-                        className="register-button w-100"
+                        mainClass="register-button w-100"
                         disabled={isLoading} // Use isLoading from useAuth
                     >
                         {/* Use isLoading from useAuth */}

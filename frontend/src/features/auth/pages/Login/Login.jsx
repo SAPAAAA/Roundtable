@@ -66,7 +66,7 @@ function Login() {
                     </div>
                     <Button
                         type="submit"
-                        mainName="login-button"
+                        mainClass="login-button"
                         disabled={isLoading} // Use isLoading from context
                     >
                         {/* Use isLoading from context */}

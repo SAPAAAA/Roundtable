@@ -242,12 +242,22 @@ export default function RegisterModal(props) {
                             disabled={isLoading}
                         />
                         <label htmlFor="registerAgreeTerms">
-                            Tôi đồng ý với <a href="/terms" target="_blank" rel="noopener noreferrer"
-                                              className="terms-link">điều khoản dịch vụ</a> và <a href="/privacy"
-                                                                                                  target="_blank"
-                                                                                                  rel="noopener noreferrer"
-                                                                                                  className="terms-link">chính
-                            sách bảo mật</a>
+                            Tôi đồng ý với&nbsp;
+                            <a
+                                href="/terms"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="terms-link">
+                                điều khoản dịch vụ
+                            </a>
+                            &nbsp;và&nbsp;
+                            <a
+                                href="/privacy"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="terms-link">
+                                chính sách bảo mật
+                            </a>
                         </label>
                     </div>
                     {formErrors.agreeTerms && <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
@@ -255,7 +265,7 @@ export default function RegisterModal(props) {
 
                 <Button
                     type="submit"
-                    className="register-button w-100"
+                    mainClass="register-button w-100"
                     disabled={isLoading}
                 >
                     {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
