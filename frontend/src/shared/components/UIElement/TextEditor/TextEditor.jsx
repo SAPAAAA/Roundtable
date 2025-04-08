@@ -6,7 +6,7 @@ import "summernote/dist/summernote-lite.min.js";
 // import "bootstrap-fileinput/js/fileinput.min.js";
 
 
-export default function TextEdit() {
+export default function TextEditor() {
 
     useEffect(() => {
         $("#summernote").summernote({
