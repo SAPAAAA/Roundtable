@@ -6,7 +6,7 @@ import Footer from "@layout/components/Footer/Footer";
 import Content from "@layout/components/Content/Content";
 
 // Auth Hook and Provider
-import {useAuth} from "@features/auth/hooks/AuthContext.jsx";
+import {useAuth} from "@contexts/AuthContext.jsx";
 
 import LoginModal from '@features/auth/components/LoginModal/LoginModal';
 import RegisterModal from '@features/auth//components/RegisterModal/RegisterModal';

@@ -1,7 +1,7 @@
 import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react-swc'
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import {fileURLToPath} from 'url';
+import {dirname, resolve} from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,6 +16,7 @@ export default defineConfig({
             '@features': resolve(__dirname, 'src/features'),
             '@layout': resolve(__dirname, 'src/layout'),
             '@pages': resolve(__dirname, 'src/pages'),
+            '@contexts': resolve(__dirname, 'src/contexts'),
         },
     },
     build: {
