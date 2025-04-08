@@ -1,9 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import "./LeftSidebar.css";
 import Button from "@shared/components/UIElement/Button/Button.jsx";
 import Icon from "@shared/components/UIElement/Icon/Icon.jsx";
 
 export default function LeftSidebar(props) {
+    const [resourcesExpanded, setResourcesExpanded] = useState(true);
+    const [communitiesExpanded, setCommunitiesExpanded] = useState(false);
+    const [RecentExpanded, setRecentExpanded] = useState(false);
+    
+    const toggleResources = () => {
+        setResourcesExpanded(!resourcesExpanded);
+    };
+    
+    const toggleCommunities = () => {
+        setCommunitiesExpanded(!communitiesExpanded);
+    };
+
+    const toggleRecent = () =>{
+        setRecentExpanded(!RecentExpanded);
+    }
+    
     return (
         <div
             id={props.id}
@@ -30,9 +46,49 @@ export default function LeftSidebar(props) {
                         </li>
                     </ul>
                     <hr/>
-                    <div>
-                        <h6 className="text-muted">Your Communities</h6>
-                        <ul className="nav flex-column mb-3">
+                    
+                    {/* Communities dropdown section */}
+                    <div className="dropdown-section mb-3">
+                        <div 
+                            className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
+                            onClick={toggleCommunities}
+                        >
+                            <h6 className="text-muted mb-0">COMMUNITIES</h6>
+                            <Icon name={communitiesExpanded ? "chevron-down" : "chevron-up"} size="16px" />
+                        </div>
+                        
+                        {communitiesExpanded && (
+                            <ul className="nav flex-column mb-3">
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">⭕</span> Communities
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">📊</span> Best of Reddit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">💬</span> Topics
+                                    </a>
+                                </li>
+                            </ul>
+                        )}
+                    </div>
+                    
+                    {/* Recent section */}
+                    <div className="dropdown-section">
+                        <div 
+                            className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
+                            onClick={toggleRecent}
+                        >
+                            <h6 className="text-muted mb-0">RECENT</h6>
+                            <Icon name={RecentExpanded ? "chevron-up" : "chevron-down"} size="16px" />
+                        </div>
+                        {RecentExpanded && (
+                            <ul className="nav flex-column mb-3">
                             <li>
                                 <a href="#" className="nav-link text-dark">r/reactjs</a>
                             </li>
@@ -43,6 +99,59 @@ export default function LeftSidebar(props) {
                                 <a href="#" className="nav-link text-dark">r/learnprogramming</a>
                             </li>
                         </ul>
+                        )}                    
+                    </div>
+                    
+                    {/* Resources dropdown section */}
+                    <div className="dropdown-section">
+                        <div 
+                            className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
+                            onClick={toggleResources}
+                        >
+                            <h6 className="text-muted mb-0">RESOURCES</h6>
+                            <Icon name={resourcesExpanded ? "chevron-up" : "chevron-down"} size="16px" />
+                        </div>
+                        
+                        {resourcesExpanded && (
+                            <ul className="nav flex-column mb-3">
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">ℹ️</span> About Reddit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">📢</span> Advertise
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">📈</span> Reddit Pro 
+                                        <span className="beta-tag ms-1">BETA</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">❓</span> Help
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">📝</span> Blog
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">💼</span> Careers
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="nav-link text-dark">
+                                        <span className="icon-wrapper">📰</span> Press
+                                    </a>
+                                </li>
+                            </ul>
+                        )}
                     </div>
                 </div>
                 <div className="d-flex align-items-start "
@@ -57,11 +166,12 @@ export default function LeftSidebar(props) {
                         tooltipPlacement="bottom"
                         onClick={props.toggleSidebar}
                     >
-                        <Icon
+                       <Icon
                             id="sidebar-toggle-icon"
                             name="menu"
                             size="20px"
                         />
+
                     </Button>
                 </div>
             </aside>
