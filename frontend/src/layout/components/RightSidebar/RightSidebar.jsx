@@ -1,5 +1,6 @@
 import React from "react";
 import "./RightSidebar.css";
+import Identifier from './../../../shared/components/UIElement/Identifier/Identifier';
 
 // export default function RightSidebar({posts}){
 
@@ -57,8 +58,10 @@ export default function RightSidebar() {
       <div className="right-sidebar__posts">
         {posts.map((post) => (
           <div className="post-item" key={post.id}>
-            <div className="post-item__subtable">{post.subtable}</div>
-            <div className="post-item__title">{post.title}</div>
+            {/* <div className="post-item__subtable">{post.subtable}</div> */}
+            <Identifier
+						namespace={post.subtable}/>
+          <div className="post-item__title">{post.title}</div>
             <div className="post-item__info">
               <span>{post.upvotes} upvotes</span> •{" "}
               <span>{post.comments} comments</span>
