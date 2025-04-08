@@ -1,10 +1,10 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Button from "@shared/components/UIElement/Button/Button";
 import Icon from "@shared/components/UIElement/Icon/Icon";
 import './Comment.css'
 //import {useVote} from "./vote-hook-comment.js"
-import {useVote} from "./vote-hook-comment.js"
+import { useVote } from "./vote-hook-comment.js"
 import WriteComment from "../WriteComment/WriteComment.jsx";
 
 export default function Comment(props) {
@@ -22,7 +22,7 @@ export default function Comment(props) {
                     src={props.comment.src}
                     alt={`r/${props.comment.alt}`}
                     width={40}
-                    height={40}/>
+                    height={40} />
                 <div className="d-flex flex-row flex-wrap fs-8 ms-2 align-items-center">
                     <div className="fw-bold fs-custom underline">
                         {props.comment.username}
@@ -51,7 +51,7 @@ export default function Comment(props) {
                         <Icon
                             mainClass="upvote-icon"
                             name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
-                            size="15px"/>
+                            size="15px" />
                     </Button>
                     <span className="fs-8">{voteCount}</span>
                     <Button
@@ -67,10 +67,13 @@ export default function Comment(props) {
                         <Icon
                             mainClass="downvote-icon"
                             name={voteStatus === "downvoted" ? "downvoted" : "downvote"}
-                            size="15px"/>
+                            size="15px" />
                     </Button>
                 </div>
-                <div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                {
+                    props.checkparent === true && 
+                    (
+                    <div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
                     <Button
                         contentType="icon"
                         dataBsToggle="tooltip"
@@ -86,11 +89,15 @@ export default function Comment(props) {
                         <Icon
                             mainClass="comment-icon"
                             name="comment"
-                            size="15px"/>
+                            size="15px" />
                         <div className="ms-2 fs-icon">Trả lời</div>
                     </Button>
 
-                </div>
+                    </div>
+                    )
+
+                }
+                
                 <div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
                     <Button
                         contentType="icon"
@@ -103,14 +110,15 @@ export default function Comment(props) {
                         <Icon
                             mainClass="share-icon"
                             name="share"
-                            size="15px"/>
+                            size="15px" />
                         <div className="ms-2 fs-icon"> Chia sẻ</div>
                     </Button>
                 </div>
                 <div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                    <div className="dropdown">
                     <Button
                         contentType="icon"
-                        dataBsToggle="tooltip"
+                        dataBsToggle="dropdown"
                         dataBsTrigger="hover focus"
                         tooltipTitle="option"
                         tooltipPlacement="top"
@@ -119,14 +127,36 @@ export default function Comment(props) {
                         <Icon
                             mainClass="option-icon"
                             name="three_dots"
-                            size="15px"/>
+                            size="15px" />
                     </Button>
+                    <ul class="dropdown-menu">
+                        <li><Button addClass="w-100">
+                            <Icon
+                                addClass="me-3"
+                                name="Save"
+                                size="15px" />
+                            Lưu
+                        </Button>
+                        </li>
+                        <li><Button addClass="w-100">
+                            <Icon
+                                addClass="me-3"
+                                //mainClass="save-icon"
+                                name="Report"
+                                size="15px"
+                            />
+                            Báo cáo
+                        </Button></li>
+                    </ul>
+
+                    </div>
+
+                    
                 </div>
 
             </div>
             <div className="mt-3">
-                {write && <WriteComment state={write} setState={setWrite}/>}
-
+                {write && <WriteComment state={write} setState={setWrite} />}
             </div>
 
 
