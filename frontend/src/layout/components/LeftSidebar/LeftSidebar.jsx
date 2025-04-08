@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import "./LeftSidebar.css";
 import Button from "@shared/components/UIElement/Button/Button.jsx";
 import Icon from "@shared/components/UIElement/Icon/Icon.jsx";
@@ -7,37 +7,30 @@ export default function LeftSidebar(props) {
     const [resourcesExpanded, setResourcesExpanded] = useState(true);
     const [communitiesExpanded, setCommunitiesExpanded] = useState(false);
     const [RecentExpanded, setRecentExpanded] = useState(false);
-
+    
     const toggleResources = () => {
         setResourcesExpanded(!resourcesExpanded);
     };
-
+    
     const toggleCommunities = () => {
         setCommunitiesExpanded(!communitiesExpanded);
     };
 
-    const toggleRecent = () => {
+    const toggleRecent = () =>{
         setRecentExpanded(!RecentExpanded);
     }
-
-    // Add a class for easier CSS targeting and positioning context
-    const containerClasses = `border-end p-3 ${props.isSidebarVisible ? 'open' : ''}`;
-
+    
     return (
         <div
-            id={props.id} // Assuming props.id targets this container, e.g., "left-sidebar-container"
-            className={containerClasses} // Added position-relative here
+            id={props.id}
+            className={`border-end p-3 ${props.isSidebarVisible ? 'open' : ''}`}
         >
-            {/* Sidebar Content Area */}
             <aside
                 id='left-sidebar-content'
-                className='d-flex flex-row' // No longer needed for button positioning
-            >
-                {/* Removed me-4 as button is no longer next to it */}
-                <div id="left-sidebar">
-                    <a
-                        href="/frontend/public"
-                        className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+                className='d-flex flex-row'>
+                <div id="left-sidebar" className="me-4">
+                    <a href="/frontend/public"
+                       className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
                         <span className="fs-4">Roundtable</span>
                     </a>
                     <hr/>
@@ -53,17 +46,17 @@ export default function LeftSidebar(props) {
                         </li>
                     </ul>
                     <hr/>
-
+                    
                     {/* Communities dropdown section */}
                     <div className="dropdown-section mb-3">
-                        <div
+                        <div 
                             className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
                             onClick={toggleCommunities}
                         >
                             <h6 className="text-muted mb-0">COMMUNITIES</h6>
                             <Icon name={communitiesExpanded ? "chevron-down" : "chevron-up"} size="16px" />
                         </div>
-
+                        
                         {communitiesExpanded && (
                             <ul className="nav flex-column mb-3">
                                 <li>
@@ -84,10 +77,10 @@ export default function LeftSidebar(props) {
                             </ul>
                         )}
                     </div>
-
+                    
                     {/* Recent section */}
                     <div className="dropdown-section">
-                        <div
+                        <div 
                             className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
                             onClick={toggleRecent}
                         >
@@ -96,29 +89,29 @@ export default function LeftSidebar(props) {
                         </div>
                         {RecentExpanded && (
                             <ul className="nav flex-column mb-3">
-                                <li>
-                                    <a href="#" className="nav-link text-dark">r/reactjs</a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">r/webdev</a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">r/learnprogramming</a>
-                                </li>
-                            </ul>
-                        )}
+                            <li>
+                                <a href="#" className="nav-link text-dark">r/reactjs</a>
+                            </li>
+                            <li>
+                                <a href="#" className="nav-link text-dark">r/webdev</a>
+                            </li>
+                            <li>
+                                <a href="#" className="nav-link text-dark">r/learnprogramming</a>
+                            </li>
+                        </ul>
+                        )}                    
                     </div>
-
+                    
                     {/* Resources dropdown section */}
                     <div className="dropdown-section">
-                        <div
+                        <div 
                             className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
                             onClick={toggleResources}
                         >
                             <h6 className="text-muted mb-0">RESOURCES</h6>
                             <Icon name={resourcesExpanded ? "chevron-up" : "chevron-down"} size="16px" />
                         </div>
-
+                        
                         {resourcesExpanded && (
                             <ul className="nav flex-column mb-3">
                                 <li>
@@ -133,7 +126,7 @@ export default function LeftSidebar(props) {
                                 </li>
                                 <li>
                                     <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">📈</span> Reddit Pro
+                                        <span className="icon-wrapper">📈</span> Reddit Pro 
                                         <span className="beta-tag ms-1">BETA</span>
                                     </a>
                                 </li>
@@ -161,9 +154,8 @@ export default function LeftSidebar(props) {
                         )}
                     </div>
                 </div>
-                <div
-                    className="d-flex align-items-start "
-                    id="left-sidebar-toggle-container">
+                <div className="d-flex align-items-start "
+                     id="left-sidebar-toggle-container">
                     <Button
                         id="sidebar-toggle"
                         addClass="bg-white"
@@ -174,11 +166,12 @@ export default function LeftSidebar(props) {
                         tooltipPlacement="bottom"
                         onClick={props.toggleSidebar}
                     >
-                        <Icon
+                       <Icon
                             id="sidebar-toggle-icon"
                             name="menu"
                             size="20px"
                         />
+
                     </Button>
                 </div>
             </aside>
