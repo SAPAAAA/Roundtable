@@ -133,7 +133,7 @@ export default function Comment(props) {
                             <li><Button addClass="w-100">
                                 <Icon
                                     addClass="me-3"
-                                    name="Save"
+                                    name="save"
                                     size="15px"/>
                                 Lưu
                             </Button>
@@ -142,7 +142,7 @@ export default function Comment(props) {
                                 <Icon
                                     addClass="me-3"
                                     //mainClass="save-icon"
-                                    name="Report"
+                                    name="report"
                                     size="15px"
                                 />
                                 Báo cáo
