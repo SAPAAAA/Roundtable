@@ -1,6 +1,7 @@
 #main-container {
     padding: 1rem;
-    width: 1200px; 
+    width: 1200px;
+    position: relative;
 }
 
 /* @media normal screen */
