@@ -24,6 +24,13 @@
 }
 
 .register-header h1 {
+    font-size: 48px;
+    color: var(--var-space-cadet);
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.register-header h2 {
     font-size: 28px;
     color: var(--var-space-cadet);
     margin-bottom: 8px;

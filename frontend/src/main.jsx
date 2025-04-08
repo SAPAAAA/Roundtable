@@ -83,6 +83,10 @@ const comments = [
     }
 ];
 
+const Login = lazy(() => import('@features/auth/pages/Login/Login.jsx'));
+const Register = lazy(() => import('@features/auth/pages/Register/Register.jsx'));
+const ErrorPageNotFound = lazy(() => import('@pages/ErrorPageNotFound/ErrorPageNotFound.jsx'));
+const Error404 = lazy(() => import('@pages/Error404/Error404.jsx'));
 
 const router = createBrowserRouter([
     {
@@ -111,9 +115,12 @@ const router = createBrowserRouter([
         element: <Register/>
     },
     {
+        path: "/404",
+        element: <Error404/>
+    },
+    {
         path: "*",
-        element: <div>Page Not Found</div>
-        // element: <NotFoundPage />
+        element: <ErrorPageNotFound/>
     }
 ]);
 
