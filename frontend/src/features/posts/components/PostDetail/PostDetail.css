@@ -1,0 +1,15 @@
+.upvote-icon, .downvote-icon, .comment-icon, .share-icon, .option-icon, .back-icon {
+    fill: var(--var-icon-hover-color) !important;
+}
+.underline{
+    transition: color 0.3s ease-in-out, text-decoration 0.3s ease-in-out;
+}
+.underline:hover {
+    text-decoration: underline;
+    cursor: pointer;
+    color: blue;
+}
+
+.small-placeholder::placeholder {
+    font-size: 12px;
+}

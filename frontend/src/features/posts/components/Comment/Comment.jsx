@@ -70,7 +70,10 @@ export default function Comment(props) {
                             size="15px"/>
                     </Button>
                 </div>
-                <div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                {
+                    props.checkparent === true &&
+                    (
+                        <div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
                     <Button
                         contentType="icon"
                         dataBsToggle="tooltip"
@@ -90,7 +93,11 @@ export default function Comment(props) {
                         <div className="ms-2 fs-icon">Trả lời</div>
                     </Button>
 
-                </div>
+                        </div>
+                    )
+
+                }
+                
                 <div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
                     <Button
                         contentType="icon"
@@ -108,9 +115,10 @@ export default function Comment(props) {
                     </Button>
                 </div>
                 <div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                    <div className="dropdown">
                     <Button
                         contentType="icon"
-                        dataBsToggle="tooltip"
+                        dataBsToggle="dropdown"
                         dataBsTrigger="hover focus"
                         tooltipTitle="option"
                         tooltipPlacement="top"
@@ -121,12 +129,34 @@ export default function Comment(props) {
                             name="three_dots"
                             size="15px"/>
                     </Button>
+                        <ul class="dropdown-menu">
+                            <li><Button addClass="w-100">
+                                <Icon
+                                    addClass="me-3"
+                                    name="Save"
+                                    size="15px"/>
+                                Lưu
+                            </Button>
+                            </li>
+                            <li><Button addClass="w-100">
+                                <Icon
+                                    addClass="me-3"
+                                    //mainClass="save-icon"
+                                    name="Report"
+                                    size="15px"
+                                />
+                                Báo cáo
+                            </Button></li>
+                        </ul>
+
+                    </div>
+
+                    
                 </div>
 
             </div>
             <div className="mt-3">
                 {write && <WriteComment state={write} setState={setWrite}/>}
-
             </div>
 
 

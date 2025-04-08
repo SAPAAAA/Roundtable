@@ -49,7 +49,9 @@ export default function Home() {
     ];
 
     return (
+        <>
         <ListPostPreview posts={posts}/>
+        </>
     )
     //
     // const [formData, setFormData] = useState({
