@@ -4,28 +4,33 @@ import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Identifier from "@shared/components/UIElement/Identifier/Identifier";
 import Button from "@shared/components/UIElement/Button/Button";
 import Icon from "@shared/components/UIElement/Icon/Icon";
-import {useVote} from "../PostPreview/vote-hook";
-import WriteComment from "../WriteComment/WriteComment";
-import Comment from "../Comment/Comment";
+import {useVote} from "@features/posts/hooks/vote-hook.jsx";
+import WriteComment from "@features/posts/components/WriteComment/WriteComment.jsx";
+import Comment from "@features/posts/components/Comment/Comment.jsx";
 
 export default function PostDetail(props) {
     const {
         voteStatus,
         voteCount,
+        isVoting,
+        voteError,
         handleUpvote,
         handleDownvote
-    } = useVote(props.post.upvotes);
-    const handleShare = () => {
-        const currentUrl = window.location.href; // Lấy URL hiện tại
-        navigator.clipboard.writeText(currentUrl) // Sao chép vào clipboard
-            .then(() => {
-                //alert("Link đã được sao chép!")
-                // setTimeout(() => setShowAlert(false), 3000); // Ẩn sau 3 giây
+    } = useVote(
+        {initialCount: props.post.upvotes, initialVoteStatus: null}, // Adjust initialVoteStatus if known
+        props.post.id
+    );
 
+    const handleShare = () => {
+        const currentUrl = window.location.href;
+        navigator.clipboard.writeText(currentUrl)
+            .then(() => {
+                console.log("Link copied!");
             })
-            .catch(err => console.error("Lỗi khi sao chép link:", err));
+            .catch(err => console.error("Error copying link:", err));
     };
-    const [Input, setInput] = useState(false)
+    const [Input, setInput] = useState(false);
+
     return (
         <>
             <div className="p-3 my-3">
@@ -37,10 +42,7 @@ export default function PostDetail(props) {
                                 mainClass="back-icon"
                                 name="Arrow_left"
                                 size="15px"/>
-
                         </Button>
-
-
                         <Avatar
                             src={props.post.subtable.avatar.src}
                             alt={`r/${props.post.subtable.namespace}`}
@@ -48,24 +50,21 @@ export default function PostDetail(props) {
                             height={20}/>
                         <div className="d-flex flex-row flex-wrap fs-8">
                             <Identifier
-                                addClass="underline"
+                                addClass="underline ms-2"
                                 type="subtable"
                                 namespace={props.post.subtable.namespace}/>
                             &nbsp;•&nbsp;
                             <span className="text-muted">{props.post.time}</span>
-                            <div className="w-100 underline">{props.post.username}</div>
+                            {props.post.username && <div className="w-100 underline ms-2">{props.post.username}</div>}
                         </div>
                     </div>
 
                     <div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
                         <div className="dropdown">
                             <Button
-
                                 contentType="icon"
                                 dataBsToggle="dropdown"
-                                dataBsTrigger="hover focus"
-                                tooltipTitle="Options"
-                                tooltipPlacement="top"
+                                aria-expanded="false"
                                 padding="2"
                             >
                                 <Icon
@@ -73,50 +72,49 @@ export default function PostDetail(props) {
                                     name="three_dots"
                                     size="15px"/>
                             </Button>
-                            <ul class="dropdown-menu">
-                                <li><Button addClass="w-100">
+                            <ul className="dropdown-menu">
+                                <li><Button addClass="dropdown-item d-flex align-items-center">
                                     <Icon
-                                        addClass="me-3"
-                                        name="Save"
+                                        addClass="me-2"
+                                        name="save"
                                         size="15px"/>
                                     Lưu
                                 </Button>
                                 </li>
-
-                                <li><Button addClass="w-100">
+                                <li><Button addClass="dropdown-item d-flex align-items-center">
                                     <Icon
-                                        addClass="me-3"
-                                        name="Hide"
+                                        addClass="me-2"
+                                        name="hide"
                                         size="15px"/>
                                     Ẩn
                                 </Button></li>
-                                <li><Button addClass="w-100">
+                                <li><Button addClass="dropdown-item d-flex align-items-center">
                                     <Icon
-                                        addClass="me-3"
-                                        //mainClass="save-icon"
-                                        name="Report"
+                                        addClass="me-2"
+                                        name="report"
                                         size="15px"
                                     />
                                     Báo cáo
                                 </Button></li>
                             </ul>
                         </div>
-
-
                     </div>
-
                 </div>
 
                 {/* Post Title */}
                 <h5 className="fw-bold">{props.post.title}</h5>
 
                 {/* Post Content */}
+                {/* Use dangerouslySetInnerHTML only if props.post.content contains trusted HTML */}
+                {/* Otherwise, render as text or use a safe HTML renderer */}
                 <p>{props.post.content}</p>
 
                 {/* Post Actions */}
                 <div className="d-flex align-items-center gap-2 mb-3">
+                    {voteError && <div className="text-danger fs-8 me-2">Error: {voteError}</div>}
                     <div
-                        className={`vote-container ${voteStatus} d-flex align-items-center rounded-pill gap-2 bg-light`}>
+                        className={`vote-container ${voteStatus || ''} d-flex align-items-center rounded-pill gap-2 bg-light`}
+                    >
                         <Button
                             mainClass="upvote-button"
                             contentType="icon"
@@ -126,6 +124,7 @@ export default function PostDetail(props) {
                             tooltipPlacement="top"
                             padding="2"
                             onClick={handleUpvote}
+                            disabled={isVoting}
                         >
                             <Icon
                                 mainClass="upvote-icon"
@@ -142,6 +141,7 @@ export default function PostDetail(props) {
                             tooltipPlacement="top"
                             padding="2"
                             onClick={handleDownvote}
+                            disabled={isVoting}
                         >
                             <Icon
                                 mainClass="downvote-icon"
@@ -149,30 +149,28 @@ export default function PostDetail(props) {
                                 size="15px"/>
                         </Button>
                     </div>
-                    <div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                    <div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light p-2">
                         <Button
+                            mainClass="comment-btn"
                             contentType="icon"
-                            dataBsToggle="tooltip"
-                            dataBsTrigger="hover focus"
-                            tooltipTitle="Comment"
-                            tooltipPlacement="top"
-                            padding="2"
+                            onClick={() => setInput(true)}
                         >
                             <Icon
                                 mainClass="comment-icon"
                                 name="comment"
                                 size="15px"/>
                         </Button>
+                        {/* <span className="fs-8">{props.comments?.length || 0}</span> */}
                     </div>
-                    <div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                    <div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light p-2">
                         <Button
+                            mainClass="share-btn"
                             contentType="icon"
                             dataBsToggle="tooltip"
                             dataBsTrigger="hover focus"
                             tooltipTitle="Share"
                             tooltipPlacement="top"
                             onClick={handleShare}
-                            padding="2"
                         >
                             <Icon
                                 mainClass="share-icon"
@@ -180,35 +178,42 @@ export default function PostDetail(props) {
                                 size="15px"/>
                         </Button>
                     </div>
-
                 </div>
-
-
             </div>
+
+            {/* Comment Input Area */}
+            <div className="mb-3 px-3">
+                {
+                    Input === false ? (
+                        <input
+                            type="text"
+                            className="form-control rounded-pill small-placeholder"
+                            placeholder="Thêm bình luận" onClick={() => {
+                            setInput(true)
+                        }}/>
+                    ) : (
+                        <WriteComment postId={props.post.id} onCommentSubmit={() => setInput(false)}
+                                      onCancel={() => setInput(false)}/>
+                    )
+                }
+            </div>
+
+            {/* Comment Section */}
             {
-                Input === false ? (
-                    <input type="text" className="form-control rounded-pill small-placeholder"
-                           placeholder="Thêm bình luận" onClick={() => {
-                        setInput(true)
-                    }}/>
-                ) : (
-                    <WriteComment state={Input} setState={setInput}/>
-                )
-            }
-            {
-                props.comments.length > 0 && (
-                    <div className="container">
+                props.comments && props.comments.length > 0 && (
+                    <div className="px-3">
                         {
-                            props.comments.map(comment =>
-                                (
-                                    comment.parentId === null && (
-                                        <div key={comment.id} className="mb-4">
+                            props.comments
+                                .filter(comment => comment.parentId === null)
+                                .map(comment =>
+                                    (
+                                        <div key={comment.id} className="mb-3">
                                             <Comment comment={comment} checkparent={true}/>
                                             {
                                                 props.comments
                                                     .filter(child => child.parentId === comment.id)
                                                     .map(child => (
-                                                        <div key={child.id} className="ms-4 border-start ps-3">
+                                                        <div key={child.id} className="ms-4 border-start ps-3 mt-2">
                                                             <Comment comment={child} checkparent={false}/>
                                                         </div>
                                                     ))
@@ -216,12 +221,9 @@ export default function PostDetail(props) {
                                         </div>
                                     )
                                 )
-                            )
                         }
                     </div>)
             }
         </>
-
     );
-
 }
