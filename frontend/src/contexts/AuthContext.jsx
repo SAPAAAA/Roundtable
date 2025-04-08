@@ -1,5 +1,3 @@
-// src/context/AuthContext.js (or choose a suitable path like /features/auth/context/)
-
 import React, {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
 // --- Mock API Calls ---

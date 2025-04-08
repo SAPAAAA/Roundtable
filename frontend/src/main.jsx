@@ -4,7 +4,7 @@ import {createBrowserRouter, RouterProvider} from 'react-router';
 
 import './index.css';
 import App from './App';
-import {AuthProvider} from "./features/auth/hooks/AuthContext.jsx";
+import {AuthProvider} from "@contexts/AuthContext.jsx";
 
 // Lazy-loaded pages
 const Home = lazy(() => import('@pages/Home.jsx'));

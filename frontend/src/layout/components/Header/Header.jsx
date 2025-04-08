@@ -5,7 +5,7 @@ import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Icon from "@shared/components/UIElement/Icon/Icon";
 import Link from "@shared/components/Navigation/Link/Link";
 import Identifier from "@shared/components/UIElement/Identifier/Identifier";
-import {useAuth} from "@features/auth/hooks/AuthContext.jsx";
+import {useAuth} from "@contexts/AuthContext.jsx";
 
 export default function Header(props) {
     const {toggleSidebar, openLoginModal} = props;
