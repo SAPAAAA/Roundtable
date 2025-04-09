@@ -17,8 +17,7 @@ const SidebarContext = createContext({
 });
 
 export const useSidebar = () => useContext(SidebarContext);
-
-export const SidebarProvider = ({children}) => {
+const SidebarProvider = ({children}) => {
     const [sidebarParts, setSidebarPartsState] = useState(initialSidebarState);
 
     // Define a stable function to update the parts
@@ -48,3 +47,5 @@ export const SidebarProvider = ({children}) => {
         </SidebarContext.Provider>
     );
 };
+
+export default SidebarProvider;
