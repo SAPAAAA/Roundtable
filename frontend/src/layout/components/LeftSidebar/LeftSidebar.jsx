@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import "./LeftSidebar.css";
 import Button from "@shared/components/UIElement/Button/Button.jsx";
 import Icon from "@shared/components/UIElement/Icon/Icon.jsx";
+import Identifier from './../../../shared/components/UIElement/Identifier/Identifier';
 
 export default function LeftSidebar(props) {
     const [resourcesExpanded, setResourcesExpanded] = useState(true);
@@ -38,18 +39,24 @@ export default function LeftSidebar(props) {
                     <a
                         href="/frontend/public"
                         className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
-                        <span className="fs-4">Roundtable</span>
+                        <span className="fs-4">&nbsp;Roundtable</span>
                     </a>
                     <hr/>
                     <ul className="nav nav-pills flex-column mb-auto">
                         <li className="nav-item">
-                            <a href="#" className="nav-link active" aria-current="page">🏠 Home</a>
+                            <a href="#" className="nav-link active d-flex align-items-center">
+                            <Icon name="home" size="16" className="me-2" />&nbsp;Home
+                            </a>
                         </li>
                         <li>
-                            <a href="#" className="nav-link text-dark">🔥 Popular</a>
+                            <a href="#" className="nav-link text-dark d-flex align-items-center">
+                            <Icon name="fire" size="16" className="me-2" />&nbsp;Popular
+                            </a>
                         </li>
                         <li>
-                            <a href="#" className="nav-link text-dark">🌍 All</a>
+                            <a href="#" className="nav-link text-dark d-flex align-items-center">
+                            <Icon name="globe" size="16" className="me-2" />&nbsp;All
+                            </a>
                         </li>
                     </ul>
                     <hr/>
@@ -60,51 +67,72 @@ export default function LeftSidebar(props) {
                             className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
                             onClick={toggleCommunities}
                         >
-                            <h6 className="text-muted mb-0">COMMUNITIES</h6>
-                            <Icon name={communitiesExpanded ? "chevron-down" : "chevron-up"} size="16px" />
+                            <h6 className="text-muted mb-0">&nbsp;COMMUNITIES</h6>
+                            <Icon name={communitiesExpanded ? "chevron-up" : "chevron-down"} size="16px" />
                         </div>
 
                         {communitiesExpanded && (
                             <ul className="nav flex-column mb-3">
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">⭕</span> Communities
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">📊</span> Best of Reddit
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">💬</span> Topics
-                                    </a>
-                                </li>
-                            </ul>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="community" size="16" className="me-2" />&nbsp;Communities
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="chart" size="16" className="me-2" />&nbsp;Best of Reddit
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="topic" size="16" className="me-2" />&nbsp;Topics
+                              </a>
+                            </li>
+                          </ul>
                         )}
                     </div>
 
                     {/* Recent section */}
                     <div className="dropdown-section">
-                        <div
+                        <div 
                             className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
                             onClick={toggleRecent}
                         >
-                            <h6 className="text-muted mb-0">RECENT</h6>
+                            <h6 className="text-muted mb-0">&nbsp;RECENT</h6>
                             <Icon name={RecentExpanded ? "chevron-up" : "chevron-down"} size="16px" />
                         </div>
                         {RecentExpanded && (
-                            <ul className="nav flex-column mb-3">
-                                <li>
-                                    <a href="#" className="nav-link text-dark">r/reactjs</a>
+                            <ul className="nav flex-column mb-3 recent-section">
+                                <li className="d-flex align-items-center recent-item">
+                                    <span className="icon-wrapper" /> {/* empty span for alignment */}
+                                    <Identifier 
+                                        type="subtable" 
+                                        href="#" 
+                                        className="nav-link text-dark flex-grow-1" 
+                                        namespace="reactjs" 
+                                    />
                                 </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">r/webdev</a>
+
+                                <li className="d-flex align-items-center recent-item">
+                                    <span className="icon-wrapper" /> {/* empty span for alignment */}
+                                    <Identifier 
+                                        type="subtable" 
+                                        href="#" 
+                                        className="nav-link text-dark flex-grow-1" 
+                                        namespace="webdev" 
+                                    />
                                 </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">r/learnprogramming</a>
+
+                                <li className="d-flex align-items-center recent-item">
+                                    <span className="icon-wrapper" /> {/* empty span for alignment */}
+                                    <Identifier 
+                                        type="subtable" 
+                                        href="#" 
+                                        className="nav-link text-dark flex-grow-1" 
+                                        namespace="KitDev" 
+                                    />
                                 </li>
+
                             </ul>
                         )}
                     </div>
@@ -121,43 +149,43 @@ export default function LeftSidebar(props) {
 
                         {resourcesExpanded && (
                             <ul className="nav flex-column mb-3">
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">ℹ️</span> About Reddit
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">📢</span> Advertise
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">📈</span> Reddit Pro
-                                        <span className="beta-tag ms-1">BETA</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">❓</span> Help
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">📝</span> Blog
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">💼</span> Careers
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark">
-                                        <span className="icon-wrapper">📰</span> Press
-                                    </a>
-                                </li>
-                            </ul>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="info" size="16" className="me-2" />&nbsp;About Roundtable
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="megaphone" size="16" className="me-2" />&nbsp;Advertise
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="chart-up" size="16" className="me-2" />&nbsp;Reddit&nbsp;Pro
+                                <span className="beta-tag ms-1">BETA</span>
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="question" size="16" className="me-2" />&nbsp;Help
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="pencil" size="16" className="me-2" />&nbsp;Blog
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="briefcase" size="16" className="me-2" />&nbsp;Careers
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                <Icon name="newspaper" size="16" className="me-2" />&nbsp;Press
+                              </a>
+                            </li>
+                          </ul>
                         )}
                     </div>
                 </div>
