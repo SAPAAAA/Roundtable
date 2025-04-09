@@ -14,7 +14,7 @@ export default defineConfig({
             '@': resolve(__dirname, 'src'),
             '@shared': resolve(__dirname, 'src/shared'),
             '@features': resolve(__dirname, 'src/features'),
-            '@layout': resolve(__dirname, 'src/layout'),
+            '@layouts': resolve(__dirname, 'src/layouts'),
             '@pages': resolve(__dirname, 'src/pages'),
             '@contexts': resolve(__dirname, 'src/contexts'),
         },

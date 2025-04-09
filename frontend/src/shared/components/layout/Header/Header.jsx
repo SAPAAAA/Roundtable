@@ -71,7 +71,7 @@ export default function Header(props) {
                         <Link
                             className="nav-brand mb-0"
                             id="header-brand"
-                            href="/">
+                            href="/frontend/public">
                             Navbar
                         </Link>
                     </div>
@@ -179,7 +179,7 @@ export default function Header(props) {
                                         >
                                             <div className="popover-user-info">
                                                 <Link
-                                                    href="/"
+                                                    href="/frontend/public"
                                                     isDropdown>
                                                     <div className="d-flex flex-row gap-2 align-items-center">
                                                         <div
@@ -207,7 +207,7 @@ export default function Header(props) {
                                             {/* Menu Items */}
                                             <div className="popover-menu-items">
                                                 <Link
-                                                    href="/"
+                                                    href="/frontend/public"
                                                     isDropdown
                                                     className="popover-menu-item"
                                                     onClick={() => handleMenuItemClick()}
@@ -222,7 +222,7 @@ export default function Header(props) {
                                             {/* Logout */}
                                             <div>
                                                 <Link
-                                                    href="/"
+                                                    href="/frontend/public"
                                                     isDropdown
                                                     className="popover-menu-item"
                                                     onClick={handleLogoutClick}

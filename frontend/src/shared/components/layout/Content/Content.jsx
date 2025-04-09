@@ -1,7 +1,7 @@
 import React from 'react';
 
-import LeftSidebar from '@layout/components/LeftSidebar/LeftSidebar';
-import Main from "@layout/components/Main/Main";
+import LeftSidebar from '@shared/components/layout/LeftSidebar/LeftSidebar';
+import Main from "@shared/components/layout/Main/Main";
 
 import './Content.css';
 
