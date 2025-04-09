@@ -3,7 +3,7 @@ import {createBrowserRouter, RouterProvider} from "react-router";
 
 // Lazy-loaded pages
 const MainLayout = lazy(() => import('@layouts/MainLayout/MainLayout'));
-const Home = lazy(() => import('@pages/Home.jsx'));
+const Home = lazy(() => import('@pages/Home/HomeContent/HomeContent'));
 const Login = lazy(() => import('@features/auth/pages/Login/Login'));
 const Register = lazy(() => import('@features/auth/pages/Register/Register'));
 const PostDetail = lazy(() => import('@features/posts/pages/PostDetail/PostDetail'));

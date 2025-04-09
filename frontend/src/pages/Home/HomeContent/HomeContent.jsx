@@ -1,6 +1,8 @@
-import React from "react";
+import React, {useEffect} from "react";
 
 import ListPostPreview from "@features/posts/components/ListPostPreview/ListPostPreview";
+import {useSidebar} from "@contexts/SidebarContext.jsx";
+import homeSidebar from "@pages/Home/HomeSidebar/HomeSidebar";
 
 export default function HomeContent() {
     const posts = [
@@ -48,9 +50,25 @@ export default function HomeContent() {
         },
     ];
 
+    const {setSidebarParts} = useSidebar();
+
+    useEffect(() => {
+        const {headerContent, bodyContent, footerContent} = homeSidebar;
+
+        setSidebarParts({
+            header: headerContent,
+            body: bodyContent,
+            footer: footerContent,
+        });
+
+        // Clear the sidebar when the component unmounts
+        return () => setSidebarParts(null);
+    }, [setSidebarParts]);
+
+
     return (
         <>
-        <ListPostPreview posts={posts}/>
+            <ListPostPreview posts={posts}/>
         </>
     )
     //
