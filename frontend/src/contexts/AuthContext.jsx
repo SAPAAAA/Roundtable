@@ -47,7 +47,7 @@ const mockLogoutApi = async () => {
 // --- End Mock API Calls ---
 
 
-// 1. Create the Context
+// Context
 const AuthContext = createContext({
     user: null,             // Current user object or null
     token: null,            // Authentication token
@@ -61,9 +61,8 @@ const AuthContext = createContext({
     }, // Placeholder function
 });
 
-
-// 2. Create the Provider Component
-export const AuthProvider = ({children}) => {
+// Provider Component
+const AuthProvider = ({children}) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('authToken') || null); // Check local storage initially
     const [isLoading, setIsLoading] = useState(true); // Start loading until initial check is done
@@ -208,8 +207,7 @@ export const AuthProvider = ({children}) => {
     );
 };
 
-
-// 3. Create the custom hook for easy consumption
+// Custom hook for easy consumption
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) { // Or check if context is the initial placeholder object
@@ -217,3 +215,5 @@ export const useAuth = () => {
     }
     return context;
 };
+
+export default AuthProvider;
