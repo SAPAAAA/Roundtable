@@ -175,7 +175,7 @@ export default function Header(props) {
                                     {showPopover && (
                                         <div
                                             ref={popoverRef}
-                                            className="popover-menu fs-7"
+                                            className="popover-menu card fs-7"
                                         >
                                             <div className="popover-user-info">
                                                 <Link

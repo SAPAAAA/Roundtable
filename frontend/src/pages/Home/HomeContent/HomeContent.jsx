@@ -3,6 +3,7 @@ import React, {useEffect} from "react";
 import ListPostPreview from "@features/posts/components/ListPostPreview/ListPostPreview";
 import {useSidebar} from '@contexts/SidebarContext.jsx';
 import homeSidebar from "@pages/Home/HomeSidebar/HomeSidebar";
+import {Helmet} from "react-helmet";
 
 export default function HomeContent() {
     const posts = [
@@ -67,9 +68,13 @@ export default function HomeContent() {
 
 
     return (
-        <>
+        <div>
+            <Helmet>
+                <title>Home</title>
+                <meta name="description" content="Welcome to the home page!"/>
+            </Helmet>
             <ListPostPreview posts={posts}/>
-        </>
+        </div>
     )
     //
     // const [formData, setFormData] = useState({

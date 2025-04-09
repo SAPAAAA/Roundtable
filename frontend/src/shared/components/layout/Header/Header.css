@@ -25,9 +25,8 @@
     top: 100%;
     right: 0;
     margin-top: 10px;
-    border-radius: 0.25em;
-    padding: 0.5em;
-    min-width: 12.5em;
+    padding: 10px;
+    min-width: 200px;
 }
 
 .popover-divider {
