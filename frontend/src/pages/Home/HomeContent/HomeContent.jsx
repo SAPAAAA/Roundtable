@@ -2,7 +2,7 @@ import React from "react";
 
 import ListPostPreview from "@features/posts/components/ListPostPreview/ListPostPreview";
 
-export default function Home() {
+export default function HomeContent() {
     const posts = [
         {
             subtable: {
