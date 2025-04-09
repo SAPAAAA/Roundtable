@@ -1,10 +1,7 @@
 import React from "react";
 import "./RightSidebar.css";
-import {useSidebar} from '@contexts/SidebarContext'; // Adjust path
+import {useSidebar} from '@contexts/SidebarContext.jsx';
 
-// export default function RightSidebar({posts}){
-
-// }
 export default function RightSidebar() {
     const {sidebarParts} = useSidebar();
     const {header, body, footer} = sidebarParts;
