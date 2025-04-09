@@ -47,12 +47,8 @@
     text-decoration: underline;
 }
 
-.post-item__subreddit {
-    color: #555;
-    font-weight: bold;
-}
-
 .post-item__title {
+    font-weight: bold;
     margin: 0.2rem 0;
     color: #000;
 }
