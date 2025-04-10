@@ -7,6 +7,8 @@ const Home = lazy(() => import('@pages/Home/HomeContent/HomeContent'));
 const Login = lazy(() => import('@features/auth/pages/Login/Login'));
 const Register = lazy(() => import('@features/auth/pages/Register/Register'));
 const PostDetail = lazy(() => import('@features/posts/pages/PostDetail/PostDetail'));
+const CreatePost = lazy(() => import('@features/posts/pages/CreatePost/CreatePost'));
+
 const ErrorPageNotFound = lazy(() => import('@pages/ErrorPageNotFound/ErrorPageNotFound'));
 const Error404 = lazy(() => import('@pages/Error404/Error404'));
 
@@ -81,6 +83,33 @@ const comments = [
     }
 ];
 
+const subtables = [
+    {
+        namespace: "CodeTalk 1",
+        avatar: {
+            src: "https://images.unsplash.com/photo-1587620931283-d91f5f6d9984?w=100&q=80"
+        }
+    },
+    {
+        namespace: "CodeTalk 2",
+        avatar: {
+            src: "https://images.unsplash.com/photo-1587620931283-d91f5f6d9984?w=100&q=80"
+        }
+    },
+    {
+        namespace: "CodeTalk 3",
+        avatar: {
+            src: "https://images.unsplash.com/photo-1587620931283-d91f5f6d9984?w=100&q=80"
+        }
+    },
+    {
+        namespace: "CodeTalk 4",
+        avatar: {
+            src: "https://images.unsplash.com/photo-1587620931283-d91f5f6d9984?w=100&q=80"
+        }
+    }
+];
+
 const router = createBrowserRouter([
     {
         element: <MainLayout/>,
@@ -96,6 +125,10 @@ const router = createBrowserRouter([
             {
                 path: "post",
                 element: <PostDetail post={post} comments={comments}/>,
+            },
+            {
+                path: "createpost",
+                element: <CreatePost subtable={subtables}/>,
             }
         ],
     },

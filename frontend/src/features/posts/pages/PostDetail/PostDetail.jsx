@@ -21,6 +21,7 @@ export default function PostDetail(props) {
         props.post.id
     );
 
+
     const handleShare = () => {
         const currentUrl = window.location.href;
         navigator.clipboard.writeText(currentUrl)
@@ -29,7 +30,41 @@ export default function PostDetail(props) {
             })
             .catch(err => console.error("Error copying link:", err));
     };
+
+    // const handleSetWrite =()=>{
+    //     setWrite(true)
+    //     //console.log(write);
+
+    // }
     const [Input, setInput] = useState(false);
+    const [items, setItems] = useState(props.comments.filter(comment => comment.parentId === null).map(() => ({isOpen: false})));
+    const toggleWriteOpen = (index, state) => {
+        setItems(prev =>
+            prev.map((item, i) =>
+                i === index ? {...item, isOpen: state} : {...item, isOpen: !state}
+            )
+        );
+    };
+    const toggWriteClose = (index, state) => {
+        setItems(prev =>
+            prev.map((item, i) =>
+                i === index ? {...item, isOpen: state} : item
+            )
+        );
+    }
+    const setAll = (value) => {
+        setItems(prev => prev.map(item => ({...item, isOpen: value})));
+    };
+    const setSubmit = (e) => {
+        e.currentTarget.disabled = true;
+        setInput(false)
+    }
+    // useEffect(() => {
+    //     if (Input) {
+    //         setAll(false); // ✅ tắt reply khi mở input chính
+    //     }
+    // }, [Input]);
+
 
     return (
         <>
@@ -153,7 +188,7 @@ export default function PostDetail(props) {
                         <Button
                             mainClass="comment-btn"
                             contentType="icon"
-                            onClick={() => setInput(true)}
+                            //onClick={() => setInput(true)}
                         >
                             <Icon
                                 mainClass="comment-icon"
@@ -189,11 +224,22 @@ export default function PostDetail(props) {
                             type="text"
                             className="form-control rounded-pill small-placeholder"
                             placeholder="Thêm bình luận" onClick={() => {
-                            setInput(true)
+                            setInput(true);
+                            setAll(false)
                         }}/>
                     ) : (
-                        <WriteComment postId={props.post.id} onCommentSubmit={() => setInput(false)}
-                                      onCancel={() => setInput(false)}/>
+                        <>
+                            <WriteComment
+                                postId={props.post.id}
+                                username="Mai Đức Kiên"
+                                src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=100&q=80"
+                                time="2 min. ago"
+                                parentId={null}
+                                setInput={setInput}
+                                // onCommentSubmit={setSubmit}
+                                onCancel={() => setInput(false)}/>
+                        </>
+                        
                     )
                 }
             </div>
@@ -205,12 +251,27 @@ export default function PostDetail(props) {
                         {
                             props.comments
                                 .filter(comment => comment.parentId === null)
-                                .map(comment =>
+                                .map((comment, index) =>
                                     (
+
                                         <div key={comment.id} className="mb-3">
-                                            <Comment comment={comment} checkparent={true}/>
+                                            <Comment comment={comment} checkparent={true} setWrite={() => {
+                                                toggleWriteOpen(index, true);
+                                                setInput(false);
+                                            }}/>
                                             {
-                                                props.comments
+                                                items[index]?.isOpen && (<WriteComment
+                                                    postId={props.post.id}
+                                                    username="le van viet hoang"
+                                                    src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=100&q=80"
+                                                    time="3 min. ago"
+                                                    parentId={comment.id}
+                                                    setInput={toggWriteClose}
+                                                    setIndex={index}
+                                                    //onCommentSubmit={() => toggWriteClose(index,false)}
+                                                    onCancel={() => toggWriteClose(index, false)}/>)
+                                            }
+                                            {props.comments
                                                     .filter(child => child.parentId === comment.id)
                                                     .map(child => (
                                                         <div key={child.id} className="ms-4 border-start ps-3 mt-2">
@@ -218,6 +279,7 @@ export default function PostDetail(props) {
                                                         </div>
                                                     ))
                                             }
+
                                         </div>
                                     )
                                 )
