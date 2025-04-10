@@ -14,7 +14,7 @@ export default function Comment(props) {
         handleUpvote,
         handleDownvote
     } = useVote(props.comment.upvotes);
-    const [write, setWrite] = useState(false)
+    //const [write, setWrite] = useState(false)
     return (
         <div className="card p-3 my-3">
             <div className="d-flex align-items-center mb-2">
@@ -81,10 +81,7 @@ export default function Comment(props) {
                         tooltipTitle="Comment"
                         tooltipPlacement="top"
                         padding="2"
-                        onClick={() => {
-                            setWrite(write => !write)
-                        }
-                        }
+                        onClick={props.setWrite}
                     >
                         <Icon
                             mainClass="comment-icon"
@@ -155,9 +152,9 @@ export default function Comment(props) {
                 </div>
 
             </div>
-            <div className="mt-3">
+            {/* <div className="mt-3">
                 {write && <WriteComment state={write} setState={setWrite}/>}
-            </div>
+            </div> */}
 
 
         </div>
