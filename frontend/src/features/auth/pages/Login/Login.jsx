@@ -1,4 +1,4 @@
-import {useAuth} from '@contexts/AuthContext.jsx';
+import {useAuth} from '@hooks/useAuth.jsx';
 import useLoginForm from '@features/auth/hooks/login-hook.jsx';
 import './Login.css';
 import Input from '@shared/components/UIElement/Input/Input';

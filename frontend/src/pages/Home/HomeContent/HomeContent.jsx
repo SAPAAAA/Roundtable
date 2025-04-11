@@ -1,7 +1,7 @@
 import React, {useEffect} from "react";
 
 import ListPostPreview from "@features/posts/components/ListPostPreview/ListPostPreview";
-import {useSidebar} from '@contexts/SidebarContext.jsx';
+import useSidebar from '@hooks/useSidebar.jsx';
 import homeSidebar from "@pages/Home/HomeSidebar/HomeSidebar";
 import {Helmet} from "react-helmet";
 

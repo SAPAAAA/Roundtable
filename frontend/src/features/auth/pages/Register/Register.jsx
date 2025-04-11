@@ -1,7 +1,7 @@
 // Add useState import
 import React, {useState} from 'react';
 // Import useAuth
-import {useAuth} from '@contexts/AuthContext';
+import {useAuth} from '@hooks/useAuth.jsx';
 import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
 import './Register.css';
 import Input from '@shared/components/UIElement/Input/Input';

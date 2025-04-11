@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import './MainLayout.css';
-import {useAuth} from "@contexts/AuthContext.jsx";
+import {useAuth} from "@hooks/useAuth.jsx";
 
 const Header = React.lazy(() => import("@shared/components/layout/Header/Header.jsx"));
 const Content = React.lazy(() => import("@shared/components/layout/Content/Content.jsx"));

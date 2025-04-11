@@ -1,6 +1,6 @@
 import React from "react";
 import "./RightSidebar.css";
-import {useSidebar} from '@contexts/SidebarContext.jsx';
+import useSidebar from '@hooks/useSidebar.jsx';
 
 export default function RightSidebar() {
     const {sidebarParts} = useSidebar();
