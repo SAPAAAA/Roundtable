@@ -1,16 +1,10 @@
-import React, {lazy} from "react";
-import {createBrowserRouter, RouterProvider} from "react-router";
+import React, {lazy} from 'react';
 
-// Lazy-loaded pages
+// Lazy-loaded components for this section
 const MainLayout = lazy(() => import('@layouts/MainLayout/MainLayout'));
 const Home = lazy(() => import('@pages/Home/HomeContent/HomeContent'));
-const Login = lazy(() => import('@features/auth/pages/Login/Login'));
-const Register = lazy(() => import('@features/auth/pages/Register/Register'));
 const PostDetail = lazy(() => import('@features/posts/pages/PostDetail/PostDetail'));
 const CreatePost = lazy(() => import('@features/posts/pages/CreatePost/CreatePost'));
-
-const ErrorPageNotFound = lazy(() => import('@pages/ErrorPageNotFound/ErrorPageNotFound'));
-const Error404 = lazy(() => import('@pages/Error404/Error404'));
 
 const post =
     {
@@ -110,46 +104,26 @@ const subtables = [
     }
 ];
 
-const router = createBrowserRouter([
-    {
-        element: <MainLayout/>,
-        children: [
-            {
-                index: true,
-                element: <Home/>
-            },
-            {
-                path: "comment",
-                element: <Home/>
-            },
-            {
-                path: "post",
-                element: <PostDetail post={post} comments={comments}/>,
-            },
-            {
-                path: "createpost",
-                element: <CreatePost subtable={subtables}/>,
-            }
-        ],
-    },
-    {
-        path: "/login",
-        element: <Login/>
-    },
-    {
-        path: "/register",
-        element: <Register/>
-    },
-    {
-        path: "/404",
-        element: <Error404/>
-    },
-    {
-        path: "*",
-        element: <ErrorPageNotFound/>
-    }
-]);
-
-export default function AppRouter() {
-    return <RouterProvider router={router}/>;
+const mainRoutes = {
+    element: <MainLayout/>,
+    children: [
+        {
+            index: true,
+            element: <Home/>
+        },
+        {
+            path: "comment",
+            element: <Home/>
+        },
+        {
+            path: "post",
+            element: <PostDetail post={post} comments={comments}/>,
+        },
+        {
+            path: "createpost",
+            element: <CreatePost subtable={subtables}/>,
+        }
+    ],
 }
+
+export default mainRoutes;
