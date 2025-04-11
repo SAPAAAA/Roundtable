@@ -18,6 +18,8 @@ export default defineConfig({
             '@pages': resolve(__dirname, 'src/pages'),
             '@contexts': resolve(__dirname, 'src/contexts'),
             '@hooks': resolve(__dirname, 'src/hooks'),
+            '@routes': resolve(__dirname, 'src/routes'),
+            '@constants': resolve(__dirname, 'src/constants'),
         },
     },
     build: {
