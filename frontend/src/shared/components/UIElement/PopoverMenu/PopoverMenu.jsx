@@ -43,20 +43,24 @@ function PopoverMenu(props) {
     }, [isControlled, onClose]);
 
     const toggleMenu = useCallback(() => {
+        console.log('toggleMenu called. Current isOpen:', isOpen);
         if (isOpen) closeMenu();
         else openMenu();
+        console.log('toggleMenu executed. New isOpen:', isOpen);
     }, [isOpen, openMenu, closeMenu]);
 
     useEffect(() => {
-        function handleClickOutside(event) {
-            if (!isOpen) return;
-            const isClickInsideTrigger = triggerRef.current?.contains(event.target);
-            const isClickInsideMenu = menuRef.current?.contains(event.target);
-            if (!isClickInsideTrigger && !isClickInsideMenu) closeMenu();
-        }
+        if (!isOpen) return;
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        const handleDocumentClick = (e) => {
+            const insideTrigger = triggerRef.current?.contains(e.target);
+            const insideMenu = menuRef.current?.contains(e.target);
+
+            if (!insideTrigger && !insideMenu) closeMenu();
+        };
+
+        document.addEventListener('click', handleDocumentClick);
+        return () => document.removeEventListener('click', handleDocumentClick);
     }, [isOpen, closeMenu]);
 
     const getPositionStyles = () => {
@@ -90,12 +94,19 @@ function PopoverMenu(props) {
 
     const triggerElement = React.cloneElement(trigger, {
         ref: triggerRef,
+
+        // NEW – prevent the document mousedown listener from ever seeing this press
+        onMouseDown: (e) => e.stopPropagation(),
+
         onClick: (e) => {
-            if (trigger.props.onClick) trigger.props.onClick(e);
-            if (!e.defaultPrevented) toggleMenu();
+            trigger.props.onClick?.(e);   // preserve any original handler
+            if (!e.defaultPrevented) {
+                toggleMenu();
+                e.stopPropagation();        // you already had this
+            }
         },
-        'aria-haspopup': 'listbox',
-        'aria-expanded': isOpen,
+        ariaHaspopup: 'listbox',
+        ariaExpanded: isOpen,
     });
 
     const popoverClasses = `list-group list-group-flush shadow-sm ${addClass}`.trim();
