@@ -18,19 +18,16 @@
     }
 }
 
-/* Popover Menu */
-.popover-menu {
-    z-index: 1000;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 10px;
-    padding: 10px;
-    min-width: 200px;
+.avatar-popover-menu {
+    background-color: var(--var-space-cadet);
 }
 
-.popover-divider {
-    margin: 0.5em 0;
+.settings-link:hover span, .settings-link:hover svg {
+    color: var(--var-space-cadet) !important;
+}
+
+.logout-link:hover span, .logout-link:hover svg {
+    color: var(--var-space-cadet) !important;
 }
 
 /* Light Theme */

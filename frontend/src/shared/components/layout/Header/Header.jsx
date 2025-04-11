@@ -1,48 +1,50 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React from 'react'; // Removed useEffect, useRef, useState
 import './Header.css';
 import Button from '@shared/components/UIElement/Button/Button';
 import Avatar from "@shared/components/UIElement/Avatar/Avatar";
 import Icon from "@shared/components/UIElement/Icon/Icon";
 import Link from "@shared/components/Navigation/Link/Link";
 import Identifier from "@shared/components/UIElement/Identifier/Identifier";
-import {useAuth} from "@contexts/AuthContext.jsx";
+import {useAuth} from "@hooks/useAuth.jsx";
+import PopoverMenu from '@shared/components/UIElement/PopoverMenu/PopoverMenu'; // Assuming this is the correct path
 
 export default function Header(props) {
     const {toggleSidebar, openLoginModal} = props;
     const {user, logout, isLoading} = useAuth();
 
-    const [showPopover, setShowPopover] = useState(false);
-    const avatarRef = useRef(null);
-    const popoverRef = useRef(null);
-
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (
-                popoverRef.current &&
-                !popoverRef.current.contains(event.target) &&
-                avatarRef.current && // Check avatarRef exists
-                !avatarRef.current.contains(event.target)
-            ) {
-                setShowPopover(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []); // Removed popoverRef/avatarRef from deps as they don't change
+    // Removed showPopover state, avatarRef, popoverRef, and useEffect for outside click handling
 
     const handleMenuItemClick = (action) => {
         if (action) {
             action();
         }
-        setShowPopover(false); // Close popover after clicking an item
+        // Removed setShowPopover(false) - PopoverMenu handles closing
     };
 
     const handleLogoutClick = async () => {
         await logout();
-        // Maybe close popover if it was open
-        setShowPopover(false);
+        // Removed setShowPopover(false) - PopoverMenu handles closing
     }
+
+    // --- Define the Trigger Element for the Popover ---
+    const avatarTrigger = (
+        <Button
+            dataBsToggle="tooltip" // Keep tooltip on the trigger if desired
+            dataBsTrigger="hover focus"
+            tooltipTitle="User menu"
+            tooltipPlacement="bottom"
+            contentType="icon"
+            padding="1"
+        >
+            <Avatar
+                src="https://avatars.githubusercontent.com/u/55435868?v=4" // Consider using user.avatarUrl if available
+                alt="User"
+                width="25"
+                height="25"
+            />
+        </Button>
+    );
+
 
     return (
         <header id="header-container">
@@ -56,7 +58,7 @@ export default function Header(props) {
                     <div className="d-flex align-items-center flex-shrink-0 column-gap-2">
                         <Button
                             id="header-left-sidebar-toggle"
-                            onClick={toggleSidebar} // Use prop directly
+                            onClick={toggleSidebar}
                             contentType="icon"
                             dataBsToggle="tooltip"
                             dataBsTrigger="hover focus"
@@ -71,7 +73,7 @@ export default function Header(props) {
                         <Link
                             className="nav-brand mb-0"
                             id="header-brand"
-                            href="/frontend/public">
+                            href="/frontend/public"> {/* Adjust href as needed */}
                             Navbar
                         </Link>
                     </div>
@@ -100,8 +102,8 @@ export default function Header(props) {
                     {/* Right Nav Items */}
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
                         {isLoading ? (
-                            <li className="nav-item"><span className="navbar-text">Loading...</span></li> // Show loading indicator
-                        ) : !user ? ( // If not loading and no user
+                            <li className="nav-item"><span className="navbar-text">Loading...</span></li>
+                        ) : !user ? (
                             <li className="nav-item">
                                 <Button
                                     contentType="text"
@@ -125,6 +127,7 @@ export default function Header(props) {
                                         dataBsTrigger="hover focus"
                                         tooltipTitle="Chat"
                                         tooltipPlacement="bottom"
+                                        onClick={() => console.log("Chat Clicked")} // Placeholder action
                                     >
                                         <Icon
                                             name="chat"
@@ -140,6 +143,7 @@ export default function Header(props) {
                                         dataBsTrigger="hover focus"
                                         tooltipTitle="Notifications"
                                         tooltipPlacement="bottom"
+                                        onClick={() => console.log("Notifications Clicked")} // Placeholder action
                                     >
                                         <Icon
                                             name="bell"
@@ -147,92 +151,66 @@ export default function Header(props) {
                                         />
                                     </Button>
                                 </li>
+
                                 {/* Avatar and Popover */}
-                                <li className="nav-item position-relative">
-                                    {/* Ref added to the container div */}
-                                    <div ref={avatarRef}>
-                                        <Button
-                                            // Removed dropdown prop if not used by Button styling
-                                            dataBsToggle="tooltip"
-                                            dataBsTrigger="hover focus"
-                                            tooltipTitle="User menu"
-                                            tooltipPlacement="bottom"
-                                            contentType="icon"
-                                            padding="1" // Check if this prop works as intended
-                                            onClick={() => setShowPopover((prev) => !prev)}
-                                            aria-haspopup="true" // Accessibility
-                                            aria-expanded={showPopover} // Accessibility
+                                <li className="nav-item"> {/* Removed position-relative, PopoverMenu handles it */}
+                                    <PopoverMenu
+                                        addClass="avatar-popover-menu bg-space-cadet rounded-bottom"
+                                        trigger={avatarTrigger}
+                                        position="bottom-end"
+                                    >
+                                        {/* User Info Item */}
+                                        <Link
+                                            href="/frontend/public"
+                                            className="avatar-link"
                                         >
-                                            <Avatar
-                                                src="https://avatars.githubusercontent.com/u/55435868?v=4"
-                                                alt="User"
-                                                width="25"
-                                                height="25"
-                                            />
-                                        </Button>
-                                    </div>
-
-                                    {showPopover && (
-                                        <div
-                                            ref={popoverRef}
-                                            className="popover-menu card fs-7"
-                                        >
-                                            <div className="popover-user-info">
-                                                <Link
-                                                    href="/frontend/public"
-                                                    isDropdown>
-                                                    <div className="d-flex flex-row gap-2 align-items-center">
-                                                        <div
-                                                            className="d-flex align-items-center justify-content-center">
-                                                            <Avatar
-                                                                src="https://avatars.githubusercontent.com/u/55435868?v=4"
-                                                                alt="User"
-                                                                width="25"
-                                                                height="25"
-                                                            />
-                                                        </div>
-                                                        <div className="d-flex flex-column">
-                                                            <div className="fw-bold">
-                                                                View Profile
-                                                            </div>
-                                                            <span className="text-muted fs-7">
-                                                        <Identifier type="username" namespace={user.username}/>
-                                                    </span>
-                                                        </div>
+                                            <div
+                                                className="d-flex flex-row gap-2 align-items-center px-2 py-2"> {/* Added padding */}
+                                                <div className="d-flex align-items-center justify-content-center">
+                                                    <Avatar
+                                                        src="https://avatars.githubusercontent.com/u/55435868?v=4" // Use user.avatarUrl
+                                                        alt="User"
+                                                        width="25"
+                                                        height="25"
+                                                    />
+                                                </div>
+                                                <div className="d-flex flex-column">
+                                                    <div className="fw-bold">
+                                                        View Profile
                                                     </div>
-                                                </Link>
+                                                    <span
+                                                        className="text-muted fs-7">
+                                                        {user?.username &&
+                                                            <Identifier type="username" namespace={user.username}/>}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <hr className="popover-divider"/>
+                                        </Link>
 
-                                            {/* Menu Items */}
-                                            <div className="popover-menu-items">
-                                                <Link
-                                                    href="/frontend/public"
-                                                    isDropdown
-                                                    className="popover-menu-item"
-                                                    onClick={() => handleMenuItemClick()}
-                                                >
-                                                    <Icon name="settings" size="18px"/>
-                                                    <span>Settings</span>
-                                                </Link>
-                                            </div>
+                                        {/* Settings Item */}
+                                        <Link
+                                            href="/frontend/public"
+                                            // Removed isDropdown prop
+                                            className="settings-link px-2 py-2"
+                                            onClick={() => handleMenuItemClick(() => console.log("Settings clicked"))} // Example action
+                                        >
+                                            <Icon name="settings" size="18px" addClass="me-2"/> {/* Added margin */}
+                                            <span>Settings</span>
+                                        </Link>
 
-                                            <hr className="popover-divider"/>
-
-                                            {/* Logout */}
-                                            <div>
-                                                <Link
-                                                    href="/frontend/public"
-                                                    isDropdown
-                                                    className="popover-menu-item"
-                                                    onClick={handleLogoutClick}
-                                                >
-                                                    <Icon name="logout" size="18px"/>
-                                                    <span>Logout</span>
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    )}
+                                        {/* Logout Item */}
+                                        <Link
+                                            href="#"
+                                            className="px-2 py-2 logout-link"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                handleLogoutClick();
+                                            }}
+                                        >
+                                            <Icon name="logout" size="18px" addClass="me-2"/> {/* Added margin */}
+                                            <span>Logout</span>
+                                        </Link>
+                                    </PopoverMenu>
                                 </li>
                             </>
                         )}
