@@ -13,12 +13,15 @@ export default function PostPreview(props) {
 	const {
 		voteStatus,
 		voteCount,
+		isVoting,
+		voteError,
 		handleUpvote,
 		handleDownvote
 	} = useVote({initialCount: props.post.upvotes, initialVoteStatus: null}, props.post.id);
 
 	return (
 		<div className="post-preview-container card p-3 my-3">
+
 			{/* Subreddit Info */}
 			<div className="d-flex align-items-center mb-2">
 				<Avatar
@@ -44,6 +47,8 @@ export default function PostPreview(props) {
 
 			{/* Post Actions */}
 			<div className="d-flex align-items-center gap-2">
+				{voteError && <div className="text-danger fs-8 me-2">Error: {voteError}</div>}
+
 				<div
 					className={`vote-container ${voteStatus} d-flex align-items-center rounded-pill gap-2 bg-light`}>
 					<Button
@@ -55,6 +60,7 @@ export default function PostPreview(props) {
 						tooltipPlacement="top"
 						padding="2"
 						onClick={handleUpvote}
+						disabled={isVoting}
 					>
 						<Icon
 							mainClass="upvote-icon"
@@ -71,6 +77,7 @@ export default function PostPreview(props) {
 						tooltipPlacement="top"
 						padding="2"
 						onClick={handleDownvote}
+						disabled={isVoting}
 					>
 						<Icon
 							mainClass="downvote-icon"
