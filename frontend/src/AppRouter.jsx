@@ -9,6 +9,8 @@ const Register = lazy(() => import('@features/auth/pages/Register/Register'));
 const PostDetail = lazy(() => import('@features/posts/pages/PostDetail/PostDetail'));
 const ErrorPageNotFound = lazy(() => import('@pages/ErrorPageNotFound/ErrorPageNotFound'));
 const Error404 = lazy(() => import('@pages/Error404/Error404'));
+const ProfileSidebar = lazy(() => import('@features/users/components/ProfileSidebar/ProfileSidebar'));
+const ProfileContainer = lazy(() => import('@features/users/components/ProfileContainer/ProfileContainer'));
 
 const post =
     {
@@ -96,6 +98,24 @@ const router = createBrowserRouter([
             {
                 path: "post",
                 element: <PostDetail post={post} comments={comments}/>,
+            },
+            {
+                path: "Profile",
+                element:
+                <div>
+                    <ProfileContainer
+                        imgUrl="https://picsum.photos/200"
+                        name="nen-goi-la-Hoang"
+                    />
+                    <ProfileSidebar
+                                imgUrl="https://picsum.photos/300/100?grayscale"
+                                name="nen-goi-la-Hoang"
+                                postKarma="1"
+                                commentKarma="0"
+                                createdDay="Feb 19, 2025"
+                    />
+                </div>
+                
             }
         ],
     },
