@@ -106,13 +106,10 @@ const router = createBrowserRouter([
                     <ProfileContainer
                         imgUrl="https://picsum.photos/200"
                         name="nen-goi-la-Hoang"
-                    />
-                    <ProfileSidebar
-                                imgUrl="https://picsum.photos/300/100?grayscale"
-                                name="nen-goi-la-Hoang"
-                                postKarma="1"
-                                commentKarma="0"
-                                createdDay="Feb 19, 2025"
+                        bannerImgUrl="https://picsum.photos/300/100?grayscale"
+                        postKarma="1"
+                        commentKarma="0"
+                        createdDay="Feb 19, 2025"
                     />
                 </div>
                 
