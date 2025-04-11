@@ -67,11 +67,15 @@ html, body {
     background-color: var(--var-azureish-white);
 }
 
-.bg-strong-blue {
+.bg-steel-blue {
     background-color: var(--var-steel-blue);
 }
 
-.bg-deep-navy {
+.bg-deer {
+    background-color: var(--var-deer);
+}
+
+.bg-space-cadet {
     background-color: var(--var-space-cadet);
 }
 
@@ -84,10 +88,14 @@ html, body {
     color: var(--var-azureish-white);
 }
 
-.text-strong-blue {
+.text-steel-blue {
     color: var(--var-steel-blue);
 }
 
-.text-deep-navy {
+.text-deer {
+    color: var(--var-deer);
+}
+
+.text-space-cadet {
     color: var(--var-space-cadet);
 }
