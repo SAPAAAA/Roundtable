@@ -16,13 +16,15 @@ import './Button.css';
  * - Icon or text-based content types
  * - Utility props for accessibility, spacing, and interaction
  * - Button types for form interactions
+ * - ARIA attributes for popup interactions
  *
  * @component
  *
  * @param {object} props
  * @param {string} [props.id] - Unique ID for the element.
  * @param {'icon'|'text'} [props.contentType] - Controls visual layout styling (e.g. icon buttons).
- * @param {(event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void} [props.onClick] - Click handler.
+ * @param {(event: React.MouseEvent<HTMLButtonElement>) => void} [props.onClick] - Click handler.
+ * @param {(event: React.MouseEvent<HTMLButtonElement>) => void} [props.onMouseDown] - Mouse down handler. Useful for preventing default behavior in certain scenarios (like popover triggers).
  * @param {{ color: string, depth?: string }} [props.outline] - Outline styling (e.g. `{ color: 'primary', depth: '2' }`).
  * @param {{ color: string }} [props.background] - Background styling (e.g. `{ color: 'success' }`). Implies solid button color (e.g., `btn-success`) if `outline` is not set.
  * @param {string|number} [props.padding] - Bootstrap padding size (e.g. `'3'`, `'p-1'`). Defaults to 'p-2'.
@@ -37,32 +39,53 @@ import './Button.css';
  * @param {string} [props.dataBsTrigger] - Bootstrap trigger attribute (e.g., for tooltips/popovers). Defaults to 'hover focus' for tooltips.
  * @param {string} [props.dataBsDismiss] - Bootstrap dismiss attribute (e.g., for modals/alerts).
  * @param {string} [props.ariaLabel] - ARIA label for accessibility, especially important for icon buttons. Defaults to `tooltipTitle` for icon buttons if not provided.
+ * @param {boolean | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'} [props.ariaHaspopup] - Indicates the availability and type of interactive popup element (like a menu or dialog) that can be triggered by the button.
+ * @param {boolean} [props.ariaExpanded] - Indicates whether a popup element controlled by the button is currently expanded or collapsed.
  * @param {boolean} [props.disabled=false] - Whether the button is disabled.
  * @param {'button'|'submit'|'reset'} [props.type='button'] - Button type for forms.
  * @param {React.ReactNode} props.children - The button's content (text, icon, etc.).
+ * @param {string} [props.className] - Optional external className to override internal styling.
  *
  * @returns {JSX.Element} A fully styled, behavior-rich button element.
  *
  * @example
- * // Centered content (default)
- * <Button background={{ color: 'primary' }}>Centered Text</Button>
- *
- * @example
- * // Content aligned to the start (left in LTR)
- * <Button background={{ color: 'secondary' }} justifyContent="start" addClass="w-100">
- * <i className="bi bi-arrow-left me-2"></i> Left Aligned
+ * // Simple centered button (default alignment)
+ * <Button background={{ color: 'primary' }}>
+ *     Centered Text
  * </Button>
  *
  * @example
- * // Icon button with tooltip, standard corners, centered (default)
+ * // Content aligned left (start), full width
  * <Button
- * contentType="icon"
- * outline={{ color: 'secondary' }}
- * rounded={false}
- * tooltipTitle="Settings"
- * ariaLabel="Settings"
+ *     background={{ color: 'secondary' }}
+ *     justifyContent="start"
+ *     addClass="w-100"
  * >
- * <i className="bi bi-gear"></i>
+ *     <i className="bi bi-arrow-left me-2"></i> Left Aligned
+ * </Button>
+ *
+ * @example
+ * // Icon button with tooltip, standard corners
+ * <Button
+ *     contentType="icon"
+ *     outline={{ color: 'secondary' }}
+ *     rounded={false}
+ *     tooltipTitle="Settings"
+ *     // ariaLabel="Settings" // Automatically inferred from tooltipTitle for icon buttons
+ * >
+ *     <i className="bi bi-gear"></i>
+ * </Button>
+ *
+ * @example
+ * // Button acting as a popover trigger (for PopoverMenu)
+ * <Button
+ *     background={{ color: 'info' }}
+ *     ariaHaspopup="listbox"
+ *     ariaExpanded={isPopoverOpen} // Controlled by state (e.g., const [isPopoverOpen, setOpen] = useState(false))
+ *     onClick={togglePopover}      // Function to toggle the popover state
+ *     onMouseDown={(e) => e.stopPropagation()} // Important for PopoverMenu interaction
+ * >
+ *     Open Menu
  * </Button>
  */
 export default function Button(props) {
@@ -70,6 +93,7 @@ export default function Button(props) {
         id,
         contentType,
         onClick,
+        onMouseDown, // <-- Added
         outline,
         background,
         padding,
@@ -84,6 +108,8 @@ export default function Button(props) {
         dataBsTrigger,
         dataBsDismiss,
         ariaLabel,
+        ariaHaspopup, // <-- Added
+        ariaExpanded, // <-- Added
         disabled = false,
         type = 'button',
         children,
@@ -101,18 +127,24 @@ export default function Button(props) {
                 title: tooltipTitle,
                 placement: tooltipPlacement,
                 trigger: dataBsTrigger || 'hover focus',
+                toggle: dataBsToggle && dataBsToggle !== 'tooltip' ? dataBsToggle : undefined,
             });
         }
         return () => {
             tooltipInstance.current?.dispose();
             tooltipInstance.current = null;
         };
-    }, [tooltipTitle, tooltipPlacement, dataBsTrigger]);
+    }, [tooltipTitle, tooltipPlacement, dataBsTrigger, dataBsToggle]);
 
     // --- Update Tooltip Title Dynamically ---
     useEffect(() => {
         if (tooltipInstance.current) {
-            tooltipInstance.current.setContent({'.tooltip-inner': tooltipTitle});
+            tooltipInstance.current.setContent?.({'.tooltip-inner': tooltipTitle}) ||
+            (buttonRef.current && buttonRef.current.setAttribute('title', tooltipTitle));
+        } else if (buttonRef.current && tooltipTitle && !window.bootstrap?.Tooltip) {
+            buttonRef.current.setAttribute('title', tooltipTitle);
+        } else if (buttonRef.current && !tooltipTitle) {
+            buttonRef.current.removeAttribute('title');
         }
     }, [tooltipTitle]);
 
@@ -126,56 +158,52 @@ export default function Button(props) {
         tooltipInstance.current?.hide();
     };
 
+    // --- MouseDown Handler ---
+    const handleMouseDown = (e) => {
+        if (disabled) {
+            e.preventDefault();
+            return;
+        }
+        onMouseDown?.(e);
+    };
+
     /// --- Determine Final Classes ---
     let finalClasses;
 
     if (className) {
-        // If an external className is provided, USE IT EXCLUSIVELY.
-        finalClasses = `${className}${disabled ? ' disabled' : ''}`.trim().replace(/\s+/g, ' ');
-
+        finalClasses = `${className}${disabled && !className.includes('disabled') ? ' disabled' : ''}`.trim().replace(/\s+/g, ' ');
     } else {
-        // --- Otherwise, construct classes internally as before ---
-        const internalClasses = ['btn']; // Start with base 'btn'
-
-        // Prepend mainClass if provided
+        const internalClasses = ['btn'];
         if (mainClass) internalClasses.unshift(mainClass);
-
-        // Add content type class
         if (contentType === 'icon') internalClasses.push('btn-icon');
 
-        // Add style classes (Outline or Solid Color)
         let styleClass = '';
         if (outline) {
             styleClass = `btn-outline-${outline.color}`;
             if (outline.depth) styleClass += ` btn-outline-depth-${outline.depth}`;
-            if (background) styleClass += ` bg-${background.color}`; // Optional background with outline
+            if (background) {
+                if (['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark', 'white', 'transparent'].includes(background.color)) {
+                    styleClass += ` bg-${background.color}`;
+                } else {
+                    console.warn(`Custom background color "${background.color}" used with outline; apply custom CSS if needed.`);
+                }
+            }
         } else if (background) {
-            styleClass = `btn-${background.color}`; // Standard solid color
+            styleClass = `btn-${background.color}`;
         }
         if (styleClass) internalClasses.push(styleClass);
 
-        // Add shape class
-        if (rounded) {
-            internalClasses.push('rounded-pill');
-        }
+        if (rounded) internalClasses.push('rounded-pill');
 
-        // Add layout and utility classes (Flexbox for content alignment)
         internalClasses.push(
             'd-flex',
             `justify-content-${justifyContent}`,
             'align-items-center'
         );
-
-        // Add padding class
-        internalClasses.push(padding ? (padding.startsWith('p-') ? padding : `p-${padding}`) : 'p-2');
-
-        // Append addClass if provided
+        internalClasses.push(padding ? (String(padding).startsWith('p-') ? padding : `p-${padding}`) : 'p-2');
         if (addClass) internalClasses.push(addClass);
-
-        // Add disabled class (important for styling and interaction)
         if (disabled) internalClasses.push('disabled');
 
-        // Join the internally constructed classes
         finalClasses = internalClasses.join(' ').trim().replace(/\s+/g, ' ');
     }
 
@@ -183,27 +211,29 @@ export default function Button(props) {
     const commonProps = {
         id: id,
         ref: buttonRef,
-        className: finalClasses, // Use the conditionally determined classes
+        className: finalClasses,
         onClick: handleClick,
-        ...(tooltipTitle && {'data-bs-toggle': 'tooltip'}),
+        onMouseDown: handleMouseDown,
+        ...(tooltipTitle && {'data-bs-toggle': dataBsToggle || 'tooltip'}),
         ...(tooltipTitle && {'data-bs-placement': tooltipPlacement}),
-        ...(dataBsTarget && {'data-bs-target': dataBsTarget}),
         ...(tooltipTitle && {'data-bs-trigger': dataBsTrigger || 'hover focus'}),
+        ...(dataBsTarget && {'data-bs-target': dataBsTarget}),
         ...(dataBsDismiss && {'data-bs-dismiss': dataBsDismiss}),
         'aria-label': ariaLabel || (contentType === 'icon' && tooltipTitle ? tooltipTitle : undefined),
+        'aria-haspopup': ariaHaspopup,
+        'aria-expanded': ariaExpanded,
         disabled: disabled || undefined,
+        type: type,
     };
 
-    // Clean up any props that ended up with undefined values
     Object.keys(commonProps).forEach(key => {
-        if (commonProps[key] === undefined) {
+        if (commonProps[key] === undefined || commonProps[key] === null) {
             delete commonProps[key];
         }
     });
 
-
     return (
-        <button {...commonProps} type={type}>
+        <button {...commonProps}>
             {children}
         </button>
     );

@@ -16,7 +16,7 @@
     position: absolute;
     top: 10px;
     right: -20px; /* Keeps button on the edge when sidebar is hidden or shown */
-    z-index: 1100;
+    z-index: 1000;
 }
 
 #left-sidebar {
