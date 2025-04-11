@@ -1,7 +1,5 @@
-// src/contexts/SidebarContext.jsx (Modified)
-import React, {createContext, useCallback, useContext, useState} from 'react';
+import React, {createContext, useCallback, useState} from 'react';
 
-// Define the shape of the sidebar content state
 const initialSidebarState = {
     header: null,
     body: null,
@@ -15,8 +13,6 @@ const SidebarContext = createContext({
             // Default implementation does nothing
         }
 });
-
-export const useSidebar = () => useContext(SidebarContext);
 const SidebarProvider = ({children}) => {
     const [sidebarParts, setSidebarPartsState] = useState(initialSidebarState);
 
@@ -49,3 +45,4 @@ const SidebarProvider = ({children}) => {
 };
 
 export default SidebarProvider;
+export {SidebarContext};

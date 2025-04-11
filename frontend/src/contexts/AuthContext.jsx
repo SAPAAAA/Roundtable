@@ -1,4 +1,4 @@
-import React, {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import React, {createContext, useCallback, useEffect, useState} from 'react';
 
 // --- Mock API Calls ---
 const MOCK_API_DELAY = 500; // ms
@@ -207,13 +207,6 @@ const AuthProvider = ({children}) => {
     );
 };
 
-// Custom hook for easy consumption
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) { // Or check if context is the initial placeholder object
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-};
-
 export default AuthProvider;
+
+export {AuthContext};
