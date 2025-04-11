@@ -1,6 +1,37 @@
-.upvote-icon, .downvote-icon, .comment-icon, .share-icon, .option-icon, .back-icon {
-    fill: var(--var-icon-hover-color) !important;
+.upvote-icon, .downvote-icon, .comment-icon, .share-icon, .option-icon, .save-icon, .hide-icon, .report-icon {
+    fill: var(--var-space-cadet) !important;
 }
+
+.upvote-btn:hover, .downvote-btn:hover, .comment-btn:hover, .share-btn:hover, .option-btn:hover, .save-btn:hover, .hide-btn:hover, .report-btn:hover {
+    background-color: var(--var-azureish-white) !important;
+}
+
+.post-actions {
+    border: 1px solid var(--var-space-cadet);
+}
+
+.vote-container.upvoted {
+    --bs-bg-opacity: 1;
+    --bs-upvoted-rgb: var(--var-steel-blue-rgb);
+    background-color: rgba(var(--bs-upvoted-rgb), var(--bs-bg-opacity)) !important;
+    color: white;
+}
+
+.vote-container.upvoted .upvote-icon {
+    fill: var(--var-cultured) !important;
+}
+
+.vote-container.downvoted {
+    --bs-bg-opacity: 1;
+    --bs-downvoted-rgb: var(--var-deer-rgb);
+    background-color: rgba(var(--bs-downvoted-rgb), var(--bs-bg-opacity)) !important;
+    color: white;
+}
+
+.vote-container.downvoted .downvote-icon {
+    fill: var(--var-cultured) !important;
+}
+
 .underline{
     transition: color 0.3s ease-in-out, text-decoration 0.3s ease-in-out;
 }
