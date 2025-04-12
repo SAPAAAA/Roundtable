@@ -1,10 +1,11 @@
 import React,{useState} from "react";
 import '../myprofile.css';
 import TabButton from "../TabButton/TabButton";
-function Tabs(){
+function Tabs({onTabChange}){
     const [activeTab, setActiveTab] = useState("Overview")
     const changeTab = (newTab) => {
         setActiveTab(newTab)
+        onTabChange(newTab);
     }
     return (
         <div className="tabs">
