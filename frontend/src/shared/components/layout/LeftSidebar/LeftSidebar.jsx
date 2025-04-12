@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import "./LeftSidebar.css";
 import Button from "@shared/components/UIElement/Button/Button.jsx";
 import Icon from "@shared/components/UIElement/Icon/Icon.jsx";
-import Identifier from './../../../shared/components/UIElement/Identifier/Identifier';
+import Identifier from '@shared/components/UIElement/Identifier/Identifier';
 
 export default function LeftSidebar(props) {
     const [resourcesExpanded, setResourcesExpanded] = useState(true);
