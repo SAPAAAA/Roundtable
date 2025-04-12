@@ -4,6 +4,7 @@ import LeftSidebar from '@shared/components/layout/LeftSidebar/LeftSidebar';
 import Main from "@shared/components/layout/Main/Main";
 
 import './Content.css';
+import SidebarProvider from "@contexts/SidebarContext.jsx";
 
 export default function Content(props) {
     return (
@@ -13,8 +14,10 @@ export default function Content(props) {
                 toggleSidebar={props.toggleSidebar}
                 isSidebarVisible={props.isSidebarVisible}
             />
-            <Main
-                id="main-container"/>
+            <SidebarProvider>
+                <Main
+                    id="main-container"/>
+            </SidebarProvider>
         </div>
     );
 }
