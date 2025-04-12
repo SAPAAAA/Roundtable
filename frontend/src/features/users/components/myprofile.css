@@ -17,6 +17,7 @@ body {
     background-color: white;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
+    position: relative; /* Cần thiết cho sticky positioning */
 }
 
 .main-content {
@@ -77,6 +78,12 @@ body {
     padding: 10px;
     border-top-right-radius: 10px;
     border-radius: 10px;
+    position: sticky; /* Giữ sidebar cố định */
+    top: 20px; /* Cách đỉnh trang 20px */
+    height: calc(100vh - 40px); /* Chiều cao bằng chiều cao màn hình trừ padding */
+    overflow-y: auto; /* Thêm thanh cuộn dọc */
+    overflow-x: hidden; /* Loại bỏ thanh cuộn ngang */
+    margin-left: auto; /* Đẩy sidebar sang phải */
 }
 
 .profile-header {
@@ -170,4 +177,22 @@ body {
   background-color: #a0c7e4;
   box-shadow: none;
   color: #2c5777;
+}
+
+/* Tùy chỉnh thanh cuộn */
+.profile-sidebar::-webkit-scrollbar {
+    width: 6px; /* Đặt chiều rộng thanh cuộn nhỏ hơn */
+}
+
+.profile-sidebar::-webkit-scrollbar-track {
+    background-color: #e4e4e4; /* Màu nền của track */
+}
+
+.profile-sidebar::-webkit-scrollbar-thumb {
+    background-color: #2c5777; /* Màu của phần kéo */
+    border-radius: 10px; /* Bo góc cho phần kéo */
+}
+
+.profile-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: #2c5777; /* Màu khi hover vào phần kéo */
 }
