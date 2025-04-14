@@ -1,6 +1,10 @@
 import knexObj from 'knex';
+import dotenv from 'dotenv';
 
-export const db = knexObj({
+// Load environment variables from .env file
+dotenv.config();
+
+const db = knexObj({
     client: 'pg',
     connection: {
         host: process.env.DB_HOST,
@@ -11,3 +15,6 @@ export const db = knexObj({
     },
     pool: {min: 0, max: 7},
 });
+
+// Export the database connection
+export default db;

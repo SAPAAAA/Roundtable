@@ -28,7 +28,7 @@ import {Form as RouterForm} from "react-router";
  * @param {'get'|'post'} [props.method] - HTTP method for form submission (default: 'get').
  * @param {string} [props.action] - URL to submit the form to (default: current URL).
  * @param {string} [props.encType] - Encoding type for form submission (default: 'application/x-www-form-urlencoded').
- * @param {string} [props.navigate] - Custom navigation function (if needed).
+ * @param {boolean} [props.navigate] - Custom navigation function (if needed).
  * @param {boolean} [props.reloadDocument] - If true, forces a full page reload on submission.
  * @param {boolean} [props.replace] - If true, replaces the current entry in the history stack.
  * @param {any} [props.state] - State to pass to the new location.

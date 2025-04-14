@@ -5,6 +5,16 @@
 	"license": "ISC",
 	"author": "",
 	"type": "module",
+	"imports": {
+		"#/*": "./*",
+		"#daos/*": "./daos/*",
+		"#models/*": "./models/*",
+		"#controllers/*": "./controllers/*",
+		"#routes/*": "./routes/*",
+		"#services/*": "./services/*",
+		"#utils/*": "./utils/*",
+		"#constants/*": "./constants/*"
+	},
 	"main": "app.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
@@ -12,9 +22,13 @@
 		"dev": "nodemon app.js"
 	},
 	"dependencies": {
+		"argon2": "^0.41.1",
+		"cors": "^2.8.5",
 		"dotenv": "^16.5.0",
 		"express": "^5.1.0",
+		"jsonwebtoken": "^9.0.2",
 		"knex": "^3.1.0",
+		"nodemailer": "^6.10.1",
 		"pg": "^8.14.1"
 	}
 }
