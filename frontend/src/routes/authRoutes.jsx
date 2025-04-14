@@ -12,6 +12,23 @@ const authRoutes = [
     {
         path: "/register",
         element: <Register/>,
+        action: async ({request}) => {
+            const formData = await request.formData();
+            const data = Object.fromEntries(formData.entries());
+
+            const response = await fetch('http://localhost:5000/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Response('Failed to register', {status: response.status});
+            }
+
+            // Return the backend response as JSON.
+            return response.json();
+        },
     },
 ];
 
