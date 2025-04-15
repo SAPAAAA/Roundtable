@@ -24,6 +24,32 @@
     margin-right: 20px;
 }
 
+.recent-section .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.recent-section .icon-wrapper {
+    display: inline-block;
+    width: 24px;
+    text-align: center;
+    margin-right: 8px;
+}
+
+.recent-section li {
+    padding-left: 8px; /* Adjust as needed */
+    padding-right: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.recent-section li:hover {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+
 .section-header {
     cursor: pointer;
     padding: 4px 0;

@@ -2,7 +2,7 @@ import React, {Suspense} from "react";
 import {Outlet} from "react-router";
 
 import "./Main.css";
-import RightSidebar from "@shared/components/layout/RightSidebar/RightSidebar.jsx";
+import RightSidebar from "@shared/components/layout/RightSidebar/RightSidebar";
 import LoadingSpinner from "@shared/components/UIElement/LoadingSpinner/LoadingSpinner";
 
 export default function Main(props) {

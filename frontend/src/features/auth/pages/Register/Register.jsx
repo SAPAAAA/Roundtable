@@ -1,28 +1,27 @@
-// Add useState import
-import React, {useState} from 'react';
-// Import useAuth
-import {useAuth} from '@hooks/useAuth.jsx';
+// Add/Update imports
+import React, {useEffect, useState} from 'react'; // Add useEffect
 import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
 import './Register.css';
 import Input from '@shared/components/UIElement/Input/Input';
 import Button from '@shared/components/UIElement/Button/Button';
 import Icon from '@shared/components/UIElement/Icon/Icon';
 import Form from '@shared/components/UIElement/Form/Form';
-import {useNavigate} from "react-router";
+// Import hooks from react-router-dom
+import {useActionData, useNavigate, useNavigation} from 'react-router';
 
-// Remove props: isOpen, onSubmit, isLoading, apiError
 function Register() {
-    // --- Use Auth Context ---
-    const {register, isLoading} = useAuth(); // Get register function and loading state
-
-    // --- Local State for API Error ---
-    const [localApiError, setLocalApiError] = useState(null);
-
-    // --- Use Navigate Hook ---
+    // --- Hooks ---
     const navigate = useNavigate();
+    const actionData = useActionData(); // Hook to get data returned by the action endpoint
+    const navigation = useNavigation(); // Hook to get form submission state
 
-    // --- Use Register Form Hook ---
-    // Pass `true` for isOpen, and the localApiError state for apiError
+    // --- State ---
+    const [localApiError, setLocalApiError] = useState(null); // For API errors from actionData
+
+    // --- Loading State ---
+    const isSubmitting = navigation.state === 'submitting'; // Use navigation state for loading indicator
+
+
     const {
         fullName, setFullName,
         username, setUsername,
@@ -31,12 +30,11 @@ function Register() {
         confirmPassword, setConfirmPassword,
         agreeTerms, setAgreeTerms,
         formErrors, setFormErrors
-    } = useRegisterFormState(true, localApiError); // Pass localApiError here
+    } = useRegisterFormState(true, localApiError);
 
-    // --- Use Password Strength Hook ---
     const {passwordStrength, checkPasswordStrength} = usePasswordStrength();
 
-    // --- Handle Change (No changes needed) ---
+    // --- Handle Change ---
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
         const newValue = type === 'checkbox' ? checked : value;
@@ -70,15 +68,15 @@ function Register() {
                 break;
         }
 
-        // Clear specific field error on change
+        // Clear specific field validation error on change
         if (formErrors[name]) {
             setFormErrors(prevErrors => ({...prevErrors, [name]: null}));
         }
+        // Clear general validation error on change (if you use it)
         if (formErrors.general) {
             setFormErrors(prevErrors => ({...prevErrors, general: null}));
         }
     };
-
 
     // --- Validate Form ---
     const validateForm = () => {
@@ -92,45 +90,70 @@ function Register() {
         if (password !== confirmPassword) newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
         if (!agreeTerms) newErrors.agreeTerms = 'Bạn phải đồng ý với điều khoản dịch vụ';
 
-        setFormErrors(newErrors); // Update formErrors with validation results
+        setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    }
+    };
 
     // --- Handle Submit ---
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setLocalApiError(null); // Clear previous API error before attempting submission
+    const handleSubmit = (event) => {
+        // Print form data to console
+        console.log("Form data before submission:", {
+            // from the actual form not the state
+            fullName: event.target.fullName.value,
+            username: event.target.username.value,
+            email: event.target.email.value,
+            password: event.target.password.value,
+            confirmPassword: event.target.confirmPassword.value,
+            agreeTerms: event.target.agreeTerms.checked
+        });
 
-        // Validate form before submission
-        if (validateForm()) {
-            const userData = {
-                fullName,
-                username,
-                email,
-                password
-            };
-            // Call the register function from AuthContext
-            const result = await register(userData);
+        // Clear previous errors before validation
+        setFormErrors({});
+        setLocalApiError(null);
 
-            if (!result.success) {
-                setLocalApiError(result.message || 'Đăng ký không thành công.');
-            } else {
+        // Validate form before letting React Router submit
+        if (!validateForm()) {
+            // If validation fails, STOP React Router's submission process
+            event.preventDefault();
+            console.log("Client validation failed. Preventing submission.");
+            return; // Exit
+        }
+        console.log("Client validation passed. Allowing React Router submission...");
+    };
+
+    // --- Effect to Handle API Response via actionData ---
+    useEffect(() => {
+        if (actionData) {
+            console.log("Action data received:", actionData);
+            // Check the structure of the response from your API endpoint
+            if (actionData.success === false) {
+                // API returned a failure message
+                setLocalApiError(actionData.message || 'Đăng ký không thành công.');
+            } else if (actionData.success === true) {
                 // Registration successful!
-                console.log('Registration successful:', result.user);
+                console.log('Registration successful (via actionData):', actionData.user);
+                // Clear the form fields
                 setFullName('');
                 setUsername('');
                 setEmail('');
                 setPassword('');
                 setConfirmPassword('');
                 setAgreeTerms(false);
-                setFormErrors({});
+                setFormErrors({}); // Clear any validation errors
+                setLocalApiError(null); // Clear API error state
 
-                // Redirect to login page
-                navigate('/login'); // Redirect to login page
+                // Redirect to login page after successful registration
+                // Optional: Show a success message briefly before redirecting
+                navigate('/login');
+            } else {
+                // Handle cases where actionData might not have the expected structure
+                console.warn("Received unexpected actionData:", actionData);
+                setLocalApiError("Phản hồi từ máy chủ không hợp lệ.");
             }
         }
-    };
+    }, [actionData, navigate, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]); // Add setters to dependency array if needed by your ESLint rules
 
+    // --- Render ---
     return (
         <div className="register-container">
             <div className="register-card">
@@ -139,10 +162,20 @@ function Register() {
                     <p>Vui lòng điền thông tin để tạo tài khoản mới</p>
                 </div>
 
-                {/* Display general error (now includes API errors via localApiError -> hook) */}
+                {/* Display API error first if it exists */}
+                {/*{localApiError && <div className="alert alert-danger mb-3">{localApiError}</div>}*/}
+
                 {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
 
-                <Form id="register-form" onSubmit={handleSubmit} mainClass="register-form">
+                {/* === Form with method and action === */}
+                <Form
+                    id="register-form"
+                    onSubmit={handleSubmit}
+                    method="post"
+                    action="/register"
+                    mainClass="register-form"
+                    // noValidate // Optional: disable browser's built-in validation UI
+                >
                     {/* === Full Name === */}
                     <div className="form-group">
                         <Input
@@ -150,7 +183,7 @@ function Register() {
                             placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
                             isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
                             addon={<Icon name="user" size="16"/>}
-                            disabled={isLoading} // Use isLoading from useAuth
+                            disabled={isSubmitting}
                         />
                     </div>
                     {/* === Username === */}
@@ -160,7 +193,7 @@ function Register() {
                             placeholder="Nhập tên đăng nhập" value={username} onChange={handleChange}
                             isInvalid={!!formErrors.username} feedback={formErrors.username}
                             addon={<Icon name="user" size="16"/>}
-                            disabled={isLoading} // Use isLoading from useAuth
+                            disabled={isSubmitting}
                         />
                     </div>
                     {/* === Email === */}
@@ -170,7 +203,7 @@ function Register() {
                             placeholder="Nhập địa chỉ email" value={email} onChange={handleChange}
                             isInvalid={!!formErrors.email} feedback={formErrors.email}
                             addon={<Icon name="envelope" size="16"/>}
-                            disabled={isLoading} // Use isLoading from useAuth
+                            disabled={isSubmitting}
                         />
                     </div>
                     {/* === Password === */}
@@ -180,10 +213,11 @@ function Register() {
                             placeholder="Nhập mật khẩu" value={password} onChange={handleChange}
                             isInvalid={!!formErrors.password} feedback={formErrors.password}
                             addon={<Icon name="lock" size="16"/>}
-                            disabled={isLoading} // Use isLoading from useAuth
+                            disabled={isSubmitting}
                         />
-                        {password && ( /* Password strength UI */
+                        {password && (
                             <div className="password-strength">
+                                {/* ... strength indicator ... */}
                                 <div className="strength-bar">
                                     <div
                                         className={`strength-level strength-${passwordStrength.score}`}
@@ -202,7 +236,7 @@ function Register() {
                             placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={handleChange}
                             isInvalid={!!formErrors.confirmPassword} feedback={formErrors.confirmPassword}
                             addon={<Icon name="lock" size="16"/>}
-                            disabled={isLoading} // Use isLoading from useAuth
+                            disabled={isSubmitting}
                         />
                     </div>
                     {/* === Agree Terms === */}
@@ -212,23 +246,15 @@ function Register() {
                                 type="checkbox" id="registerAgreeTerms" name="agreeTerms"
                                 checked={agreeTerms} onChange={handleChange}
                                 className={formErrors.agreeTerms ? 'is-invalid' : ''}
-                                disabled={isLoading} // Use isLoading from useAuth
+                                disabled={isSubmitting}
                             />
                             <label htmlFor="registerAgreeTerms">
                                 Tôi đồng ý với&nbsp;
-                                <a
-                                    href="/terms"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="terms-link">
+                                <a href="/terms" target="_blank" rel="noopener noreferrer" className="terms-link">
                                     điều khoản dịch vụ
                                 </a>
                                 &nbsp;và&nbsp;
-                                <a
-                                    href="/privacy"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="terms-link">
+                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="terms-link">
                                     chính sách bảo mật
                                 </a>
                             </label>
@@ -240,16 +266,18 @@ function Register() {
                     <Button
                         type="submit"
                         mainClass="register-button w-100"
-                        disabled={isLoading} // Use isLoading from useAuth
+                        disabled={isSubmitting}
                     >
-                        {/* Use isLoading from useAuth */}
-                        {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
+                        {/* Use isSubmitting state for button text */}
+                        {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
                     </Button>
                 </Form>
 
+                {/* --- Footer (Login Link) --- */}
                 <div className="register-footer mt-3">
                     <div className="d-flex justify-content-center align-items-center">
-                        <span className="footer-text">
+                        <span
+                            className="footer-text">
                             Đã có tài khoản?
                         </span>
                         <Button
