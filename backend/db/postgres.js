@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config();
 
-const db = knexObj({
+const postgres = knexObj({
     client: 'pg',
     connection: {
         host: process.env.DB_HOST,
@@ -17,4 +17,4 @@ const db = knexObj({
 });
 
 // Export the database connection
-export default db;
+export default postgres;

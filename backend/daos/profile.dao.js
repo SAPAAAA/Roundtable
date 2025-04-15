@@ -1,9 +1,9 @@
-import db from '#utils/db.js';
+import postgres from '#db/postgres.js';
 import Profile from '#models/profile.model.js';
 
 class ProfileDAO {
     async create(profile, trx) {
-        const queryBuilder = trx ? trx : db;
+        const queryBuilder = trx ? trx : postgres;
 
         const {profileId, ...insertData} = profile;
         try {
@@ -27,7 +27,7 @@ class ProfileDAO {
     async getById(profileId) {
         try {
             // .first() returns the object directly or undefined
-            const profileRow = await db('Profile').where({profileId}).first();
+            const profileRow = await postgres('Profile').where({profileId}).first();
             // Check if a profile was actually found
             if (!profileRow) {
                 return null; // Return null if not found
@@ -42,7 +42,7 @@ class ProfileDAO {
     }
 
     async delete(profileId, trx) {
-        const queryBuilder = trx ? trx : db;
+        const queryBuilder = trx ? trx : postgres;
         try {
             // .del() returns the number of affected rows
             const affectedRows = await queryBuilder('Profile').where({profileId}).del();

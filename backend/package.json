@@ -13,6 +13,7 @@
 		"#routes/*": "./routes/*",
 		"#services/*": "./services/*",
 		"#utils/*": "./utils/*",
+		"#db/*": "./db/*",
 		"#constants/*": "./constants/*"
 	},
 	"main": "app.js",
@@ -29,6 +30,7 @@
 		"jsonwebtoken": "^9.0.2",
 		"knex": "^3.1.0",
 		"nodemailer": "^6.10.1",
-		"pg": "^8.14.1"
+		"pg": "^8.14.1",
+		"redis": "^4.7.0"
 	}
 }

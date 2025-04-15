@@ -1,9 +1,9 @@
-import db from '#utils/db.js';
+import postgres from '#db/postgres.js';
 import RegisteredUser from '#models/registeredUser.model.js';
 
 class RegisteredUserDAO {
     async create(registeredUser, trx) {
-        const queryBuilder = trx ? trx : db;
+        const queryBuilder = trx ? trx : postgres;
 
         const {userId, ...insertData} = registeredUser;
         try {
@@ -26,13 +26,35 @@ class RegisteredUserDAO {
 
     async getById(registeredUserId) {
         try {
-            const registeredUserRow = await db('RegisteredUser').where({registeredUserId}).first();
+            const registeredUserRow = await postgres('RegisteredUser').where({registeredUserId}).first();
             if (!registeredUserRow) {
                 return null;
             }
             return RegisteredUser.fromDbRow(registeredUserRow);
         } catch (error) {
             console.error('Error fetching registered user:', error);
+            throw error;
+        }
+    }
+
+    async delete(registeredUserId, trx) {
+        const queryBuilder = trx ? trx : postgres;
+        try {
+            const affectedRows = await queryBuilder('RegisteredUser').where({registeredUserId}).del();
+            return affectedRows > 0;
+        } catch (error) {
+            console.error('Error deleting registered user:', error);
+            throw error;
+        }
+    }
+
+    async update(registeredUserId, updatedData, trx) {
+        const queryBuilder = trx ? trx : postgres;
+        try {
+            const affectedRows = await queryBuilder('RegisteredUser').where({registeredUserId}).update(updatedData);
+            return affectedRows > 0;
+        } catch (error) {
+            console.error('Error updating registered user:', error);
             throw error;
         }
     }

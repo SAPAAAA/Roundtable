@@ -44,6 +44,24 @@ class AuthController {
             return res.status(500).json({message: 'Internal server error'});
         }
     }
+
+    verifyEmail = async (req, res, next) => {
+        try {
+            const {email, code} = req.body;
+            const result = await this.authService.verifyEmail(email, code);
+            if (result) {
+                return res.status(200).json({
+                    message: result.message,
+                    success: result.success,
+                });
+            } else {
+                return res.status(400).json({message: 'Invalid verification code'});
+            }
+        } catch (error) {
+            console.error("Email Verification Error:", error);
+            return res.status(500).json({message: 'Internal server error'});
+        }
+    }
 }
 
 export default new AuthController(AuthService);
