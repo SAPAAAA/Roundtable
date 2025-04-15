@@ -1,0 +1,148 @@
+.verify-email-container {
+    background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.card-title {
+    font-weight: bold;
+    color: var(--var-steel-blue);
+}
+
+.card-text {
+    color: var(--var-space-cadet);
+}
+
+img {
+    animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Background shapes */
+.verify-email-shape {
+    position: absolute;
+    border-radius: 10%;
+    opacity: 0.3;
+    animation: float 6s infinite ease-in-out;
+}
+
+.shape-1 {
+    width: 350px;
+    height: 350px;
+    background-color: var(--var-steel-blue);
+    top: -80px;
+    left: -80px;
+    animation-delay: 0s;
+}
+
+.shape-2 {
+    width: 180px;
+    height: 180px;
+    background-color: var(--var-space-cadet);
+    bottom: -40px;
+    right: -40px;
+    animation-delay: -4s;
+}
+
+.shape-3 {
+    width: 130px;
+    height: 130px;
+    background-color: var(--var-deer);
+    top: 45%;
+    left: 75%;
+    animation-delay: -8s;
+}
+
+.shape-4 {
+    width: 160px;
+    height: 160px;
+    background-color: var(--var-steel-blue);
+    top: 15%;
+    right: 10%;
+    animation-delay: -6s;
+}
+
+.shape-5 {
+    width: 210px;
+    height: 210px;
+    background-color: var(--var-space-cadet);
+    bottom: 20%;
+    left: 10%;
+    animation-delay: -10s;
+}
+
+.shape-6 {
+    width: 190px;
+    height: 190px;
+    background-color: var(--var-deer);
+    top: 5%;
+    left: 25%;
+    animation-delay: -4s;
+}
+
+.shape-7 {
+    width: 130px;
+    height: 130px;
+    background-color: var(--var-steel-blue);
+    bottom: 10%;
+    right: 20%;
+    animation-delay: -7s;
+}
+
+.shape-8 {
+    width: 300px;
+    height: 300px;
+    background-color: var(--var-space-cadet);
+    top: 15%;
+    right: 35%;
+    animation-delay: -12s;
+}
+
+.shape-9 {
+    width: 400px;
+    height: 400px;
+    background-color: var(--var-deer);
+    bottom: 10%;
+    left: 30%;
+    animation-delay: -2s;
+}
+
+.shape-10 {
+    width: 300px;
+    height: 300px;
+    background-color: var(--var-steel-blue);
+    top: 55%;
+    left: 45%;
+    animation-delay: -5s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-15px) rotate(3deg);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg);
+    }
+    75% {
+        transform: translateY(15px) rotate(-3deg);
+    }
+}
