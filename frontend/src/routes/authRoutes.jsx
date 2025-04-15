@@ -3,6 +3,7 @@ import React, {lazy} from 'react';
 // Lazy-loaded components
 const Login = lazy(() => import('@features/auth/pages/Login/Login'));
 const Register = lazy(() => import('@features/auth/pages/Register/Register'));
+const VerifyEmail = lazy(() => import('@features/auth/pages/VerifyEmail/VerifyEmail'));
 
 const authRoutes = [
     {
@@ -29,6 +30,10 @@ const authRoutes = [
             // Return the backend response as JSON.
             return response.json();
         },
+    },
+    {
+        path: "/verify",
+        element: <VerifyEmail />,
     },
 ];
 
