@@ -15,13 +15,15 @@ class AuthController {
                 return res.status(201).json({
                     message: data.message,
                     success: data.success,
+                    user: data.user,
                 });
             }
         } catch (error) {
             // It's good practice to log the actual error
             console.error("Registration Error:", error);
-            return res.status(500).json({
+            return res.status(error.statusCode).json({
                 message: 'Internal server error',
+                error: error.message,
                 success: false,
             });
         }
@@ -32,16 +34,22 @@ class AuthController {
         try {
             // 'this' will now correctly refer to the AuthController instance
             const {username, password} = req.body;
-            const account = await this.authService.login(username, password);
-            if (account) {
-                return res.status(200).json(account);
+            console.log('Login attempt with:', {username, password});
+            const data = await this.authService.login(username, password);
+            if (data) {
+                return res.status(200).json(data);
             } else {
-                return res.status(401).json({message: 'Invalid credentials'});
+                return res.status(401).json({message: 'Tên dăng nhập hoặc mật khẩu không chính xác'});
             }
         } catch (error) {
             // It's good practice to log the actual error
-            console.error("Login Error:", error);
-            return res.status(500).json({message: 'Internal server error'});
+            if (error.statusCode === 401) {
+                console.error("Login Error:", error);
+                return res.status(401).json({
+                    message: 'Tên dăng nhập hoặc mật khẩu không chính xác',
+                    success: false,
+                });
+            }
         }
     }
 
@@ -55,11 +63,15 @@ class AuthController {
                     success: result.success,
                 });
             } else {
-                return res.status(400).json({message: 'Invalid verification code'});
+                return res.status(400).json({message: 'Mã xác thực không chính xác'});
             }
         } catch (error) {
             console.error("Email Verification Error:", error);
-            return res.status(500).json({message: 'Internal server error'});
+            return res.status(error.statusCode).json({
+                message: 'Internal server error',
+                error: error.message,
+                success: false,
+            });
         }
     }
 }

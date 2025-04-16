@@ -24,9 +24,9 @@ class RegisteredUserDAO {
         }
     }
 
-    async getById(registeredUserId) {
+    async getById(userId) {
         try {
-            const registeredUserRow = await postgres('RegisteredUser').where({registeredUserId}).first();
+            const registeredUserRow = await postgres('RegisteredUser').where({userId}).first();
             if (!registeredUserRow) {
                 return null;
             }
@@ -37,10 +37,10 @@ class RegisteredUserDAO {
         }
     }
 
-    async delete(registeredUserId, trx) {
+    async delete(userId, trx) {
         const queryBuilder = trx ? trx : postgres;
         try {
-            const affectedRows = await queryBuilder('RegisteredUser').where({registeredUserId}).del();
+            const affectedRows = await queryBuilder('RegisteredUser').where({userId}).del();
             return affectedRows > 0;
         } catch (error) {
             console.error('Error deleting registered user:', error);
@@ -48,10 +48,10 @@ class RegisteredUserDAO {
         }
     }
 
-    async update(registeredUserId, updatedData, trx) {
+    async update(userId, updatedData, trx) {
         const queryBuilder = trx ? trx : postgres;
         try {
-            const affectedRows = await queryBuilder('RegisteredUser').where({registeredUserId}).update(updatedData);
+            const affectedRows = await queryBuilder('RegisteredUser').where({userId}).update(updatedData);
             return affectedRows > 0;
         } catch (error) {
             console.error('Error updating registered user:', error);

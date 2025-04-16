@@ -96,17 +96,6 @@ function Register() {
 
     // --- Handle Submit ---
     const handleSubmit = (event) => {
-        // Print form data to console
-        console.log("Form data before submission:", {
-            // from the actual form not the state
-            fullName: event.target.fullName.value,
-            username: event.target.username.value,
-            email: event.target.email.value,
-            password: event.target.password.value,
-            confirmPassword: event.target.confirmPassword.value,
-            agreeTerms: event.target.agreeTerms.checked
-        });
-
         // Clear previous errors before validation
         setFormErrors({});
         setLocalApiError(null);
@@ -144,7 +133,13 @@ function Register() {
 
                 // Redirect to login page after successful registration
                 // Optional: Show a success message briefly before redirecting
-                navigate('/login');
+                navigate('/verify-email', {
+                    replace: true,
+                    state: {
+                        message: actionData.success,
+                        prefilledEmail: actionData.user.email
+                    }
+                });
             } else {
                 // Handle cases where actionData might not have the expected structure
                 console.warn("Received unexpected actionData:", actionData);

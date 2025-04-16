@@ -2,7 +2,7 @@ import postgres from '#db/postgres.js';
 import Account from '#models/account.model.js';
 
 class AccountDAO {
-    async findById(accountId) {
+    async getById(accountId) {
         try {
             // .first() returns the object directly or undefined
             const accountRow = await postgres('Account').where({accountId}).first();
@@ -20,7 +20,7 @@ class AccountDAO {
         }
     }
 
-    async findByUsername(username) {
+    async getByUsername(username) {
         try {
             // .first() returns the object directly or undefined
             const accountRow = await postgres('Account').where({username}).first();
@@ -35,7 +35,7 @@ class AccountDAO {
         }
     }
 
-    async findByEmail(email) {
+    async getByEmail(email) {
         try {
             // .first() returns the object directly or undefined
             const accountRow = await postgres('Account').where({email}).first();

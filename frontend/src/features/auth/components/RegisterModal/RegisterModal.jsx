@@ -1,6 +1,5 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
-
 import Modal from "@shared/components/UIElement/Modal/Modal";
 import Button from "@shared/components/UIElement/Button/Button";
 import Form from "@shared/components/UIElement/Form/Form";
@@ -19,6 +18,7 @@ export default function RegisterModal(props) {
         apiError
     } = props;
 
+    // Note that we pass `isOpen` (instead of a static value) and any API error to our custom hook.
     const {
         fullName,
         setFullName,
@@ -38,9 +38,18 @@ export default function RegisterModal(props) {
 
     const {passwordStrength, checkPasswordStrength} = usePasswordStrength();
 
+    // Handle change events: update values and clear any specific errors.
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
         const newValue = type === 'checkbox' ? checked : value;
+
+        // Clear field-specific error (and any general error) on change.
+        if (formErrors[name]) {
+            setFormErrors(prevErrors => ({...prevErrors, [name]: ''}));
+        }
+        if (formErrors.general) {
+            setFormErrors(prevErrors => ({...prevErrors, general: ''}));
+        }
 
         switch (name) {
             case 'fullName':
@@ -65,21 +74,9 @@ export default function RegisterModal(props) {
             default:
                 break;
         }
-
-        if (formErrors[name]) {
-            setFormErrors(prevErrors => ({
-                ...prevErrors,
-                [name]: ''
-            }));
-        }
-        if (formErrors.general) {
-            setFormErrors(prevErrors => ({
-                ...prevErrors,
-                general: ''
-            }));
-        }
     };
 
+    // Validate all form inputs, similar to your Register component.
     const validateForm = () => {
         const newErrors = {};
         if (!fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ tên';
@@ -93,20 +90,39 @@ export default function RegisterModal(props) {
 
         setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    }
+    };
 
+    // Handle form submission.
     const handleSubmit = (event) => {
         event.preventDefault();
+        // Optionally log the current form data for debugging.
+        console.log("Form data before submission:", {
+            fullName,
+            username,
+            email,
+            password,
+            confirmPassword,
+            agreeTerms
+        });
         if (validateForm()) {
-            const userData = {
-                fullName,
-                username,
-                email,
-                password
-            };
+            // Create a user object (exclude confirmPassword since it’s only for client validation).
+            const userData = {fullName, username, email, password};
             onSubmit(userData);
         }
     };
+
+    // Reset form inputs and errors whenever the modal is opened.
+    useEffect(() => {
+        if (isOpen) {
+            setFullName('');
+            setUsername('');
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
+            setAgreeTerms(false);
+            setFormErrors({});
+        }
+    }, [isOpen, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]);
 
     return (
         <Modal
@@ -115,9 +131,9 @@ export default function RegisterModal(props) {
             onClose={onClose}
             footer={
                 <div className="d-flex justify-content-center align-items-center">
-                        <span className="footer-text">
-                            Đã có tài khoản?
-                        </span>
+                    <span className="footer-text">
+                        Đã có tài khoản?
+                    </span>
                     <Button
                         contentType="text"
                         type="button"
@@ -172,7 +188,6 @@ export default function RegisterModal(props) {
                         disabled={isLoading}
                     />
                 </div>
-
                 <div className="form-group">
                     <Input
                         id="registerEmail"
@@ -188,7 +203,6 @@ export default function RegisterModal(props) {
                         disabled={isLoading}
                     />
                 </div>
-
                 <div className="form-group">
                     <Input
                         id="registerPassword"
@@ -215,7 +229,6 @@ export default function RegisterModal(props) {
                         </div>
                     )}
                 </div>
-
                 <div className="form-group">
                     <Input
                         id="registerConfirmPassword"
@@ -231,7 +244,6 @@ export default function RegisterModal(props) {
                         disabled={isLoading}
                     />
                 </div>
-
                 <div className="form-group checkbox-group">
                     <div className="checkbox-container">
                         <input
@@ -245,26 +257,17 @@ export default function RegisterModal(props) {
                         />
                         <label htmlFor="registerAgreeTerms">
                             Tôi đồng ý với&nbsp;
-                            <a
-                                href="/terms"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="terms-link">
+                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="terms-link">
                                 điều khoản dịch vụ
                             </a>
                             &nbsp;và&nbsp;
-                            <a
-                                href="/privacy"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="terms-link">
+                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="terms-link">
                                 chính sách bảo mật
                             </a>
                         </label>
                     </div>
                     {formErrors.agreeTerms && <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
                 </div>
-
                 <Button
                     type="submit"
                     mainClass="register-button w-100"
@@ -275,4 +278,4 @@ export default function RegisterModal(props) {
             </Form>
         </Modal>
     );
-};
+}

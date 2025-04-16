@@ -41,6 +41,7 @@ async function hashPassword(password) {
 
 async function verifyPassword(hashedPassword, plainPassword) {
     try {
+        console.log(hashedPassword, plainPassword);
         return await argon2.verify(hashedPassword, plainPassword);
     } catch (error) {
         if (error.code === 'ERR_ARGON2_INVALID_HASH' || error.message.includes('incompatible') || error.message.includes('verification failed')) {
@@ -94,14 +95,14 @@ class AuthService {
 
         try {
             createdEntities = await postgres.transaction(async (trx) => {
-                const existingUser = await accountDao.findByUsername(username);
+                const existingUser = await accountDao.getByUsername(username);
                 if (existingUser) {
                     const error = new Error('Username is already taken.');
                     error.statusCode = HTTP_STATUS.CONFLICT;
                     throw error;
                 }
 
-                const existingEmail = await accountDao.findByEmail(email);
+                const existingEmail = await accountDao.getByEmail(email);
                 if (existingEmail) {
                     const error = new Error('Email address is already registered.');
                     error.statusCode = HTTP_STATUS.CONFLICT;
@@ -152,7 +153,14 @@ class AuthService {
             return {
                 message: 'Registration successful. Please check your email for a verification code.',
                 success: true,
-                userId: userId
+                user: {
+                    userId: createdEntities.registeredUser.userId,
+                    principalId: createdEntities.principal.principalId,
+                    username: createdEntities.account.username,
+                    displayName: createdEntities.profile.displayName,
+                    email: createdEntities.account.email,
+                    isVerified: false, // Initially set to false until verified
+                },
             };
 
         } catch (error) {
@@ -245,7 +253,7 @@ class AuthService {
 
                 // Persist the change using the DAO's update method *within the transaction*
                 // Pass `trx` to the DAO method.
-                const updatedUser = await registeredUserDao.update(userToUpdate, trx);
+                const updatedUser = await registeredUserDao.update(userId, userToUpdate, trx);
 
                 if (!updatedUser) {
                     console.error(`Failed to update RegisteredUser verification status in DB for userId: ${userId} within transaction.`);
@@ -258,12 +266,7 @@ class AuthService {
                 return true; // Indicate update was performed
             }); // End of postgres.transaction block
 
-            // --- Transaction successful and committed (or indicated no update needed) ---
-
-            // --- 4. Clean up Redis key (only if code was valid) ---
-            // This runs *after* the transaction has committed successfully.
-            // We delete the key regardless of whether an update was needed or not,
-            // as the code was successfully used.
+            // --- 4. Clean up Redis key ---
             await redis.del(redisKey);
             console.log(`Redis key ${redisKey} deleted after successful verification check/update.`);
 
@@ -309,7 +312,7 @@ class AuthService {
         }
 
         try {
-            const account = await accountDao.findByUsername(username);
+            const account = await accountDao.getByUsername(username);
             if (!account) {
                 const error = new Error('Invalid username or password.');
                 error.statusCode = HTTP_STATUS.UNAUTHORIZED;
@@ -327,6 +330,7 @@ class AuthService {
             }
 
             if (!isPasswordValid) {
+                console.log('111')
                 const error = new Error('Invalid username or password.');
                 error.statusCode = HTTP_STATUS.UNAUTHORIZED;
                 throw error;
@@ -362,9 +366,12 @@ class AuthService {
                 userId: userProfile.userId,
                 principalId: userProfile.principalId,
                 username: userProfile.username,
+                email: userProfile.email,
                 displayName: userProfile.displayName,
                 avatar: userProfile.avatar,
                 karma: userProfile.karma,
+                isVerified: userProfile.isVerified,
+                status: userProfile.status,
                 role: userProfile.role,
             };
 
@@ -381,15 +388,20 @@ class AuthService {
             };
 
         } catch (error) {
-            console.error(`Login attempt failed for username "${username}":`, error.message);
+            console.error(`Login process failed for username "${username}":`, error.message);
             if (!error.statusCode) {
                 error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                error.message = 'Login failed due to a server issue. Please try again later.';
+                if (!error.message || error.message === 'Login failed due to a server issue during authentication.' || error.message.startsWith('Data inconsistency')) {
+                    error.message = 'Login failed due to an unexpected internal error.';
+                }
             }
             if (error.statusCode === HTTP_STATUS.INTERNAL_SERVER_ERROR) {
                 console.error(error.stack);
             }
-            throw error;
+            if (error.statusCode === HTTP_STATUS.UNAUTHORIZED) {
+                console.warn(`Unauthorized access attempt for username "${username}":`, error.message);
+            }
+            throw error; // Re-throw the error with statusCode
         }
     }
 
