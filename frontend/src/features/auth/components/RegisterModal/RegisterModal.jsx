@@ -1,8 +1,12 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
+// Remove RouterForm import
+import {useActionData, useNavigate, useNavigation} from 'react-router';
 import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
+
 import Modal from "@shared/components/UIElement/Modal/Modal";
 import Button from "@shared/components/UIElement/Button/Button";
-import Form from "@shared/components/UIElement/Form/Form";
+// Import your custom Form component
+import Form from '@shared/components/UIElement/Form/Form.jsx';
 import Input from "@shared/components/UIElement/Input/Input";
 import Icon from '@shared/components/UIElement/Icon/Icon';
 
@@ -12,44 +16,34 @@ export default function RegisterModal(props) {
     const {
         isOpen,
         onClose,
-        onSubmit,
         onSwitchToLogin,
-        isLoading,
-        apiError
     } = props;
 
-    // Note that we pass `isOpen` (instead of a static value) and any API error to our custom hook.
+    const actionData = useActionData();
+    const navigation = useNavigation();
+    const navigate = useNavigate();
+    const isSubmitting = navigation.state === 'submitting';
+
+    const [localApiError, setLocalApiError] = useState(null);
     const {
-        fullName,
-        setFullName,
-        username,
-        setUsername,
-        email,
-        setEmail,
-        password,
-        setPassword,
-        confirmPassword,
-        setConfirmPassword,
-        agreeTerms,
-        setAgreeTerms,
-        formErrors,
-        setFormErrors
-    } = useRegisterFormState(isOpen, apiError);
+        fullName, setFullName,
+        username, setUsername,
+        email, setEmail,
+        password, setPassword,
+        confirmPassword, setConfirmPassword,
+        agreeTerms, setAgreeTerms,
+        formErrors, setFormErrors
+    } = useRegisterFormState(isOpen);
 
     const {passwordStrength, checkPasswordStrength} = usePasswordStrength();
 
-    // Handle change events: update values and clear any specific errors.
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
         const newValue = type === 'checkbox' ? checked : value;
 
-        // Clear field-specific error (and any general error) on change.
-        if (formErrors[name]) {
-            setFormErrors(prevErrors => ({...prevErrors, [name]: ''}));
-        }
-        if (formErrors.general) {
-            setFormErrors(prevErrors => ({...prevErrors, general: ''}));
-        }
+        if (localApiError) setLocalApiError(null);
+        if (formErrors[name]) setFormErrors(prev => ({...prev, [name]: null}));
+        if (formErrors.general) setFormErrors(prev => ({...prev, general: null}));
 
         switch (name) {
             case 'fullName':
@@ -76,9 +70,9 @@ export default function RegisterModal(props) {
         }
     };
 
-    // Validate all form inputs, similar to your Register component.
     const validateForm = () => {
         const newErrors = {};
+        // (Validation logic remains the same)
         if (!fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ tên';
         if (!username.trim()) newErrors.username = 'Vui lòng nhập tên đăng nhập';
         if (!email.trim()) newErrors.email = 'Vui lòng nhập email';
@@ -92,26 +86,38 @@ export default function RegisterModal(props) {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Handle form submission.
     const handleSubmit = (event) => {
-        event.preventDefault();
-        // Optionally log the current form data for debugging.
-        console.log("Form data before submission:", {
-            fullName,
-            username,
-            email,
-            password,
-            confirmPassword,
-            agreeTerms
-        });
-        if (validateForm()) {
-            // Create a user object (exclude confirmPassword since it’s only for client validation).
-            const userData = {fullName, username, email, password};
-            onSubmit(userData);
+        setFormErrors({});
+        setLocalApiError(null);
+        if (!validateForm()) {
+            event.preventDefault(); // Prevent RR submission if client validation fails
+            console.log("Client validation failed in modal. Preventing submission.");
+        } else {
+            console.log("Client validation passed in modal. Allowing React Router submission...");
+            // Let RR handle it
         }
     };
 
-    // Reset form inputs and errors whenever the modal is opened.
+    useEffect(() => {
+        if (isOpen && actionData) {
+            console.log("Register Modal action data received:", actionData);
+            if (actionData.success === false) {
+                setLocalApiError(actionData.message || 'Đăng ký không thành công.');
+            } else if (actionData.success === true) {
+                console.log('Registration successful (via actionData in modal):', actionData.user);
+                onClose(); // Close modal on success
+                // Optionally navigate after closing if needed
+                // navigate('/verify-email', { state: { message: 'Please check your email' } });
+            } else {
+                console.warn("Received unexpected actionData in RegisterModal:", actionData);
+                setLocalApiError("Phản hồi từ máy chủ không hợp lệ.");
+            }
+        }
+        if (!isOpen) {
+            setLocalApiError(null);
+        }
+    }, [actionData, isOpen, onClose, navigate, setFormErrors]); // Add dependencies
+
     useEffect(() => {
         if (isOpen) {
             setFullName('');
@@ -121,14 +127,18 @@ export default function RegisterModal(props) {
             setConfirmPassword('');
             setAgreeTerms(false);
             setFormErrors({});
+            setLocalApiError(null);
+            checkPasswordStrength('');
         }
-    }, [isOpen, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]);
+    }, [isOpen, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors, checkPasswordStrength]);
+
 
     return (
         <Modal
             id="register-modal"
             isOpen={isOpen}
             onClose={onClose}
+            title="Đăng ký tài khoản"
             footer={
                 <div className="d-flex justify-content-center align-items-center">
                     <span className="footer-text">
@@ -140,7 +150,7 @@ export default function RegisterModal(props) {
                         mainClass="login-link"
                         addClass="p-0"
                         onClick={onSwitchToLogin}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                     >
                         Đăng nhập
                     </Button>
@@ -151,71 +161,58 @@ export default function RegisterModal(props) {
                 <h1>Đăng ký tài khoản</h1>
                 <p>Vui lòng điền thông tin để tạo tài khoản mới</p>
             </div>
-
-            {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
-
+            {/* Use your custom Form component */}
             <Form
                 id="register-form-modal"
-                onSubmit={handleSubmit}
-                mainClass="register-form"
+                method="post"
+                action="/register"
+                onSubmit={handleSubmit} // Pass client validation handler
+                mainClass="register-form" // Use mainClass/addClass
                 addClass="px-4"
+                // noValidate // Optional
             >
+                {localApiError && <div className="alert alert-danger mb-3">{localApiError}</div>}
+                {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
+
+                {/* Form Fields remain the same as previous RegisterModal example */}
                 <div className="form-group">
                     <Input
-                        id="registerFullName"
-                        name="fullName"
-                        label="Họ và tên"
-                        placeholder="Nhập họ và tên"
-                        value={fullName}
-                        onChange={handleChange}
-                        isInvalid={!!formErrors.fullName}
-                        feedback={formErrors.fullName}
+                        id="registerModalFullName" name="fullName" label="Họ và tên"
+                        placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
+                        isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
                         addon={<Icon name="user" size="16"/>}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
+                        required
                     />
                 </div>
                 <div className="form-group">
                     <Input
-                        id="registerUsername"
-                        name="username"
-                        label="Tên đăng nhập"
-                        placeholder="Nhập tên đăng nhập"
-                        value={username}
-                        onChange={handleChange}
-                        isInvalid={!!formErrors.username}
-                        feedback={formErrors.username}
+                        id="registerModalUsername" name="username" label="Tên đăng nhập"
+                        placeholder="Nhập tên đăng nhập" value={username} onChange={handleChange}
+                        isInvalid={!!formErrors.username} feedback={formErrors.username}
                         addon={<Icon name="user" size="16"/>}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
+                        required
                     />
                 </div>
                 <div className="form-group">
                     <Input
-                        id="registerEmail"
-                        name="email"
-                        type="email"
-                        label="Email"
-                        placeholder="Nhập địa chỉ email"
-                        value={email}
-                        onChange={handleChange}
-                        isInvalid={!!formErrors.email}
-                        feedback={formErrors.email}
+                        id="registerModalEmail" name="email" type="email" label="Email"
+                        placeholder="Nhập địa chỉ email" value={email} onChange={handleChange}
+                        isInvalid={!!formErrors.email} feedback={formErrors.email}
                         addon={<Icon name="envelope" size="16"/>}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
+                        required
                     />
                 </div>
                 <div className="form-group">
                     <Input
-                        id="registerPassword"
-                        name="password"
-                        type="password"
-                        label="Mật khẩu"
-                        placeholder="Nhập mật khẩu"
-                        value={password}
-                        onChange={handleChange}
-                        isInvalid={!!formErrors.password}
-                        feedback={formErrors.password}
+                        id="registerModalPassword" name="password" type="password" label="Mật khẩu"
+                        placeholder="Nhập mật khẩu" value={password} onChange={handleChange}
+                        isInvalid={!!formErrors.password} feedback={formErrors.password}
                         addon={<Icon name="lock" size="16"/>}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
+                        required
                     />
                     {password && (
                         <div className="password-strength">
@@ -231,31 +228,25 @@ export default function RegisterModal(props) {
                 </div>
                 <div className="form-group">
                     <Input
-                        id="registerConfirmPassword"
-                        name="confirmPassword"
-                        type="password"
+                        id="registerModalConfirmPassword" name="confirmPassword" type="password"
                         label="Xác nhận mật khẩu"
-                        placeholder="Nhập lại mật khẩu"
-                        value={confirmPassword}
-                        onChange={handleChange}
-                        isInvalid={!!formErrors.confirmPassword}
-                        feedback={formErrors.confirmPassword}
+                        placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={handleChange}
+                        isInvalid={!!formErrors.confirmPassword} feedback={formErrors.confirmPassword}
                         addon={<Icon name="lock" size="16"/>}
-                        disabled={isLoading}
+                        disabled={isSubmitting}
+                        required
                     />
                 </div>
                 <div className="form-group checkbox-group">
                     <div className="checkbox-container">
                         <input
-                            type="checkbox"
-                            id="registerAgreeTerms"
-                            name="agreeTerms"
-                            checked={agreeTerms}
-                            onChange={handleChange}
+                            type="checkbox" id="registerModalAgreeTerms" name="agreeTerms"
+                            checked={agreeTerms} onChange={handleChange}
                             className={formErrors.agreeTerms ? 'is-invalid' : ''}
-                            disabled={isLoading}
+                            disabled={isSubmitting}
+                            required
                         />
-                        <label htmlFor="registerAgreeTerms">
+                        <label htmlFor="registerModalAgreeTerms">
                             Tôi đồng ý với&nbsp;
                             <a href="/terms" target="_blank" rel="noopener noreferrer" className="terms-link">
                                 điều khoản dịch vụ
@@ -266,14 +257,16 @@ export default function RegisterModal(props) {
                             </a>
                         </label>
                     </div>
-                    {formErrors.agreeTerms && <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
+                    {formErrors.agreeTerms &&
+                        <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
                 </div>
+
                 <Button
                     type="submit"
                     mainClass="register-button w-100"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                 >
-                    {isLoading ? 'Đang xử lý...' : 'Đăng ký'}
+                    {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
                 </Button>
             </Form>
         </Modal>
