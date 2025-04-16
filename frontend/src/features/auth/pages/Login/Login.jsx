@@ -1,4 +1,5 @@
 import useLoginForm from '#features/auth/hooks/login-hook.jsx';
+import {useAuth} from '#hooks/useAuth.jsx';
 import './Login.css';
 import Input from '#shared/components/UIElement/Input/Input';
 import Button from '#shared/components/UIElement/Button/Button';
@@ -12,6 +13,8 @@ function Login() {
     const actionData = useActionData();
     const navigation = useNavigation();
 
+    const {user} = useAuth();
+
     const [message, setMessage] = useState(null);
 
     const {username, setUsername, password, setPassword} = useLoginForm(true, null);
@@ -22,10 +25,17 @@ function Login() {
             setMessage(actionData?.message);
 
             if (actionData?.success) {
-                setTimeout(() => navigate('/'), 1000);
+                navigate('/');
             }
         }
     }, [actionData, navigate, setMessage]);
+
+    // Redirect to home if user is already logged in
+    useEffect(() => {
+        if (user) {
+            navigate('/');
+        }
+    }, [user, navigate]);
 
     return (
         <div className="login-form-container">
