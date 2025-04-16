@@ -1,14 +1,30 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import '../myprofile.css'
-import AvatarAndName from "../AvatarAndName/AvatarAndName";
-import Tabs from "../Tabs/Tabs";
+import Tabs from "../../../../shared/components/UIElement/Tabs/Tabs";
 import ProfileSideBar from "../ProfileSidebar/ProfileSidebar";
 import ListPostPreview from "../../../posts/components/ListPostPreview/ListPostPreview";
 import Comment from "../../../posts/components/Comment/Comment";
 import PostPreview from "../../../posts/components/PostPreview/PostPreview";
+import Avatar from "../../../../shared/components/UIElement/Avatar/Avatar";
+import Identifier from "../../../../shared/components/UIElement/Identifier/Identifier";
+import RightSidebar from "../../../../shared/components/layout/RightSidebar/RightSidebar";
+import {useSidebar} from '@contexts/SidebarContext.jsx';
 
 function ProfileContainer({imgUrl, name, bannerImgUrl, postKarma, commentKarma, createdDay, posts = [], comments = [], savedPosts = [], hiddenPosts = [],upvotedPosts = [], upvotedComments = [], downvotedPosts = [], downvotedComments = [] }){
     const [activeTab, setActiveTab] = useState("Overview");
+    const {setSidebarParts} = useSidebar();
+
+    useEffect(() => {
+        setSidebarParts({
+            body:   <ProfileSideBar
+                        imgUrl={bannerImgUrl}
+                        name={name}
+                        postKarma={postKarma}
+                        commentKarma={commentKarma}
+                        createdDay={createdDay}
+                    />,
+        })
+    })
     // const overviewList = [...posts, ...comments].sort(() => Math.random() - 0.5);
     // const upvotedList = [...upvotedPosts, ...upvotedComments].sort(() => Math.random() - 0.5);
     // const downvotedList = [...downvotedPosts, ...downvotedComments].sort(() => Math.random() - 0.5);
@@ -41,14 +57,15 @@ function ProfileContainer({imgUrl, name, bannerImgUrl, postKarma, commentKarma, 
                     </>
                 );
             }
-            case "Posts":
+            case "Posts":{
                 return (
                     <>
                         <h2>Posts</h2>
                         <ListPostPreview posts = {posts}/>
                     </>
                 );
-            case "Comments":
+            }
+            case "Comments":{
                 return (
                     <>
                         <h2>Comments</h2>
@@ -57,20 +74,23 @@ function ProfileContainer({imgUrl, name, bannerImgUrl, postKarma, commentKarma, 
                         ))}
                     </>
                 );
-            case "Saved":
+            }
+            case "Saved":{
                 return (
                     <>
                         <h2>Saved</h2>
                         <ListPostPreview posts = {savedPosts}/>
                     </>
                 );
-            case "Hidden":
+            }
+            case "Hidden":{
                 return (
                     <>
                         <h2>Hidden</h2>
                         <ListPostPreview posts = {hiddenPosts}/>
                     </>
                 );
+            }
             case "Upvoted":{
                 const upvotedList = [...upvotedPosts, ...upvotedComments];
                 return (
@@ -97,22 +117,31 @@ function ProfileContainer({imgUrl, name, bannerImgUrl, postKarma, commentKarma, 
         <div>
             <div className="profile-container">
                 <div className="main-content">
-                    <AvatarAndName
-                        imgUrl={imgUrl}
-                        name={name}
-                    />
+                    <div className="profile-header">
+                        <Avatar
+                            src={imgUrl} alt={name} mainClass="profile-avatar"
+                        />
+                        {/* <img src={imgUrl} alt={name} className="profile-avatar"/> */}
+                        <div className="profile-info">
+                            <h1>{name}</h1>
+                            <Identifier type="username" namespace={name}/>
+                        </div>
+                    </div>
                     <Tabs onTabChange={setActiveTab}/>
                     <div className="profile-main" key={activeTab}>
                         {renderContent()}
                     </div>
                 </div>
-                <ProfileSideBar
+                {/* <RightSidebar
+
+                /> */}
+                {/* <ProfileSideBar
                     imgUrl={bannerImgUrl}
                     name={name}
                     postKarma={postKarma}
                     commentKarma={commentKarma}
                     createdDay={createdDay}
-                />
+                /> */}
             </div>
         </div>
     )
