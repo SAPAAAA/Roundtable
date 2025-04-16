@@ -1,4 +1,5 @@
-import React, {lazy} from 'react';
+import React, { lazy } from 'react';
+import AuthLayout from '@layouts/AuthLayout/AuthLayout';
 
 // Lazy-loaded components
 const Login = lazy(() => import('@features/auth/pages/Login/Login'));
@@ -7,33 +8,39 @@ const VerifyEmail = lazy(() => import('@features/auth/pages/VerifyEmail/VerifyEm
 
 const authRoutes = [
     {
-        path: "/login",
-        element: <Login/>,
-    },
-    {
-        path: "/register",
-        element: <Register/>,
-        action: async ({request}) => {
-            const formData = await request.formData();
-            const data = Object.fromEntries(formData.entries());
+        path: "/",
+        element: <AuthLayout />,
+        children: [
+            {
+                path: "login",
+                element: <Login />,
+            },
+            {
+                path: "register",
+                element: <Register />,
+                action: async ({request}) => {
+                    const formData = await request.formData();
+                    const data = Object.fromEntries(formData.entries());
 
-            const response = await fetch('http://localhost:5000/api/register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
+                    const response = await fetch('http://localhost:5000/api/register', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
 
-            if (!response.ok) {
-                throw new Response('Failed to register', {status: response.status});
-            }
+                    if (!response.ok) {
+                        throw new Response('Failed to register', {status: response.status});
+                    }
 
-            // Return the backend response as JSON.
-            return response.json();
-        },
-    },
-    {
-        path: "/verify",
-        element: <VerifyEmail />,
+                    // Return the backend response as JSON.
+                    return response.json();
+                },
+            },
+            {
+                path: "verify",
+                element: <VerifyEmail />,
+            },
+        ],
     },
 ];
 

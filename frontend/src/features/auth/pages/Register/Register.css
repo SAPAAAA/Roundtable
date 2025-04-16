@@ -1,44 +1,31 @@
-/* Register.css */
-.register-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh; /* Full viewport height */
-    background-color: var(--var-cultured);
-    padding: 20px;
-}
 
-.register-card {
+
+.register-form-container {
     width: 100%;
     max-width: 550px;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     padding: 30px;
     margin: 0 auto;
+    position: relative;
+    z-index: 10;
 }
 
-.register-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.register-header h1 {
-    font-size: 48px;
+.register-form-container h1 {
+    font-size: 24px;
     color: var(--var-space-cadet);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-weight: bold;
+    text-align: center;
 }
 
-.register-header h2 {
-    font-size: 28px;
-    color: var(--var-space-cadet);
-    margin-bottom: 8px;
-}
-
-.register-header p {
+.register-form-container p {
     color: var(--var-steel-blue);
     font-size: 16px;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 .register-form {
@@ -77,28 +64,18 @@
 
 .register-footer {
     text-align: center;
-    margin-top: 25px;
-    padding-top: 20px;
+    margin-top: 20px;
+    padding-top: 15px;
     border-top: 1px solid #eee;
 }
 
 .register-button {
-    color: var(--var-space-cadet);
-}
-
-.register-button:hover {
-    background-color: var(--var-azureish-white);
-    color: var(--var-space-cadet);
+    margin-top: 10px;
 }
 
 .login-link {
     color: var(--var-steel-blue);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.login-link:hover {
-    text-decoration: underline;
+    margin-left: 5px;
 }
 
 /* Password strength indicator */

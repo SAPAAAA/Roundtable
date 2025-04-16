@@ -1,12 +1,10 @@
-// Add/Update imports
-import React, {useEffect, useState} from 'react'; // Add useEffect
+import React, {useEffect, useState} from 'react';
 import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
 import './Register.css';
 import Input from '@shared/components/UIElement/Input/Input';
 import Button from '@shared/components/UIElement/Button/Button';
 import Icon from '@shared/components/UIElement/Icon/Icon';
 import Form from '@shared/components/UIElement/Form/Form';
-// Import hooks from react-router-dom
 import {useActionData, useNavigate, useNavigation} from 'react-router';
 
 function Register() {
@@ -143,7 +141,6 @@ function Register() {
                 setLocalApiError(null); // Clear API error state
 
                 // Redirect to login page after successful registration
-                // Optional: Show a success message briefly before redirecting
                 navigate('/login');
             } else {
                 // Handle cases where actionData might not have the expected structure
@@ -151,147 +148,127 @@ function Register() {
                 setLocalApiError("Phản hồi từ máy chủ không hợp lệ.");
             }
         }
-    }, [actionData, navigate, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]); // Add setters to dependency array if needed by your ESLint rules
+    }, [actionData, navigate, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms]);
 
-    // --- Render ---
     return (
-        <div className="register-container">
-            <div className="register-card">
-                <div className="register-header">
-                    <h1>Đăng ký tài khoản</h1>
-                    <p>Vui lòng điền thông tin để tạo tài khoản mới</p>
-                </div>
+        <div className="register-form-container">
+            <h1>Đăng ký tài khoản</h1>
+            <p>Vui lòng điền thông tin để tạo tài khoản mới</p>
 
-                {/* Display API error first if it exists */}
-                {/*{localApiError && <div className="alert alert-danger mb-3">{localApiError}</div>}*/}
+            {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
+            {localApiError && <div className="alert alert-danger mb-3">{localApiError}</div>}
 
-                {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
-
-                {/* === Form with method and action === */}
-                <Form
-                    id="register-form"
-                    onSubmit={handleSubmit}
-                    method="post"
-                    action="/register"
-                    mainClass="register-form"
-                    // noValidate // Optional: disable browser's built-in validation UI
-                >
-                    {/* === Full Name === */}
-                    <div className="form-group">
-                        <Input
-                            id="registerFullName" name="fullName" label="Họ và tên"
-                            placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
-                            isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
-                            addon={<Icon name="user" size="16"/>}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    {/* === Username === */}
-                    <div className="form-group">
-                        <Input
-                            id="registerUsername" name="username" label="Tên đăng nhập"
-                            placeholder="Nhập tên đăng nhập" value={username} onChange={handleChange}
-                            isInvalid={!!formErrors.username} feedback={formErrors.username}
-                            addon={<Icon name="user" size="16"/>}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    {/* === Email === */}
-                    <div className="form-group">
-                        <Input
-                            id="registerEmail" name="email" type="email" label="Email"
-                            placeholder="Nhập địa chỉ email" value={email} onChange={handleChange}
-                            isInvalid={!!formErrors.email} feedback={formErrors.email}
-                            addon={<Icon name="envelope" size="16"/>}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    {/* === Password === */}
-                    <div className="form-group">
-                        <Input
-                            id="registerPassword" name="password" type="password" label="Mật khẩu"
-                            placeholder="Nhập mật khẩu" value={password} onChange={handleChange}
-                            isInvalid={!!formErrors.password} feedback={formErrors.password}
-                            addon={<Icon name="lock" size="16"/>}
-                            disabled={isSubmitting}
-                        />
-                        {password && (
-                            <div className="password-strength">
-                                {/* ... strength indicator ... */}
-                                <div className="strength-bar">
-                                    <div
-                                        className={`strength-level strength-${passwordStrength.score}`}
-                                        style={{width: `${(passwordStrength.score / 4) * 100}%`}}
-                                    ></div>
-                                </div>
-                                <span className="strength-text">{passwordStrength.message}</span>
-                            </div>
-                        )}
-                    </div>
-                    {/* === Confirm Password === */}
-                    <div className="form-group">
-                        <Input
-                            id="registerConfirmPassword" name="confirmPassword" type="password"
-                            label="Xác nhận mật khẩu"
-                            placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={handleChange}
-                            isInvalid={!!formErrors.confirmPassword} feedback={formErrors.confirmPassword}
-                            addon={<Icon name="lock" size="16"/>}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    {/* === Agree Terms === */}
-                    <div className="form-group checkbox-group">
-                        <div className="checkbox-container">
-                            <input
-                                type="checkbox" id="registerAgreeTerms" name="agreeTerms"
-                                checked={agreeTerms} onChange={handleChange}
-                                className={formErrors.agreeTerms ? 'is-invalid' : ''}
-                                disabled={isSubmitting}
-                            />
-                            <label htmlFor="registerAgreeTerms">
-                                Tôi đồng ý với&nbsp;
-                                <a href="/terms" target="_blank" rel="noopener noreferrer" className="terms-link">
-                                    điều khoản dịch vụ
-                                </a>
-                                &nbsp;và&nbsp;
-                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="terms-link">
-                                    chính sách bảo mật
-                                </a>
-                            </label>
-                        </div>
-                        {formErrors.agreeTerms &&
-                            <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
-                    </div>
-                    {/* === Submit Button === */}
-                    <Button
-                        type="submit"
-                        mainClass="register-button w-100"
+            <Form
+                id="register-form"
+                onSubmit={handleSubmit}
+                method="post"
+                action="/register"
+                mainClass="register-form"
+            >
+                <div className="form-group">
+                    <Input
+                        id="registerFullName" name="fullName" label="Họ và tên"
+                        placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
+                        isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
+                        addon={<Icon name="user" size="16"/>}
                         disabled={isSubmitting}
-                    >
-                        {/* Use isSubmitting state for button text */}
-                        {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
-                    </Button>
-                </Form>
-
-                {/* --- Footer (Login Link) --- */}
-                <div className="register-footer mt-3">
-                    <div className="d-flex justify-content-center align-items-center">
-                        <span
-                            className="footer-text">
-                            Đã có tài khoản?
-                        </span>
-                        <Button
-                            contentType="text"
-                            type="button"
-                            mainClass="login-link"
-                            addClass="p-0"
-                            onClick={() => {
-                                navigate('/login');
-                            }}
-                        >
-                            Đăng nhập
-                        </Button>
+                    />
+                </div>
+                <div className="form-group">
+                    <Input
+                        id="registerUsername" name="username" label="Tên đăng nhập"
+                        placeholder="Nhập tên đăng nhập" value={username} onChange={handleChange}
+                        isInvalid={!!formErrors.username} feedback={formErrors.username}
+                        addon={<Icon name="user" size="16"/>}
+                        disabled={isSubmitting}
+                    />
+                </div>
+                <div className="form-group">
+                    <Input
+                        id="registerEmail" name="email" type="email" label="Email"
+                        placeholder="Nhập địa chỉ email" value={email} onChange={handleChange}
+                        isInvalid={!!formErrors.email} feedback={formErrors.email}
+                        addon={<Icon name="envelope" size="16"/>}
+                        disabled={isSubmitting}
+                    />
+                </div>
+                <div className="form-group">
+                    <Input
+                        id="registerPassword" name="password" type="password" label="Mật khẩu"
+                        placeholder="Nhập mật khẩu" value={password} onChange={handleChange}
+                        isInvalid={!!formErrors.password} feedback={formErrors.password}
+                        addon={<Icon name="lock" size="16"/>}
+                        disabled={isSubmitting}
+                    />
+                    {password && (
+                        <div className="password-strength">
+                            <div className="strength-bar">
+                                <div
+                                    className={`strength-level strength-${passwordStrength.score}`}
+                                    style={{width: `${(passwordStrength.score / 4) * 100}%`}}
+                                ></div>
+                            </div>
+                            <span className="strength-text">{passwordStrength.message}</span>
+                        </div>
+                    )}
+                </div>
+                <div className="form-group">
+                    <Input
+                        id="registerConfirmPassword" name="confirmPassword" type="password"
+                        label="Xác nhận mật khẩu"
+                        placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={handleChange}
+                        isInvalid={!!formErrors.confirmPassword} feedback={formErrors.confirmPassword}
+                        addon={<Icon name="lock" size="16"/>}
+                        disabled={isSubmitting}
+                    />
+                </div>
+                <div className="form-group checkbox-group">
+                    <div className="checkbox-container">
+                        <input
+                            type="checkbox" id="registerAgreeTerms" name="agreeTerms"
+                            checked={agreeTerms} onChange={handleChange}
+                            className={formErrors.agreeTerms ? 'is-invalid' : ''}
+                            disabled={isSubmitting}
+                        />
+                        <label htmlFor="registerAgreeTerms">
+                            Tôi đồng ý với&nbsp;
+                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="terms-link">
+                                điều khoản dịch vụ
+                            </a>
+                            &nbsp;và&nbsp;
+                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="terms-link">
+                                chính sách bảo mật
+                            </a>
+                        </label>
                     </div>
+                    {formErrors.agreeTerms &&
+                        <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
+                </div>
+                <Button
+                    type="submit"
+                    mainClass="register-button w-100"
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
+                </Button>
+            </Form>
+
+            <div className="register-footer mt-3">
+                <div className="d-flex justify-content-center align-items-center">
+                    <span className="footer-text">
+                        Đã có tài khoản?
+                    </span>
+                    <Button
+                        contentType="text"
+                        type="button"
+                        mainClass="login-link"
+                        addClass="p-0"
+                        onClick={() => {
+                            navigate('/login');
+                        }}
+                    >
+                        Đăng nhập
+                    </Button>
                 </div>
             </div>
         </div>
