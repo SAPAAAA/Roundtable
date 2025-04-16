@@ -1,11 +1,11 @@
-import sendApiRequest from "@hooks/apiClient.jsx";
+import sendApiRequest from "#hooks/apiClient.jsx";
 
 export default async function verifyEmailAction({request}) {
     const formData = await request.formData();
     const data = Object.fromEntries(formData.entries()); // Adjust data extraction if needed
 
     try {
-        const responseData = await sendApiRequest('/api/verify-email', {
+        const responseData = await sendApiRequest('/api/auth/verify-email', {
             method: 'POST', // Adjust method if needed
             body: data
         });

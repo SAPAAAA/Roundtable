@@ -1,14 +1,14 @@
 import React, {useEffect, useState} from 'react';
 // Remove RouterForm import
 import {useActionData, useNavigate, useNavigation} from 'react-router';
-import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
+import {usePasswordStrength, useRegisterFormState} from '#features/auth/hooks/register-hook.jsx';
 
-import Modal from "@shared/components/UIElement/Modal/Modal";
-import Button from "@shared/components/UIElement/Button/Button";
+import Modal from "#shared/components/UIElement/Modal/Modal";
+import Button from "#shared/components/UIElement/Button/Button";
 // Import your custom Form component
-import Form from '@shared/components/UIElement/Form/Form.jsx';
-import Input from "@shared/components/UIElement/Input/Input";
-import Icon from '@shared/components/UIElement/Icon/Icon';
+import Form from '#shared/components/UIElement/Form/Form.jsx';
+import Input from "#shared/components/UIElement/Input/Input";
+import Icon from '#shared/components/UIElement/Icon/Icon';
 
 import './RegisterModal.css';
 

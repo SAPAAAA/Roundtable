@@ -1,7 +1,7 @@
 import React, {Suspense} from 'react';
 import {Outlet} from 'react-router';
 import './AuthLayout.css';
-import LoadingSpinner from '@shared/components/UIElement/LoadingSpinner/LoadingSpinner';
+import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
 
 function AuthLayout() {
     return (

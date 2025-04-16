@@ -1,18 +1,18 @@
-import React, {useState} from 'react'; // Added Suspense
+// src/layouts/MainLayout/MainLayout.jsx
+import React, {useEffect, useState} from 'react'; // Make sure useEffect is imported
 import './MainLayout.css';
-import {useAuth} from "@hooks/useAuth.jsx";
+import {useAuth} from "#hooks/useAuth.jsx"; // Import useAuth
 
 // Lazy load components
-const Header = React.lazy(() => import("@shared/components/layout/Header/Header.jsx"));
-const Content = React.lazy(() => import("@shared/components/layout/Content/Content.jsx"));
-const Footer = React.lazy(() => import("@shared/components/layout/Footer/Footer.jsx"));
-const LoginModal = React.lazy(() => import("@features/auth/components/LoginModal/LoginModal.jsx"));
-const RegisterModal = React.lazy(() => import("@features/auth/components/RegisterModal/RegisterModal.jsx"));
-
+const Header = React.lazy(() => import("#shared/components/layout/Header/Header.jsx"));
+const Content = React.lazy(() => import("#shared/components/layout/Content/Content.jsx"));
+const Footer = React.lazy(() => import("#shared/components/layout/Footer/Footer.jsx"));
+const LoginModal = React.lazy(() => import("#features/auth/components/LoginModal/LoginModal.jsx"));
+const RegisterModal = React.lazy(() => import("#features/auth/components/RegisterModal/RegisterModal.jsx"));
 
 export default function MainLayout() {
-    // Keep login logic, remove register logic as it's handled by the Action
-    const {login, isLoading, error: authError} = useAuth();
+    // Get user state from AuthContext
+    const {user, login, isLoading, checkSession} = useAuth(); // Destructure user
     const [isSidebarVisible, setSidebarVisible] = useState(false);
 
     // --- Modal Visibility State ---
@@ -20,50 +20,43 @@ export default function MainLayout() {
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
     // --- Error State for Login ---
-    // Keep this for errors returned from the login API call via useAuth
     const [loginApiError, setLoginApiError] = useState(null);
-    // REMOVE registrationApiError state
-
 
     // --- Handlers ---
     const toggleSidebar = () => setSidebarVisible(prev => !prev);
 
     // --- Modal Control ---
     const openLoginModal = () => {
-        // REMOVE setRegistrationApiError(null);
         setIsRegisterModalOpen(false);
         setIsLoginModalOpen(true);
-        setLoginApiError(null); // Clear login error when opening
+        setLoginApiError(null);
     };
     const closeLoginModal = () => {
         setIsLoginModalOpen(false);
-        setLoginApiError(null); // Clear error on close
+        setLoginApiError(null);
     }
 
     const openRegisterModal = () => {
-        setLoginApiError(null); // Clear login errors if any
+        setLoginApiError(null);
         setIsLoginModalOpen(false);
         setIsRegisterModalOpen(true);
-        // REMOVE setRegistrationApiError(null); // Error is handled inside RegisterModal now
     };
     const closeRegisterModal = () => {
         setIsRegisterModalOpen(false);
-        // REMOVE setRegistrationApiError(null);
     }
 
-    // --- Login Form Submission Handler (remains the same) ---
+    // --- Login Form Submission Handler (for modal) ---
     const handleLoginSubmit = async (email, password) => {
-        setLoginApiError(null); // Clear previous error
-        const success = await login(email, password);
+        // This handler is likely for the modal login, not the page login
+        // Keep it if the modal needs its own submission logic
+        setLoginApiError(null);
+        const success = await login(email, password); // Assuming login comes from useAuth
         if (success) {
             closeLoginModal();
         } else {
-            // Use the error from the auth context or a default
-            setLoginApiError(authError || "Đăng nhập không thành công.");
+            setLoginApiError("Invalid email or password. Please try again.");
         }
     };
-
-    // REMOVE handleRegisterSubmit - It's handled by the Action now
 
     // --- Modal Switching ---
     const switchToRegister = () => {
@@ -76,15 +69,32 @@ export default function MainLayout() {
         openLoginModal();
     };
 
+    // Effect to check session (keep if necessary, might be handled by AuthProvider already)
+    useEffect(() => {
+        // console.log("MainLayout initial checkSession effect runs");
+        // checkSession(); // Consider if this is needed here or just in AuthProvider
+    }, [checkSession]);
+
+    // --- <<< ADD THIS EFFECT >>> ---
+    // Effect to ensure modals are closed when the user is logged in
+    useEffect(() => {
+        // console.log("MainLayout user state check effect runs. User:", user);
+        if (user) { // Check if the user object exists/is truthy
+            // console.log("User detected in MainLayout, closing modals.");
+            setIsLoginModalOpen(false);
+            setIsRegisterModalOpen(false);
+        }
+    }, [user]); // Re-run this effect whenever the user state changes
+    // --- <<< END OF ADDED EFFECT >>> ---
 
     return (
         <div>
+            {/* {console.log("MainLayout RENDER - isLoginModalOpen:", isLoginModalOpen)} */}
             <Header
                 toggleSidebar={toggleSidebar}
                 isSidebarVisible={isSidebarVisible}
                 openLoginModal={openLoginModal}
-                // Optionally pass openRegisterModal if needed in Header
-                openRegisterModal={openRegisterModal}
+                openRegisterModal={openRegisterModal} // Pass this if Header needs it
             />
 
             <Content
@@ -98,18 +108,18 @@ export default function MainLayout() {
             <LoginModal
                 isOpen={isLoginModalOpen}
                 onClose={closeLoginModal}
-                onSubmit={handleLoginSubmit}
+                // onSubmit={handleLoginSubmit} // Keep if modal has its own submit
                 onSwitchToRegister={switchToRegister}
-                isLoading={isLoading} // Login modal still uses isLoading from useAuth
-                authError={loginApiError}
+                isLoading={isLoading} // Use isLoading from useAuth for modal too
+                authError={loginApiError} // Use specific modal error state
             />
 
             {/* Render the Register Modal Component */}
-            {/* Remove onSubmit, isLoading, apiError props */}
             <RegisterModal
                 isOpen={isRegisterModalOpen}
                 onClose={closeRegisterModal}
                 onSwitchToLogin={switchToLogin}
+                // No submit/loading/error props needed if using RR action
             />
         </div>
     );

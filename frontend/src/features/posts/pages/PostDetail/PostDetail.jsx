@@ -1,13 +1,13 @@
 import React, {useState} from "react";
 import "./PostDetail.css"
-import Avatar from "@shared/components/UIElement/Avatar/Avatar";
-import Identifier from "@shared/components/UIElement/Identifier/Identifier";
-import Button from "@shared/components/UIElement/Button/Button";
-import Icon from "@shared/components/UIElement/Icon/Icon";
-import PopoverMenu from "@shared/components/UIElement/PopoverMenu/PopoverMenu";
-import {useVote} from "@features/posts/hooks/vote-hook.jsx";
-import WriteComment from "@features/posts/components/WriteComment/WriteComment.jsx";
-import Comment from "@features/posts/components/Comment/Comment.jsx";
+import Avatar from "#shared/components/UIElement/Avatar/Avatar";
+import Identifier from "#shared/components/UIElement/Identifier/Identifier";
+import Button from "#shared/components/UIElement/Button/Button";
+import Icon from "#shared/components/UIElement/Icon/Icon";
+import PopoverMenu from "#shared/components/UIElement/PopoverMenu/PopoverMenu";
+import {useVote} from "#features/posts/hooks/vote-hook.jsx";
+import WriteComment from "#features/posts/components/WriteComment/WriteComment.jsx";
+import Comment from "#features/posts/components/Comment/Comment.jsx";
 
 export default function PostDetail(props) {
     const {

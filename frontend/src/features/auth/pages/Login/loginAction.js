@@ -1,4 +1,4 @@
-import sendApiRequest from "@hooks/apiClient.jsx";
+import sendApiRequest from "#hooks/apiClient.jsx";
 
 export default async function loginAction({request}) {
     // --- Form Data Handling ---
@@ -9,12 +9,10 @@ export default async function loginAction({request}) {
 
     try {
         // Use the standalone function, passing method and body
-        const response = await sendApiRequest('/api/login', {
+        const response = await sendApiRequest('http://localhost:5000/api/auth/login', {
             method: 'POST',
             body: data
         });
-
-        console.log('Login successful:', response);
 
         return {
             success: response.success,
@@ -29,8 +27,8 @@ export default async function loginAction({request}) {
             // Case 1: Login Failed - Unauthorized (401) or Bad Request (400)
             console.error("Login failed:", error);
             return {
-                success: error.success,
-                error: error.error,
+                success: false,
+                error: true,
                 message: error.message || "Tên đăng nhập hoặc mật khẩu không chính xác.",
                 status: error.status,
             }

@@ -74,7 +74,7 @@ export default function Input(props) {
     return (
         <div className="input-group has-validation mb-3">
             {addon && <span className="input-group-text">{addon}</span>}
-            <div className={`form-floating ${validationClass}`}>
+            <div className={`form-floating flex-grow-1 ${validationClass}`}>
                 <input
                     id={id}
                     name={name}

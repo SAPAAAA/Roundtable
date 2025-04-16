@@ -14,7 +14,8 @@
 		"#services/*": "./services/*",
 		"#utils/*": "./utils/*",
 		"#db/*": "./db/*",
-		"#constants/*": "./constants/*"
+		"#constants/*": "./constants/*",
+		"#middlewares/*": "./middlewares/*"
 	},
 	"main": "app.js",
 	"scripts": {

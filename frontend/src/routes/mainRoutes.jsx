@@ -1,10 +1,10 @@
 import React, {lazy} from 'react';
 
 // Lazy-loaded components for this section
-const MainLayout = lazy(() => import('@layouts/MainLayout/MainLayout'));
-const Home = lazy(() => import('@pages/Home/HomeContent/HomeContent'));
-const PostDetail = lazy(() => import('@features/posts/pages/PostDetail/PostDetail'));
-const CreatePost = lazy(() => import('@features/posts/pages/CreatePost/CreatePost'));
+const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
+const Home = lazy(() => import('#pages/Home/HomeContent/HomeContent'));
+const PostDetail = lazy(() => import('#features/posts/pages/PostDetail/PostDetail'));
+const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
 
 const post =
     {
@@ -104,26 +104,28 @@ const subtables = [
     }
 ];
 
-const mainRoutes = {
-    element: <MainLayout/>,
-    children: [
-        {
-            index: true,
-            element: <Home/>
-        },
-        {
-            path: "comment",
-            element: <Home/>
-        },
-        {
-            path: "post",
-            element: <PostDetail post={post} comments={comments}/>,
-        },
-        {
-            path: "createpost",
-            element: <CreatePost subtable={subtables}/>,
-        }
-    ],
+function mainRoutes() {
+    return {
+        element: <MainLayout/>,
+        children: [
+            {
+                index: true,
+                element: <Home/>
+            },
+            {
+                path: "comment",
+                element: <Home/>
+            },
+            {
+                path: "post",
+                element: <PostDetail post={post} comments={comments}/>,
+            },
+            {
+                path: "createpost",
+                element: <CreatePost subtable={subtables}/>,
+            }
+        ],
+    };
 }
 
 export default mainRoutes;

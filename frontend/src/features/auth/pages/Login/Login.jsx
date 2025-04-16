@@ -1,9 +1,9 @@
-import useLoginForm from '@features/auth/hooks/login-hook.jsx';
+import useLoginForm from '#features/auth/hooks/login-hook.jsx';
 import './Login.css';
-import Input from '@shared/components/UIElement/Input/Input';
-import Button from '@shared/components/UIElement/Button/Button';
-import Icon from '@shared/components/UIElement/Icon/Icon';
-import Form from '@shared/components/UIElement/Form/Form';
+import Input from '#shared/components/UIElement/Input/Input';
+import Button from '#shared/components/UIElement/Button/Button';
+import Icon from '#shared/components/UIElement/Icon/Icon';
+import Form from '#shared/components/UIElement/Form/Form';
 import {useActionData, useNavigate, useNavigation} from "react-router";
 import {useEffect, useState} from "react";
 
@@ -12,23 +12,20 @@ function Login() {
     const actionData = useActionData();
     const navigation = useNavigation();
 
-    const [error, setError] = useState(null);
+    const [message, setMessage] = useState(null);
 
     const {username, setUsername, password, setPassword} = useLoginForm(true, null);
 
     useEffect(() => {
-        if (actionData && actionData.success) {
-            // Handle successful login
-            navigate('/', {
-                replace: true,
-                user: actionData.user,
-            });
-        }
-        if (actionData && !actionData.success) {
+        if (actionData) {
             console.log(actionData);
-            setError(actionData.message);
+            setMessage(actionData?.message);
+
+            if (actionData?.success) {
+                setTimeout(() => navigate('/'), 1000);
+            }
         }
-    }, [actionData, navigate]);
+    }, [actionData, navigate, setMessage]);
 
     return (
         <div className="login-form-container">
@@ -38,14 +35,11 @@ function Login() {
                     <p>Vui lòng nhập thông tin để đăng nhập</p>
                 </div>
                 {/* Use the error state from the AuthContext */}
-                {/* Check if actionData exists first */}
-                {error && <div className="alert alert-danger mb-3">{error}</div>}
                 <Form
                     id="login-form"
                     method="post"
                     action="/login"
                     mainClass="login-form"
-                    addClass="px-4"
                 >
                     <div className="form-group">
                         <Input
@@ -78,7 +72,8 @@ function Login() {
                     <Button
                         type="submit"
                         mainClass="login-button"
-                        disabled={navigation.state === 'submitting'} // Use isLoading from context
+                        addClass="w-100"
+                        disabled={navigation.state === 'submitting'}
                     >
                         {/* Use isLoading from context */}
                         {navigation.state === 'submitting' ? 'Đang đăng nhập...' : 'Đăng nhập'}

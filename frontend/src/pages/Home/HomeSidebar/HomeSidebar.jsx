@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect} from 'react'; // Removed useState, added useCallback
 import './HomeSidebar.css';
-import Identifier from "@shared/components/UIElement/Identifier/Identifier";
-import useSidebar from "@hooks/useSidebar.jsx";
+import Identifier from "#shared/components/UIElement/Identifier/Identifier";
+import useSidebar from "#hooks/useSidebar.jsx";
 
 // Define the sidebar-specific posts data
 const posts = [

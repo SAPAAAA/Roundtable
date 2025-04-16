@@ -1,12 +1,12 @@
 import React from 'react'; // Removed useEffect, useRef, useState
 import './Header.css';
-import Button from '@shared/components/UIElement/Button/Button';
-import Avatar from "@shared/components/UIElement/Avatar/Avatar";
-import Icon from "@shared/components/UIElement/Icon/Icon";
-import Link from "@shared/components/Navigation/Link/Link";
-import Identifier from "@shared/components/UIElement/Identifier/Identifier";
-import {useAuth} from "@hooks/useAuth.jsx";
-import PopoverMenu from '@shared/components/UIElement/PopoverMenu/PopoverMenu'; // Assuming this is the correct path
+import Button from '#shared/components/UIElement/Button/Button';
+import Avatar from "#shared/components/UIElement/Avatar/Avatar";
+import Icon from "#shared/components/UIElement/Icon/Icon";
+import Link from "#shared/components/Navigation/Link/Link";
+import Identifier from "#shared/components/UIElement/Identifier/Identifier";
+import {useAuth} from "#hooks/useAuth.jsx";
+import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu'; // Assuming this is the correct path
 
 export default function Header(props) {
     const {toggleSidebar, openLoginModal} = props;

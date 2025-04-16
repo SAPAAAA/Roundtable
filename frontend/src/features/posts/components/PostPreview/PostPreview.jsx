@@ -1,12 +1,12 @@
 import React from "react";
 
-import Avatar from "@shared/components/UIElement/Avatar/Avatar";
-import Identifier from "@shared/components/UIElement/Identifier/Identifier";
-import Button from "@shared/components/UIElement/Button/Button";
-import Icon from "@shared/components/UIElement/Icon/Icon";
+import Avatar from "#shared/components/UIElement/Avatar/Avatar";
+import Identifier from "#shared/components/UIElement/Identifier/Identifier";
+import Button from "#shared/components/UIElement/Button/Button";
+import Icon from "#shared/components/UIElement/Icon/Icon";
 
 import "./PostPreview.css";
-import {useVote} from "@features/posts/hooks/vote-hook.jsx"
+import {useVote} from "#features/posts/hooks/vote-hook.jsx"
 
 export default function PostPreview(props) {
 

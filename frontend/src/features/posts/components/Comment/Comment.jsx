@@ -1,7 +1,7 @@
 import React from "react";
-import Avatar from "@shared/components/UIElement/Avatar/Avatar";
-import Button from "@shared/components/UIElement/Button/Button";
-import Icon from "@shared/components/UIElement/Icon/Icon";
+import Avatar from "#shared/components/UIElement/Avatar/Avatar";
+import Button from "#shared/components/UIElement/Button/Button";
+import Icon from "#shared/components/UIElement/Icon/Icon";
 import './Comment.css'
 //import {useVote} from "./vote-hook-comment.js"
 import {useVote} from "./vote-hook-comment.js"

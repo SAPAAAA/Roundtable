@@ -33,6 +33,7 @@ import {Form as RouterForm} from "react-router";
  * @param {boolean} [props.replace] - If true, replaces the current entry in the history stack.
  * @param {any} [props.state] - State to pass to the new location.
  * @param {boolean} [props.preventScrollReset] - If true, prevents scroll reset on navigation.
+ * @param {string} [props.fetcherKey] - Key for the fetcher (if using fetchers).
  *
  * @returns {JSX.Element} A styled react-router-dom `<Form>` element with enhanced functionality.
  *
@@ -87,6 +88,7 @@ export default function Form(props) {
         replace,
         state,
         preventScrollReset,
+        fetcherKey,
     } = props;
 
     // Combine custom classes
@@ -95,7 +97,7 @@ export default function Form(props) {
     return (
         <RouterForm
             id={id}
-            className={combinedClassName}
+            className={combinedClassName || undefined} // Pass undefined if empty string
             style={style}
             method={method}
             action={action}
@@ -105,6 +107,7 @@ export default function Form(props) {
             replace={replace}
             state={state}
             preventScrollReset={preventScrollReset}
+            fetcherKey={fetcherKey} // <-- Pass fetcherKey to RouterForm
             onSubmit={onSubmit}
             onAbort={onAbort}
             onReset={onReset}

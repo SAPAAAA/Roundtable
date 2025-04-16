@@ -1,9 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import './Error404.css';
+import {useNavigate} from "react-router";
 
 export default function Error404() {
     const [isVisible, setIsVisible] = useState(false);
     const [mousePosition, setMousePosition] = useState({x: 0, y: 0});
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         // Hiệu ứng fade in khi component mount
@@ -25,7 +28,7 @@ export default function Error404() {
     }, []);
 
     const handleGoHome = () => {
-        window.location.href = '/';
+        navigate('/'); // Use navigate for SPA navigation
     };
 
     return (

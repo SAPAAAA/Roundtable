@@ -1,14 +1,13 @@
-import React, {useEffect, useState} from 'react';
-// Remove RouterForm import, we will use the custom one
-import {useActionData, useNavigation} from 'react-router';
-import useLoginForm from '@features/auth/hooks/login-hook.jsx';
+import React, {useEffect, useRef, useState} from 'react';
+// Make sure the import is correct for your setup, often 'react-router-dom'
+import {useFetcher} from 'react-router'; // Or 'react-router' if that's your setup
+import {useAuth} from '#hooks/useAuth.jsx';
+import useLoginForm from '#features/auth/hooks/login-hook.jsx';
 
-import Modal from "@shared/components/UIElement/Modal/Modal.jsx";
-import Button from "@shared/components/UIElement/Button/Button.jsx";
-// Import your custom Form component
-import Form from '@shared/components/UIElement/Form/Form.jsx';
-import Input from "@shared/components/UIElement/Input/Input.jsx";
-import Icon from '@shared/components/UIElement/Icon/Icon';
+import Modal from "#shared/components/UIElement/Modal/Modal.jsx";
+import Button from "#shared/components/UIElement/Button/Button.jsx";
+import Input from "#shared/components/UIElement/Input/Input.jsx";
+import Icon from '#shared/components/UIElement/Icon/Icon';
 
 import './LoginModal.css';
 
@@ -19,45 +18,63 @@ export default function LoginModal(props) {
         onSwitchToRegister,
     } = props;
 
-    const actionData = useActionData();
-    const navigation = useNavigation();
-    const isSubmitting = navigation.state === 'submitting';
+    const {checkSession} = useAuth();
+    const fetcher = useFetcher();
+    const isSubmitting = fetcher.state === 'submitting';
+    const actionData = fetcher.data;
 
     const {username, setUsername, password, setPassword} = useLoginForm(isOpen);
-    const [apiError, setApiError] = useState(null);
+    const [message, setMessage] = useState(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const handleUsernameChange = (e) => {
-        if (apiError) setApiError(null);
+        if (message) setMessage(null);
         setUsername(e.target.value);
     };
 
     const handlePasswordChange = (e) => {
-        if (apiError) setApiError(null);
+        if (message) setMessage(null);
         setPassword(e.target.value);
     };
 
     useEffect(() => {
-        if (isOpen && actionData) {
-            console.log("Login Modal actionData received:", actionData);
-            if (actionData.success === true) {
-                onClose();
-            } else if (actionData.success === false) {
-                setApiError(actionData.message || 'Đăng nhập không thành công.');
-            } else {
-                console.warn("Received unexpected actionData in LoginModal:", actionData);
-                setApiError("Phản hồi từ máy chủ không hợp lệ.");
+        const handleActionData = async () => {
+            // This condition should now work correctly when fetcher.data updates
+            if (isOpen && actionData && isMounted.current) {
+                console.log("Login Modal fetcher.data received:", actionData);
+                if (actionData.success === true) {
+                    console.log("Login successful via fetcher, closing modal and refreshing session...");
+                    onClose(); // <-- This should now be called
+                    await checkSession(false);
+                    console.log("Session check triggered after successful login.");
+                } else if (actionData.success === false) {
+                    setMessage(actionData.message || 'Đăng nhập không thành công.');
+                } else {
+                    console.warn("Received unexpected fetcher.data in LoginModal:", actionData);
+                    setMessage("Phản hồi từ máy chủ không hợp lệ.");
+                }
             }
-        }
-        if (!isOpen) {
-            setApiError(null);
-        }
-    }, [actionData, isOpen, onClose]);
+            if (!isOpen && isMounted.current) {
+                setMessage(null);
+            }
+        };
+        handleActionData();
+    }, [actionData, isOpen, onClose, checkSession]);
 
     useEffect(() => {
-        if (isOpen) {
-            setUsername('');
-            setPassword('');
-            setApiError(null);
+        if (isMounted.current) {
+            if (isOpen) {
+                setUsername('');
+                setPassword('');
+                setMessage(null);
+            }
         }
     }, [isOpen, setUsername, setPassword]);
 
@@ -69,9 +86,9 @@ export default function LoginModal(props) {
             title="Đăng nhập"
             footer={
                 <div className="d-flex justify-content-center align-items-center">
-                    <span className="footer-text">
-                        Chưa có tài khoản?
-                    </span>
+                <span className="footer-text">
+                    Chưa có tài khoản?
+                </span>
                     <Button
                         type="button"
                         mainClass="register-link"
@@ -89,16 +106,15 @@ export default function LoginModal(props) {
                 <h1>Đăng nhập</h1>
                 <p>Vui lòng nhập thông tin để đăng nhập</p>
             </div>
-            {/* Use your custom Form component */}
-            <Form
-                method="post"
-                action="/login"
-                mainClass="login-form" // Use mainClass/addClass as defined by your component
-                addClass="px-4"
-                // onSubmit is not needed here unless specific client validation exists
-            >
-                {apiError && <div className="alert alert-danger mb-3">{apiError}</div>}
 
+            {/* **** Use fetcher.Form provided by the useFetcher hook **** */}
+            <fetcher.Form
+                method="post"
+                action="/login" // Point to the route with the loginAction
+                className="login-form px-4" // Apply necessary classes directly
+                // No need for navigate={false} or fetcherKey here
+            >
+                {message && <div className={`alert alert-${actionData?.success ? 'info' : 'danger'}`}>{message}</div>}
                 <div className="form-group">
                     <Input
                         id="loginModalUsername"
@@ -134,7 +150,7 @@ export default function LoginModal(props) {
                 >
                     {isSubmitting ? 'Đang xử lý...' : 'Đăng nhập'}
                 </Button>
-            </Form>
+            </fetcher.Form>
         </Modal>
     );
 };

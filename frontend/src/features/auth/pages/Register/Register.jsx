@@ -1,11 +1,11 @@
 // Add/Update imports
 import React, {useEffect, useState} from 'react'; // Add useEffect
-import {usePasswordStrength, useRegisterFormState} from '@features/auth/hooks/register-hook.jsx';
+import {usePasswordStrength, useRegisterFormState} from '#features/auth/hooks/register-hook.jsx';
 import './Register.css';
-import Input from '@shared/components/UIElement/Input/Input';
-import Button from '@shared/components/UIElement/Button/Button';
-import Icon from '@shared/components/UIElement/Icon/Icon';
-import Form from '@shared/components/UIElement/Form/Form';
+import Input from '#shared/components/UIElement/Input/Input';
+import Button from '#shared/components/UIElement/Button/Button';
+import Icon from '#shared/components/UIElement/Icon/Icon';
+import Form from '#shared/components/UIElement/Form/Form';
 // Import hooks from react-router-dom
 import {useActionData, useNavigate, useNavigation} from 'react-router';
 

@@ -2,7 +2,7 @@ import React, {useRef} from "react";
 
 import "./WriteComment.css";
 
-import TextEdit from "@shared/components/UIElement/TextEditor/TextEditor";
+import TextEdit from "#shared/components/UIElement/TextEditor/TextEditor";
 import Form from "../../../../shared/components/UIElement/Form/Form";
 import Button from "../../../../shared/components/UIElement/Button/Button";
 //{ postId,onCancel, onCommentSubmit }

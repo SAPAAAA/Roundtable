@@ -1,9 +1,9 @@
 import React, {useRef, useState} from "react";
 // import TextEdit from "../../../../shared/components/TextEditter/TextEdit";
-import TextEdit from "@shared/components/UIElement/TextEditor/TextEditor";
-import Button from "@shared/components/UIElement/Button/Button";
-import Icon from "@shared/components/UIElement/Icon/Icon";
-import Avatar from "@shared/components/UIElement/Avatar/Avatar";
+import TextEdit from "#shared/components/UIElement/TextEditor/TextEditor";
+import Button from "#shared/components/UIElement/Button/Button";
+import Icon from "#shared/components/UIElement/Icon/Icon";
+import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import './CreatePost.css'
 
 export default function CreatePost(props) {

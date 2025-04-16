@@ -1,11 +1,11 @@
-import sendApiRequest from "@hooks/apiClient.jsx";
+import sendApiRequest from "#hooks/apiClient.jsx";
 
 export default async function registerAction({request}) {
     const formData = await request.formData();
     const data = Object.fromEntries(formData.entries());
 
     try {
-        const responseData = await sendApiRequest('/api/register', {
+        const responseData = await sendApiRequest('/api/auth/register', {
             method: 'POST',
             body: data
         });
