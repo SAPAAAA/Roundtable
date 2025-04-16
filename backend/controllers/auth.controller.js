@@ -32,24 +32,38 @@ class AuthController {
     // Use arrow function syntax
     login = async (req, res, next) => {
         try {
-            // 'this' will now correctly refer to the AuthController instance
             const {username, password} = req.body;
-            console.log('Login attempt with:', {username, password});
+            console.log('[AuthController.login] Attempting login for username:', username);
+
             const data = await this.authService.login(username, password);
+
+            console.log('[AuthController.login] User object received:', data);
+
             if (data) {
-                return res.status(200).json(data);
+                console.log('[AuthController.login] Login successful for user ID:', data.user.userId); // Or another identifying field
+                req.user = data.user; // Make the user data available to the next handler
+
+                return next();
+
             } else {
-                return res.status(401).json({message: 'Tên dăng nhập hoặc mật khẩu không chính xác'});
+                // Handle case where authService indicates invalid credentials (e.g., returns null/false)
+                console.log('[AuthController.login] Invalid credentials provided for username:', username);
+                return res.status(401).json({success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác'});
             }
         } catch (error) {
-            // It's good practice to log the actual error
+            console.error('[AuthController.login] Error during login process:', error);
+
+            // Check if it's a specific authentication error thrown by the service
             if (error.statusCode === 401) {
-                console.error("Login Error:", error);
                 return res.status(401).json({
-                    message: 'Tên dăng nhập hoặc mật khẩu không chính xác',
                     success: false,
+                    message: error.message || 'Tên đăng nhập hoặc mật khẩu không chính xác'
                 });
             }
+
+            // For other unexpected errors (DB errors, etc.), pass them to an Express error handler
+            error.message = `Login process failed: ${error.message}`;
+            return next(error); // Pass the error down the middleware chain
         }
     }
 
@@ -59,8 +73,7 @@ class AuthController {
             const result = await this.authService.verifyEmail(email, code);
             if (result) {
                 return res.status(200).json({
-                    message: result.message,
-                    success: result.success,
+                    ...result,
                 });
             } else {
                 return res.status(400).json({message: 'Mã xác thực không chính xác'});
@@ -72,6 +85,47 @@ class AuthController {
                 error: error.message,
                 success: false,
             });
+        }
+    }
+
+    checkSession = async (req, res) => {
+        try {
+            // Check if the user is authenticated
+            if (req.session && req.session.userId) {
+                console.log('[AuthController.checkSession] User is authenticated:', req.session.userId);
+                // Fetch user data based on session userId
+                const result = await this.authService.loginWithSession(req.session.userId);
+                if (result) {
+                    console.log('[AuthController.checkSession] User data retrieved:', result);
+                    return res.status(200).json({...result});
+                } else {
+                    console.log('[AuthController.checkSession] User not found for session ID:', req.session.userId);
+                    return res.status(404).json({success: false, message: 'User not found'});
+                }
+            } else {
+                console.log('[AuthController.checkSession] No active session found.');
+                return res.status(401).json({success: false, message: 'No active session found'});
+            }
+        } catch (error) {
+            console.error('[AuthController.checkSession] Error checking session:', error);
+            return res.status(500).json({success: false, message: 'Internal server error'});
+        }
+    }
+
+    logout = async (req, res) => {
+        try {
+            // Destroy the session
+            req.session.destroy((err) => {
+                if (err) {
+                    console.error('[AuthController.logout] Error destroying session:', err);
+                    return res.status(500).json({success: false, message: 'Internal server error'});
+                }
+                console.log('[AuthController.logout] Session destroyed successfully.');
+                return res.status(200).json({success: true, message: 'Logout successful'});
+            });
+        } catch (error) {
+            console.error('[AuthController.logout] Error during logout:', error);
+            return res.status(500).json({success: false, message: 'Internal server error'});
         }
     }
 }
