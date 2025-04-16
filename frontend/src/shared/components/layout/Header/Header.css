@@ -30,6 +30,10 @@
     color: var(--var-space-cadet) !important;
 }
 
+#header-container button:hover * {
+    color: var(--var-space-cadet) !important;
+}
+
 /* Light Theme */
 [data-theme="light"] #header,
 [data-theme="light"] .popover-menu {

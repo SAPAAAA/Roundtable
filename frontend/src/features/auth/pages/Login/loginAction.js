@@ -1,4 +1,4 @@
-import {sendApiRequest} from "@hooks/apiClient.jsx";
+import sendApiRequest from "@hooks/apiClient.jsx";
 
 export default async function loginAction({request}) {
     // --- Form Data Handling ---

@@ -24,14 +24,14 @@ function Login() {
                 user: actionData.user,
             });
         }
-        if (!actionData.success) {
+        if (actionData && !actionData.success) {
             console.log(actionData);
             setError(actionData.message);
         }
     }, [actionData, navigate]);
 
     return (
-        <div className="login-container">
+        <div className="login-form-container">
             <div className="login-card">
                 <div className="login-header">
                     <h1>Đăng nhập</h1>

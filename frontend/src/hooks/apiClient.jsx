@@ -10,7 +10,7 @@
  * @returns {Promise<object>} - The JSON response data.
  * @throws {Error} - Throws an error with status and data on failure.
  */
-export async function sendApiRequest(url, options = {}) {
+export default async function sendApiRequest(url, options = {}) {
     const {method = 'GET', body = null, headers = {}} = options;
 
     try {

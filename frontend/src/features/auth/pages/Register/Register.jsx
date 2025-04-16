@@ -150,7 +150,7 @@ function Register() {
 
     // --- Render ---
     return (
-        <div className="register-container">
+        <div className="register-form-container">
             <div className="register-card">
                 <div className="register-header">
                     <h1>Đăng ký tài khoản</h1>
