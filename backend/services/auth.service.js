@@ -382,7 +382,7 @@ class AuthService {
 
             return {
                 success: true,
-                message: 'Login successful.',
+                message: 'Đăng nhập thành công.',
                 user: safeUserProfile
                 // token: token
             };
@@ -405,7 +405,40 @@ class AuthService {
         }
     }
 
+    async loginWithSession(userId) {
+        if (!userId) {
+            const error = new Error('User ID is required.');
+            error.statusCode = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
 
+        try {
+            const userProfile = await userProfileDao.getByUserId(userId);
+            if (!userProfile) {
+                const error = new Error('User not found.');
+                error.statusCode = HTTP_STATUS.NOT_FOUND;
+                throw error;
+            }
+
+            return {
+                success: true,
+                message: 'Session is valid.',
+                user: userProfile,
+            };
+        } catch (error) {
+            console.error(`Session check failed for userId "${userId}":`, error.message);
+            if (!error.statusCode) {
+                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+                if (!error.message || error.message === 'User not found.') {
+                    error.message = 'Session validation failed due to an unexpected internal error.';
+                }
+            }
+            if (error.statusCode === HTTP_STATUS.INTERNAL_SERVER_ERROR) {
+                console.error(error.stack);
+            }
+            throw error; // Re-throw the error with statusCode
+        }
+    }
 }
 
 // Export a singleton instance of the service
