@@ -2,10 +2,12 @@ import express from 'express'
 import session from 'express-session'
 import {RedisStore} from 'connect-redis';
 import cors from 'cors'
-
+import dotenv from 'dotenv'
 import redis from '#db/redis.js'
 
 import authRoutes from '#routes/auth.routes.js'
+
+dotenv.config()
 
 const app = express()
 
@@ -39,22 +41,24 @@ const redisStore = new RedisStore({
     prefix: 'session:',
 });
 
+app.use(cors(options))
+app.set('trust proxy', 1)
 app.use(
     session({
         store: redisStore,
         secret: process.env.SESSION_SECRET_KEY || 'secret',
+        rolling: true,
         resave: false,
         saveUninitialized: false,
         cookie: {
-            maxAge: process.env.SESSION_EXPIRY || 60 * 30, // 30 minutes
+            maxAge: (process.env.SESSION_EXPIRATION_TIME || 60 * 30) * 1000,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
         }
-
     })
 )
-app.use('/api', cors(options), authRoutes)
+app.use('/api/auth', authRoutes)
 
 
 app.listen(5000, () => {
