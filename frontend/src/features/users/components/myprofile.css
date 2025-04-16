@@ -80,7 +80,7 @@ body {
     border-radius: 10px;
     position: sticky !important; /* Giữ sidebar cố định */
     top: 20px; /* Cách đỉnh trang 20px */
-    height: calc(100vh - 40px); /* Chiều cao bằng chiều cao màn hình trừ padding */
+    /* height: calc(100vh - 40px); */
     overflow-y: auto; /* Thêm thanh cuộn dọc */
     overflow-x: hidden; /* Loại bỏ thanh cuộn ngang */
     margin-left: auto; /* Đẩy sidebar sang phải */

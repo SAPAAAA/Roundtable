@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React, {useState} from "react";
 import '../myprofile.css'
 import Tabs from "../../../../shared/components/UIElement/Tabs/Tabs";
 import ProfileSideBar from "../ProfileSidebar/ProfileSidebar";
@@ -8,23 +8,23 @@ import PostPreview from "../../../posts/components/PostPreview/PostPreview";
 import Avatar from "../../../../shared/components/UIElement/Avatar/Avatar";
 import Identifier from "../../../../shared/components/UIElement/Identifier/Identifier";
 import RightSidebar from "../../../../shared/components/layout/RightSidebar/RightSidebar";
-import {useSidebar} from '@contexts/SidebarContext.jsx';
+//import {useSidebar} from '@contexts/SidebarContext.jsx';
 
 function ProfileContainer({imgUrl, name, bannerImgUrl, postKarma, commentKarma, createdDay, posts = [], comments = [], savedPosts = [], hiddenPosts = [],upvotedPosts = [], upvotedComments = [], downvotedPosts = [], downvotedComments = [] }){
     const [activeTab, setActiveTab] = useState("Overview");
-    const {setSidebarParts} = useSidebar();
+    // const {setSidebarParts} = useSidebar();
 
-    useEffect(() => {
-        setSidebarParts({
-            body:   <ProfileSideBar
-                        imgUrl={bannerImgUrl}
-                        name={name}
-                        postKarma={postKarma}
-                        commentKarma={commentKarma}
-                        createdDay={createdDay}
-                    />,
-        })
-    })
+    // useEffect(() => {
+    //     setSidebarParts({
+    //         body:   <ProfileSideBar
+    //                     imgUrl={bannerImgUrl}
+    //                     name={name}
+    //                     postKarma={postKarma}
+    //                     commentKarma={commentKarma}
+    //                     createdDay={createdDay}
+    //                 />,
+    //     })
+    // })
     // const overviewList = [...posts, ...comments].sort(() => Math.random() - 0.5);
     // const upvotedList = [...upvotedPosts, ...upvotedComments].sort(() => Math.random() - 0.5);
     // const downvotedList = [...downvotedPosts, ...downvotedComments].sort(() => Math.random() - 0.5);
@@ -135,13 +135,13 @@ function ProfileContainer({imgUrl, name, bannerImgUrl, postKarma, commentKarma, 
                 {/* <RightSidebar
 
                 /> */}
-                {/* <ProfileSideBar
+                <ProfileSideBar
                     imgUrl={bannerImgUrl}
                     name={name}
                     postKarma={postKarma}
                     commentKarma={commentKarma}
                     createdDay={createdDay}
-                /> */}
+                />
             </div>
         </div>
     )
