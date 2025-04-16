@@ -7,6 +7,8 @@ import React, {useEffect, useRef} from 'react';
  *
  * @param {object} props
  * @param {string} props.id - The unique ID of the modal (used for toggling and accessibility).
+ * @param {string} [props.mainClass] - Additional class(es) for the main modal container.
+ * @param {string} [props.addClass] - Additional class(es) for the modal content.
  * @param {string} props.title - The title displayed in the modal header.
  * @param {React.ReactNode} props.children - The main content/body of the modal.
  * @param {React.ReactNode} [props.footer] - Custom footer content (can be buttons or any JSX).
@@ -31,7 +33,18 @@ import React, {useEffect, useRef} from 'react';
  *   Are you sure you want to delete this item?
  * </Modal>
  */
-export default function Modal({id, title, children, footer, isOpen, onClose}) {
+export default function Modal(props) {
+    const {
+        id,
+        mainClass,
+        addClass,
+        title,
+        children,
+        footer,
+        isOpen,
+        onClose,
+    } = props;
+
     const modalRef = useRef(null);
 
     useEffect(() => {
@@ -49,7 +62,7 @@ export default function Modal({id, title, children, footer, isOpen, onClose}) {
 
     return (
         <div
-            className="modal fade"
+            className={`modal fade ${mainClass || ''}`}
             id={id}
             ref={modalRef}
             tabIndex="-1"
@@ -57,7 +70,7 @@ export default function Modal({id, title, children, footer, isOpen, onClose}) {
             aria-hidden="true"
         >
             <div className="modal-dialog">
-                <div className="modal-content">
+                <div className={`modal-content ${addClass || ''}`}>
                     {/* Modal header */}
                     <div className="modal-header">
                         <h1 className="modal-title fs-5" id={`${id}Label`}>
