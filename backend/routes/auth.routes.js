@@ -1,13 +1,13 @@
 import express from 'express';
-import authController from '#controllers/auth.controller.js';
 import AuthController from '#controllers/auth.controller.js';
+import {isNotAuthenticated} from "#middlewares/auth.mdw.js";
 
 const router = express.Router();
 
-router.post('/register', authController.register);
-router.post('/verify-email', authController.verifyEmail);
+router.post('/register', AuthController.register);
+router.post('/verify-email', AuthController.verifyEmail);
 // In auth.routes.js
-router.post('/login', authController.login, (req, res) => {
+router.post('/login', isNotAuthenticated, AuthController.login, (req, res) => {
     console.log('[Login Route Handler] Entered.');
     // Check if req.user is populated by authController.login middleware
     console.log('[Login Route Handler] req.user received:', JSON.stringify(req.user)); // Log the user object
