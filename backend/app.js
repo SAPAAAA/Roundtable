@@ -1,5 +1,9 @@
 import express from 'express'
+import session from 'express-session'
+import {RedisStore} from 'connect-redis';
 import cors from 'cors'
+
+import redis from '#db/redis.js'
 
 import authRoutes from '#routes/auth.routes.js'
 
@@ -27,8 +31,29 @@ const options = {
     optionsSuccessStatus: 200,
     allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
 }
 
+const redisStore = new RedisStore({
+    client: redis,
+    prefix: 'session:',
+});
+
+app.use(
+    session({
+        store: redisStore,
+        secret: process.env.SESSION_SECRET_KEY || 'secret',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            maxAge: process.env.SESSION_EXPIRY || 60 * 30, // 30 minutes
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+        }
+
+    })
+)
 app.use('/api', cors(options), authRoutes)
 
 

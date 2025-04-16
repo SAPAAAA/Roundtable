@@ -2,13 +2,13 @@
 import {useEffect, useState} from 'react';
 
 const useLoginForm = (isOpen, authError) => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
 
     useEffect(() => {
         if (!isOpen) {
-            setEmail('');
+            setUsername('');
             setPassword('');
         }
     }, [isOpen]);
@@ -20,8 +20,8 @@ const useLoginForm = (isOpen, authError) => {
     }, [authError]);
 
     return {
-        email,
-        setEmail,
+        username,
+        setUsername,
         password,
         setPassword,
         error

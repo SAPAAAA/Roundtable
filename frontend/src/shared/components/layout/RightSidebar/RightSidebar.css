@@ -12,3 +12,10 @@
     align-items: center;
     margin-bottom: 1rem;
 }
+
+@media screen and (max-width: 768px) {
+
+    #right-sidebar-container {
+        display: none;
+    }
+}

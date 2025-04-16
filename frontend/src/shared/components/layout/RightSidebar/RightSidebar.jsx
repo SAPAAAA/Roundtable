@@ -16,7 +16,10 @@ export default function RightSidebar() {
 
     return (
 
-        <div className="right-sidebar">
+        <div
+            id="right-sidebar-container"
+            className="right-sidebar"
+        >
             {header && (
                 <div className="right-sidebar__header">
                     {header}

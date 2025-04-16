@@ -1,9 +1,9 @@
-import db from "#utils/db.js";
+import postgres from "#db/postgres.js";
 import Principal from "#models/principal.model.js";
 
 class PrincipalDAO {
     async create(principal, trx) {
-        const queryBuilder = trx ? trx : db;
+        const queryBuilder = trx ? trx : postgres;
 
         const {principalId, ...insertData} = principal;
         try {
@@ -32,7 +32,7 @@ class PrincipalDAO {
     async getById(principalId) {
         try {
             // .first() returns the object directly or undefined
-            const principalRow = await db("Principal").where({principalId}).first();
+            const principalRow = await postgres("Principal").where({principalId}).first();
             // Check if a principal was actually found
             if (!principalRow) {
                 return null; // Return null if not found
@@ -47,7 +47,7 @@ class PrincipalDAO {
     }
 
     async delete(principalId, trx) {
-        const queryBuilder = trx ? trx : db;
+        const queryBuilder = trx ? trx : postgres;
         try {
             // .del() returns the number of affected rows
             const affectedRows = await queryBuilder("Principal").where({principalId}).del();

@@ -1,11 +1,11 @@
-import db from '#utils/db.js';
+import postgres from '#db/postgres.js';
 import Account from '#models/account.model.js';
 
 class AccountDAO {
-    async findById(accountId) {
+    async getById(accountId) {
         try {
             // .first() returns the object directly or undefined
-            const accountRow = await db('Account').where({accountId}).first();
+            const accountRow = await postgres('Account').where({accountId}).first();
             if (!accountRow) {
                 // Explicitly return null or undefined when not found
                 return null;
@@ -20,10 +20,10 @@ class AccountDAO {
         }
     }
 
-    async findByUsername(username) {
+    async getByUsername(username) {
         try {
             // .first() returns the object directly or undefined
-            const accountRow = await db('Account').where({username}).first();
+            const accountRow = await postgres('Account').where({username}).first();
             if (!accountRow) {
                 return null;
             }
@@ -35,10 +35,10 @@ class AccountDAO {
         }
     }
 
-    async findByEmail(email) {
+    async getByEmail(email) {
         try {
             // .first() returns the object directly or undefined
-            const accountRow = await db('Account').where({email}).first();
+            const accountRow = await postgres('Account').where({email}).first();
             if (!accountRow) {
                 return null;
             }
@@ -51,7 +51,7 @@ class AccountDAO {
     }
 
     async create(account, trx) {
-        const queryBuilder = trx ? trx : db;
+        const queryBuilder = trx ? trx : postgres;
 
         const {accountId, created, updatedAt, ...insertData} = account;
         try {
