@@ -4,6 +4,8 @@ import AuthProvider from "#contexts/AuthContext.jsx";
 
 // --- Main App Entry ---
 export default function App() {
+
+    // This is the main entry point for your React application
     return (
         <div className="App">
             <AuthProvider>

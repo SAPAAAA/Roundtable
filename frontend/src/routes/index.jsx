@@ -20,6 +20,7 @@ const router = createBrowserRouter(allRoutes);
 
 // Create a component that provides the router
 export default function AppRouter() {
+    // This component will be the main entry point for your app's routing
     return (
         <Suspense fallback={
             <LoadingSpinner
