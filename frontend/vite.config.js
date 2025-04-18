@@ -20,6 +20,9 @@ export default defineConfig({
             '#hooks': resolve(__dirname, 'src/hooks'),
             '#routes': resolve(__dirname, 'src/routes'),
             '#constants': resolve(__dirname, 'src/constants'),
+            '#assets': resolve(__dirname, 'src/assets'),
+            '#utils': resolve(__dirname, 'src/utils'),
+            '#services': resolve(__dirname, 'src/services'),
         },
     },
     build: {
