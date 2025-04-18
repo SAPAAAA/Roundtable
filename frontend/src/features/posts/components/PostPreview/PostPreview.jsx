@@ -6,7 +6,7 @@ import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 
 import "./PostPreview.css";
-import {useVote} from "#features/posts/hooks/vote-hook.jsx"
+import useVote from "#features/posts/hooks/vote-hook.jsx"
 
 export default function PostPreview(props) {
 
@@ -43,7 +43,7 @@ export default function PostPreview(props) {
 			<h5 className="fw-bold">{props.post.title}</h5>
 
 			{/* Post Content */}
-			<p>{props.post.content}</p>
+			<div className="fs-content mt-2 mb-2">{props.post.content}</div>
 
 			{/* Post Actions */}
 			<div className="d-flex align-items-center gap-2">
@@ -67,7 +67,7 @@ export default function PostPreview(props) {
 							name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
 							size="15px"/>
 					</Button>
-					<span className="fs-8">{voteCount}</span>
+					<span className="fs-icon">{voteCount ?? 0}</span>
 					<Button
 						mainClass="downvote-btn"
 						contentType="icon"

@@ -27,54 +27,83 @@ const post =
 const comments = [
     {
         id: 1,
-        username: "John Doe",
-        src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80",
+        author: {
+            username: "John Doe",
+            avatar: {
+                src: "https://images.unsplash.com/photo-1502685104226-e9b8f1c2d3a0?w=100&q=80",
+            },
+        },
         alt: "Ảnh này bị hư",
         time: "5 min. ago",
         content: "That's a great question! I'd say Python is great for web development.",
         upvotes: 2,
-        parentId: null, // Comment cha
-    },
-    {
-        id: 2,
-        username: "Alice Smith",
-        src: "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100&q=80",
-        alt: "Ảnh bị hư",
-        time: "3 min. ago",
-        content: "I agree! Python is very flexible and easy to learn.",
-        upvotes: 5,
-        parentId: 1, // Comment con của ID 1
+        parentId: null, // Kept for reference, but not strictly needed by the component anymore
+        replies: [ // Replies to John Doe (id: 1) are nested here
+            {
+                id: 2,
+                author: {
+                    username: "Alice Smith",
+                    avatar: {
+                        src: "https://images.unsplash.com/photo-1502685104226-e9b8f1c2d3a0?w=100&q=80",
+                    },
+                },
+                alt: "Ảnh bị hư",
+                time: "3 min. ago",
+                content: "I agree! Python is very flexible and easy to learn.",
+                upvotes: 5,
+                parentId: 1,
+                replies: [] // Alice Smith has no replies in this data
+            },
+            {
+                id: 5,
+                author: {
+                    username: "Michael Brown",
+                    avatar: {
+                        src: "https://images.unsplash.com/photo-1502685104226-e9b8f1c2d3a0?w=100&q=80",
+                    },
+                },
+                alt: "Ảnh bị hư",
+                time: "2 min. ago",
+                content: "I also love Python! It’s great for data science as well.",
+                upvotes: 3,
+                parentId: 1,
+                replies: [] // Michael Brown has no replies in this data
+            }
+        ]
     },
     {
         id: 3,
-        username: "Bob Johnson",
-        src: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80",
+        author: {
+            username: "Bob Johnson",
+            avatar: {
+                src: "https://images.unsplash.com/photo-1502685104226-e9b8f1c2d3a0?w=100&q=80",
+            },
+        },
         alt: "Ảnh bị hư",
         time: "10 min. ago",
         content: "What about JavaScript? I think it's also powerful for web dev.",
         upvotes: 3,
-        parentId: null, // Comment cha
-    },
-    {
-        id: 4,
-        username: "Emily Davis",
-        src: "https://images.unsplash.com/photo-1522071901873-411886a10004?w=100&q=80",
-        alt: "Ảnh bị hư",
-        time: "7 min. ago",
-        content: "Yes! JavaScript is amazing, especially with React and Node.js.",
-        upvotes: 4,
-        parentId: 3, // Comment con của ID 3
-    },
-    {
-        id: 5, // 👈 Bình luận mới
-        username: "Michael Brown",
-        src: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=100&q=80",
-        alt: "Ảnh bị hư",
-        time: "2 min. ago",
-        content: "I also love Python! It’s great for data science as well.",
-        upvotes: 3,
-        parentId: 1, // Bình luận con của ID 1
+        parentId: null,
+        replies: [ // Replies to Bob Johnson (id: 3) are nested here
+            {
+                id: 4,
+                author: {
+                    username: "Emily Davis",
+                    avatar: {
+                        src: "https://images.unsplash.com/photo-1502685104226-e9b8f1c2d3a0?w=100&q=80",
+                    },
+                },
+                alt: "Ảnh bị hư",
+                time: "7 min. ago",
+                content: "Yes! JavaScript is amazing, especially with React and Node.js.",
+                upvotes: 4,
+                parentId: 3,
+                replies: [] // Emily Davis has no replies in this data
+            }
+        ]
     }
+    // Note: Comments 2, 4, and 5 are no longer top-level items.
+    // They are now nested within the `replies` array of their respective parents (1 and 3).
 ];
 
 const subtables = [

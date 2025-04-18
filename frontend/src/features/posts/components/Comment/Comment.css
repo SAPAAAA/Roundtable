@@ -1,65 +1,37 @@
-.underline{
-    transition: color 0.3s ease-in-out, text-decoration 0.3s ease-in-out;
-}
-.underline:hover {
-    text-decoration: underline;
-    cursor: pointer;
-}
-.fs-custom{
-    font-size: 12px
-}
-.fs-content{
-    font-size: 12px;
-}
-.fs-icon{
-    font-size: 10px;
-    color: gray;
-}
-/* [data-theme="dark"] .upvoted:hover,
-[data-theme="dark"] .downvoted:hover {
-    background-color: rgba(17, 17, 17, 0.4);
+.upvote-icon, .downvote-icon, .comment-icon, .share-icon, .option-icon {
+    fill: var(--var-space-cadet) !important;
 }
 
-[data-theme="light"] .upvoted:hover,    
-[data-theme="light"] .downvoted:hover {
-    background-color: rgba(255, 255, 255, 0.4);
-} */
+.upvote-btn:hover, .downvote-btn:hover, .reply-btn:hover, .share-btn:hover, .option-btn:hover {
+    background-color: var(--var-azureish-white) !important;
+}
 
-.upvoted:hover{
-    background-color: rgba(255, 255, 255, 0.4);
-}
-.downvoted{
+.vote-container.upvoted {
     --bs-bg-opacity: 1;
-    --bs-downvoted-rgb: var(--deer-rgb);
-    background-color: rgba(var(--bs-downvoted-rgb), var(--bs-bg-opacity)) !important;
-}
-.upvoted{
-    --bs-bg-opacity: 1;
-    --bs-upvoted-rgb: var(--steel-blue-rgb);
+    --bs-upvoted-rgb: var(--var-steel-blue-rgb);
     background-color: rgba(var(--bs-upvoted-rgb), var(--bs-bg-opacity)) !important;
-}
-.downvoted .downvote-icon {
-    fill: var(--var-cultured) !important;
-}
-.upvoted .upvote-icon {
-    fill: var(--var-cultured) !important;
-}
-/* .normal{
-    --bs-bg-opacity: 1;
-    --bs-normal-rgb: var(--var-cultured);
-    background-color: rgba(var(--bs-normal-rgb), var(--bs-bg-opacity)) !important;
-} */
-/* .upvote-icon, .downvote-icon, .comment-icon, .share-icon {
-    fill: var(--var-hover-color) !important;
-} */
-/* .vote-container.upvoted {
-    --bs-bg-opacity: 1;
-    --bs-upvoted-rgb: var(--steel-blue-rgb);
     color: white;
+}
+
+.vote-container.upvoted .upvote-icon {
+    fill: var(--var-cultured) !important;
 }
 
 .vote-container.downvoted {
     --bs-bg-opacity: 1;
-    --bs-downvoted-rgb: var(--deer-rgb);
+    --bs-downvoted-rgb: var(--var-deer-rgb);
+    background-color: rgba(var(--bs-downvoted-rgb), var(--bs-bg-opacity)) !important;
     color: white;
-} */
+}
+
+.vote-container.downvoted .downvote-icon {
+    fill: var(--var-cultured) !important;
+}
+
+.fs-icon {
+    font-size: var(--var-fs-8);
+}
+
+.fs-content {
+    font-size: var(--var-fs-7);
+}

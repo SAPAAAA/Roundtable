@@ -27,3 +27,11 @@
 .vote-container.downvoted .downvote-icon {
     fill: var(--var-cultured) !important;
 }
+
+.fs-icon {
+    font-size: var(--var-fs-7);
+}
+
+.fs-content {
+    font-size: var(--var-fs-7);
+}

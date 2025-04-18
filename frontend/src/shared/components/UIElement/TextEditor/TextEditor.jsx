@@ -1,75 +1,83 @@
-import React, {forwardRef, useEffect, useImperativeHandle} from "react";
+import React, {forwardRef, useEffect, useImperativeHandle, useRef} from "react";
 import $ from "jquery";
 import "summernote/dist/summernote-lite.css";
 import "summernote/dist/summernote-lite.min.js";
-// import "bootstrap-fileinput/css/fileinput.min.css";
-// import "bootstrap-fileinput/js/fileinput.min.js";
-
-
-// export default function TextEditor() {
-
-//     useEffect(() => {
-//         $("#summernote").summernote({
-//             placeholder: "Please enter content ",
-//             tabsize: 2,
-//             height: 200,
-//             toolbar: [
-//                 // ["style", ["style"]],
-//                 ["font", ["bold", "underline", "clear"]],
-//                 // ["color", ["color"]],
-//                 ["fontsize", ["fontsize"]],
-//                 ["fontname", ["fontname"]],
-//                 ["para", ["ul", "ol", "paragraph"]],
-//                 // ["table", ["table"]],
-//                 ["insert", ["link", "picture", "video"]],
-//                 ["view", ["codeview", "help"]],
-//             ],
-//         });
-
-//         return () => {
-//             $("#summernote").summernote("destroy");
-//         };
-//     }, []);
-//     return (
-//         <>
-//             <textarea id="summernote" name="content"></textarea>
-//         </>
-//     )
-// }
-
+import './TextEditor.css'; // **** Import the new CSS file ****
 
 const TextEditor = forwardRef((props, ref) => {
+    const editorRefInternal = useRef(null);
+
     useEffect(() => {
-        $("#summernote").summernote({
-            placeholder: "Please enter content",
-            tabsize: 2,
-            height: 200,
-            toolbar: [
-                ["font", ["bold", "underline", "clear"]],
-                ["fontsize", ["fontsize"]],
-                ["fontname", ["fontname"]],
-                ["para", ["ul", "ol", "paragraph"]],
-                ["insert", ["link", "picture", "video"]],
-                ["view", ["codeview", "help"]],
-            ],
-        });
+        const $editorTextarea = $(editorRefInternal.current);
+        console.log("Initializing Summernote on:", editorRefInternal.current);
+
+        if ($editorTextarea.next('.note-editor').length === 0) {
+            $editorTextarea.summernote({
+                placeholder: props.placeholder || "Please enter content",
+                tabsize: 2,
+                height: props.height || 150, // You might adjust default height here
+                toolbar: [
+                    ["font", ["bold", "underline", "clear"]],
+                    ["para", ["ul", "ol", "paragraph"]],
+                    ["insert", ["link"]],
+                ],
+                // Disable resize handle if statusbar is hidden
+                disableResizeEditor: true, // Add this if hiding statusbar
+                callbacks: {
+                    // Add any necessary callbacks
+                }
+            });
+        } else {
+            console.log("Summernote already initialized on this element.");
+        }
 
         return () => {
-            $("#summernote").summernote("destroy");
+            const editorNode = editorRefInternal.current;
+            if (editorNode && $(editorNode).next('.note-editor').length > 0) {
+                console.log("Destroying Summernote based on sibling:", editorNode);
+                if ($(editorNode).summernote) { // Check if method exists
+                    try {
+                        $(editorNode).summernote("destroy");
+                    } catch (e) {
+                        console.error("Error destroying summernote:", e);
+                    }
+                }
+            }
         };
-    }, []);
+    },); // Dependencies
 
-    // 👇 expose method getContent() ra bên ngoài
     useImperativeHandle(ref, () => ({
+        // Exposed methods remain the same...
         getContent: () => {
-            return $("#summernote").summernote("code");
+            const $editorTextarea = $(editorRefInternal.current);
+            const $editorDiv = $editorTextarea.next('.note-editor');
+            if ($editorDiv.length > 0) {
+                try {
+                    return $editorTextarea.summernote("code");
+                } catch (error) {
+                    console.error("[getContent] Error calling summernote('code'):", error);
+                    return "";
+                }
+            } else {
+                return "";
+            }
         },
         reset: () => {
-            $("#summernote").summernote("reset");
+            const $editorTextarea = $(editorRefInternal.current);
+            if ($editorTextarea.next('.note-editor').length > 0) {
+                $editorTextarea.summernote("reset");
+            }
+        },
+        clearContent: () => {
+            const $editorTextarea = $(editorRefInternal.current);
+            if ($editorTextarea.next('.note-editor').length > 0) {
+                $editorTextarea.summernote('code', '<p><br></p>');
+            }
         }
-    }));
+    }), []);
 
-    return <textarea id="summernote" name="content"/>;
+    // Assign ref, remove ID
+    return <textarea ref={editorRefInternal} name={props.name || "content"}/>;
 });
 
 export default TextEditor;

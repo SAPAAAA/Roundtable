@@ -1,6 +1,6 @@
 import React, {createContext, useCallback, useEffect, useState} from 'react';
 // Assuming your sendApiRequest utility is correctly set up for credentials
-import sendApiRequest from '#hooks/apiClient'; // Adjust path if needed
+import {sendApiRequest} from '#utils/apiClient'; // Adjust path if needed
 
 // Context
 const AuthContext = createContext({
@@ -95,6 +95,13 @@ const AuthProvider = ({children}) => {
         logout,
         checkSession // Provide the function to manually re-check
     };
+
+    useEffect(() => {
+        if (!user) {
+            console.log("No user found, checking session...");
+            checkSession(false); // Check session if no user
+        }
+    },);
 
     return (
         <AuthContext.Provider value={contextValue}>

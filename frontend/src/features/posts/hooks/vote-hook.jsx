@@ -48,18 +48,19 @@ function initVoteState(initialArgs) { // Renamed argument for clarity
         ? initialArgs.initialVoteStatus
         : null;
 
-    console.log("Initializing vote state:", {count, status}); // Add for debugging
+    const userId = initialArgs.userId || null; // Added userId check
 
     return {
         isVoting: false,
         voteCount: count,
         voteStatus: status,
         voteError: null,
+        userId: userId, // Added userId to state
     };
 }
 
 // --- Custom Hook ---
-export function useVote(initialState, postId) {
+export default function useVote(initialState, postId) {
     // Use useReducer: pass reducer, initial argument, and initializer function
     const [state, dispatch] = useReducer(voteReducer, initialState, initVoteState);
 
