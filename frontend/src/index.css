@@ -19,6 +19,12 @@
     --var-space-cadet-rgb: 17, 45, 78;
     --var-cultured-rgb: 249, 247, 247;
     --var-azureish-white-rgb: 219, 226, 239;
+
+
+    --var-fs-7: 0.75em;
+    --var-fs-8: 0.625em;
+    --var-fs-9: 0.5em;
+    --var-fs-10: 0.375em;
 }
 
 /* Light Theme Application */
