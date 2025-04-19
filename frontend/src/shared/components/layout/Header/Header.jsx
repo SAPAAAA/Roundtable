@@ -181,7 +181,7 @@ export default function Header(props) {
                                                     <span
                                                         className="text-muted fs-7">
                                                         {user?.username &&
-                                                            <Identifier type="username" namespace={user.username}/>}
+                                                            <Identifier type="user" namespace={user.username}/>}
                                                     </span>
                                                 </div>
                                             </div>

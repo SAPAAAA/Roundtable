@@ -18,7 +18,7 @@ import './Identifier.css';
  * @returns {JSX.Element} A stylized identifier like `s/myTable` or `u/username`.
  *
  * @example
- * <Identifier type="username" namespace="johndoe" />
+ * <Identifier type="user" namespace="johndoe" />
  * // Output: u/johndoe
  */
 export default function Identifier(props) {
@@ -26,7 +26,7 @@ export default function Identifier(props) {
         switch (type) {
             case 'subtable':
                 return 's';
-            case 'username':
+            case 'user':
                 return 'u';
             default:
                 return '';
