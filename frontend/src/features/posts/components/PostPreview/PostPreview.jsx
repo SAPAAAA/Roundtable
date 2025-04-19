@@ -1,139 +1,31 @@
+// #features/posts/components/PostPreview/PostPreview.jsx (or rename existing Post.jsx)
 import React from "react";
+import Link from "#shared/components/Navigation/Link/Link";
 
-import Avatar from "#shared/components/UIElement/Avatar/Avatar";
-import Identifier from "#shared/components/UIElement/Identifier/Identifier";
-import Button from "#shared/components/UIElement/Button/Button";
-import Icon from "#shared/components/UIElement/Icon/Icon";
-
+import PostHeaderPreview from "#features/posts/components/PostHeaderPreview/PostHeaderPreview";
+import PostCore from "#features/posts/components/PostCore/PostCore";
 import "./PostPreview.css";
-import useVote from "#features/posts/hooks/vote-hook.jsx"
 
 export default function PostPreview(props) {
-
-	const {
-		voteStatus,
-		voteCount,
-		isVoting,
-		voteError,
-		handleUpvote,
-		handleDownvote
-	} = useVote({initialCount: props.post.upvotes, initialVoteStatus: null}, props.post.id);
+	const {post, isJoined, onJoinClick} = props;
 
 	return (
-		<div className="post-preview-container card p-3 my-3">
-
-			{/* Subreddit Info */}
-			<div className="d-flex align-items-center mb-2">
-				<Avatar
-					src={props.post.subtable.avatar.src}
-					alt={`r/${props.post.subtable.namespace}`}
-					width={20}
-					height={20}/>
-				<div className="d-flex flex-row flex-wrap fs-8">
-					<Identifier
-						addClass="ms-2"
-						type="subtable"
-						namespace={props.post.subtable.namespace}/>
-					&nbsp;•&nbsp;
-					<span className="text-muted">{props.post.time}</span>
-				</div>
+		<Link to={`/s/${post.subtable.namespace}/comments/${post.postId}`} className="post-preview-link">
+			<div className="post-preview-container card p-3 my-3">
+				<PostHeaderPreview
+					subtable={post.subtable}
+					postTime={post.time}
+					isJoined={isJoined} // Example prop
+					onJoinClick={(e) => {
+						e.preventDefault();
+						onJoinClick?.(post.subtable.id);
+					}} // Prevent navigation on join click
+				/>
+				<PostCore
+					post={post}
+					contentClass="post-content-preview"
+				/>
 			</div>
-
-			{/* Post Title */}
-			<h5 className="fw-bold">{props.post.title}</h5>
-
-			{/* Post Content */}
-			<div className="fs-content mt-2 mb-2">{props.post.content}</div>
-
-			{/* Post Actions */}
-			<div className="d-flex align-items-center gap-2">
-				{voteError && <div className="text-danger fs-8 me-2">Error: {voteError}</div>}
-
-				<div
-					className={`vote-container ${voteStatus} d-flex align-items-center rounded-pill gap-2 bg-light`}>
-					<Button
-						mainClass="upvote-btn"
-						contentType="icon"
-						dataBsToggle="tooltip"
-						dataBsTrigger="hover focus"
-						tooltipTitle="Upvote"
-						tooltipPlacement="top"
-						padding="2"
-						onClick={handleUpvote}
-						disabled={isVoting}
-					>
-						<Icon
-							mainClass="upvote-icon"
-							name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
-							size="15px"/>
-					</Button>
-					<span className="fs-icon">{voteCount ?? 0}</span>
-					<Button
-						mainClass="downvote-btn"
-						contentType="icon"
-						dataBsToggle="tooltip"
-						dataBsTrigger="hover focus"
-						tooltipTitle="Downvote"
-						tooltipPlacement="top"
-						padding="2"
-						onClick={handleDownvote}
-						disabled={isVoting}
-					>
-						<Icon
-							mainClass="downvote-icon"
-							name={voteStatus === "downvoted" ? "downvoted" : "downvote"}
-							size="15px"/>
-					</Button>
-				</div>
-				<div className="comment-container d-flex align-items-center rounded-pill gap-2 bg-light">
-					<Button
-						mainClass="comment-btn"
-						contentType="icon"
-						dataBsToggle="tooltip"
-						dataBsTrigger="hover focus"
-						tooltipTitle="Comment"
-						tooltipPlacement="top"
-						padding="2"
-					>
-						<Icon
-							mainClass="comment-icon"
-							name="comment"
-							size="15px"/>
-					</Button>
-				</div>
-				<div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
-					<Button
-						mainClass="share-btn"
-						contentType="icon"
-						dataBsToggle="tooltip"
-						dataBsTrigger="hover focus"
-						tooltipTitle="Share"
-						tooltipPlacement="top"
-						padding="2"
-					>
-						<Icon
-							mainClass="share-icon"
-							name="share"
-							size="15px"/>
-					</Button>
-				</div>
-				<div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
-					<Button
-						mainClass="option-btn"
-						contentType="icon"
-						dataBsToggle="tooltip"
-						dataBsTrigger="hover focus"
-						tooltipTitle="Options"
-						tooltipPlacement="top"
-						padding="2"
-					>
-						<Icon
-							mainClass="option-icon"
-							name="three_dots"
-							size="15px"/>
-					</Button>
-				</div>
-			</div>
-		</div>
+		</Link>
 	);
 }

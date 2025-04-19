@@ -3,7 +3,7 @@ import React, {lazy} from 'react';
 // Lazy-loaded components for this section
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
 const Home = lazy(() => import('#pages/Home/HomeContent/HomeContent'));
-const PostDetail = lazy(() => import('#features/posts/pages/PostDetail/PostDetail'));
+const PostDetailView = lazy(() => import('#features/posts/pages/PostDetailedView/PostDetailedView'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
 
 const post =
@@ -146,8 +146,8 @@ function mainRoutes() {
                 element: <Home/>
             },
             {
-                path: "post",
-                element: <PostDetail post={post} comments={comments}/>,
+                path: "s/:subtableName/comments/:postId",
+                element: <PostDetailView/>,
             },
             {
                 path: "createpost",

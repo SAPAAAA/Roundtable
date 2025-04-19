@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import redis from '#db/redis.js'
 
 import authRoutes from '#routes/auth.routes.js'
+import postRoutes from "#routes/post.routes.js";
 
 dotenv.config()
 
@@ -59,6 +60,7 @@ app.use(
     })
 )
 app.use('/api/auth', authRoutes)
+app.use('/api', postRoutes)
 
 
 app.listen(5000, () => {

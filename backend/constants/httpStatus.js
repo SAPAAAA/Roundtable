@@ -5,6 +5,7 @@ const HTTP_STATUS = {
     NOT_FOUND: 404,
     CONFLICT: 409,
     INTERNAL_SERVER_ERROR: 500,
+    OK: 200,
 };
 
 export default HTTP_STATUS;

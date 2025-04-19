@@ -134,7 +134,7 @@ export default function CreatePost(props) {
                                 onChange={(e) => setSubtableInputValue(e.target.value)}
                             />
 
-                            <ul class="dropdown-menu">
+                            <ul className="dropdown-menu">
                                 {
                                     //console.log(props.subtable)
                                     //filteredSubtables.subtable

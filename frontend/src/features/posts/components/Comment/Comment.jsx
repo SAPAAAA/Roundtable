@@ -1,19 +1,20 @@
+// posts/components/Comment/Comment.jsx
 import React, {useState} from "react";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 import useVote from "#features/posts/hooks/vote-hook.jsx";
 import WriteComment from "#features/posts/components/WriteComment/WriteComment";
-
-import './Comment.css';
+import PopoverMenu from "#shared/components/UIElement/PopoverMenu/PopoverMenu"; // *** IMPORT PopoverMenu ***
 import Identifier from "#shared/components/UIElement/Identifier/Identifier.jsx";
 
-// Added postId and potentially onReplyPosted callback prop
+import './Comment.css';
+
 export default function Comment(props) {
     const {
         comment,
-        postId, // Passed down from PostDetail
-        onReplyPosted // Optional: Callback for PostDetail to know a reply was added
+        postId,
+        onReplyPosted
     } = props;
 
     const [isReplying, setIsReplying] = useState(false);
@@ -26,176 +27,166 @@ export default function Comment(props) {
         handleUpvote,
         handleDownvote
     } = useVote(
-        // Use comment.upvoteCount and comment.userVoteStatus if available, otherwise defaults
         {initialCount: comment.upvotes ?? 0, initialVoteStatus: comment.userVoteStatus ?? null},
         comment.id,
-        'comment' // Specify type as comment for the hook if needed
+        'comment'
     );
 
     const handleReplyClick = () => {
         setIsReplying(prev => !prev);
     };
 
-    // Handler for when a reply is submitted via WriteComment
     const handlePostReply = async (replyData) => {
         console.log(`Submitting reply to comment ${comment.id}`, replyData);
-        // --- TODO: API Call Logic ---
-
-        // --- End TODO ---
-
-        // For demo purposes, just closing the input:
+        // API Call Logic...
         setIsReplying(false);
         if (onReplyPosted) {
-            onReplyPosted(); // Notify parent even in demo mode if needed
+            onReplyPosted();
         }
     };
 
+    // --- Handlers for Comment Options ---
+    const handleSaveComment = () => {
+        console.log(`Save comment clicked: ${comment.id}`);
+        // Implement actual save logic
+    };
+
+    const handleReportComment = () => {
+        console.log(`Report comment clicked: ${comment.id}`);
+        // Implement actual report logic
+    };
+    // --- End Handlers ---
+
+
     return (
-        // Add a class for targeting replies if needed, e.g., based on parentId
         <div className={`comment-component card p-3 my-3 ${comment.parentId ? 'comment-reply' : ''}`}>
             {/* Comment Details */}
             <div className="d-flex align-items-center mb-2">
                 <Avatar
-                    src={comment.author.avatar.src}
-                    alt={`r/${comment.author.username}`}
+                    src="https://images.unsplash.com/photo-1502685104226-e9b8f1c2d3a0?w=100&q=80" // Placeholder for comment author avatar
+                    alt="Comment Author Avatar"
                     width={20}
                     height={20}/>
                 <div className="d-flex flex-row flex-wrap fs-8">
+                    {/* Assuming Identifier can handle user type */}
                     <Identifier
-                        addClass="ms-2"
-                        type="subtable"
-                        namespace={comment.author.username}/>
+                        addClass="ms-2 fw-bold" // Make username bold
+                        type="user" // Set type to user
+                        namespace="someone"/>
                     &nbsp;•&nbsp;
-                    <span className="text-muted">{comment.time}</span>
+                    <span className="text-muted">{Date.now() - comment.createdAt}</span>
                 </div>
             </div>
             <div className="fs-content mt-2 mb-2">{comment.content}</div>
 
-            {/* Actions - Styled like PostPreview containers, but with text */}
+            {/* Actions */}
             <div className="d-flex align-items-center gap-2 mt-2">
                 {voteError && <div className="text-danger fs-icon me-2">Error: {voteError}</div>}
-                {/* Vote Container (Typically icon only) */}
+                {/* Vote Container */}
                 <div
-                    className={`vote-container ${voteStatus || ''} d-flex align-items-center rounded-pill gap-2 bg-light`}>
+                    className={`vote-container ${voteStatus || ''} d-flex align-items-center rounded-pill gap-2 bg-light p-1`}> {/* Consistent padding */}
                     <Button
-                        mainClass="upvote-btn"
-                        contentType="icon" // Keep as icon for consistency if Button handles it
-                        dataBsToggle="tooltip"
-                        dataBsTrigger="hover focus"
-                        tooltipTitle="Upvote"
-                        tooltipPlacement="top"
-                        padding="2"
-                        onClick={handleUpvote}
-                        disabled={isVoting}
-                    >
+                        mainClass="upvote-btn" contentType="icon"
+                        dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Upvote" tooltipPlacement="top"
+                        padding="1" onClick={handleUpvote} disabled={isVoting}>
                         <Icon mainClass="upvote-icon" name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
                               size="15px"/>
                     </Button>
                     <span className="fs-icon">{voteCount ?? 0}</span>
                     <Button
-                        mainClass="downvote-btn"
-                        contentType="icon" // Keep as icon for consistency if Button handles it
-                        dataBsToggle="tooltip"
-                        dataBsTrigger="hover focus"
-                        tooltipTitle="Downvote"
+                        mainClass="downvote-btn" contentType="icon"
+                        dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Downvote"
                         tooltipPlacement="top"
-                        padding="2"
-                        onClick={handleDownvote}
-                        disabled={isVoting}
-                    >
+                        padding="1" onClick={handleDownvote} disabled={isVoting}>
                         <Icon mainClass="downvote-icon" name={voteStatus === "downvoted" ? "downvoted" : "downvote"}
                               size="15px"/>
                     </Button>
                 </div>
 
-                {/* Reply Button Container - With Text */}
-                <div className="reply-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                {/* Reply Button Container */}
+                <div
+                    className="reply-container d-flex align-items-center rounded-pill gap-1 bg-light p-1"> {/* Consistent padding/gap */}
                     <Button
                         mainClass="reply-btn"
-                        // contentType might need adjustment if "icon" forces icon-only layout
-                        // contentType="icon" // Keep or remove based on Button component behavior
-                        dataBsToggle="tooltip"
-                        dataBsTrigger="hover focus"
-                        tooltipTitle="Reply to comment" // Adjusted tooltip
-                        tooltipPlacement="top"
-                        padding="2" // Adjust padding if needed with text
-                        onClick={handleReplyClick} // onClick handler
+                        dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Reply" tooltipPlacement="top"
+                        padding="1" // Adjusted padding
+                        onClick={handleReplyClick}
                     >
-                        <Icon
-                            mainClass="comment-icon"
-                            name="comment"
-                            size="15px"
-                        />
-                        &nbsp;
-                        <span className="ms-1 fs-icon">Reply</span>
+                        <Icon mainClass="comment-icon" name="comment" size="15px"/>
+                        <span className="ms-1 fs-icon">Reply</span> {/* Ensure fs-icon matches vote count style */}
                     </Button>
                 </div>
 
-                {/* Share Container - With Text */}
-                <div className="share-container d-flex align-items-center rounded-pill gap-2 bg-light">
+                {/* Share Container */}
+                <div
+                    className="share-container d-flex align-items-center rounded-pill gap-1 bg-light p-1"> {/* Consistent padding/gap */}
                     <Button
                         mainClass="share-btn"
-                        // contentType="icon" // Keep or remove based on Button component behavior
-                        dataBsToggle="tooltip"
-                        dataBsTrigger="hover focus"
-                        tooltipTitle="Share this comment" // Adjusted tooltip
-                        tooltipPlacement="top"
-                        padding="2" // Adjust padding if needed with text
-                        onClick={() => console.log('Share comment clicked')} // Add actual share logic later
+                        dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Share" tooltipPlacement="top"
+                        padding="1" // Adjusted padding
+                        onClick={() => console.log('Share comment clicked')}
                     >
-                        <Icon
-                            mainClass="share-icon"
-                            name="share"
-                            size="15px"
-                        />
-                        &nbsp;
-                        <span className="ms-1 fs-icon">Share</span>
+                        <Icon mainClass="share-icon" name="share" size="15px"/>
+                        <span className="ms-1 fs-icon">Share</span> {/* Ensure fs-icon matches vote count style */}
                     </Button>
                 </div>
 
-                {/* Options Dropdown Container (Trigger remains icon-only) */}
-                <div className="option-container d-flex align-items-center rounded-pill gap-2 bg-light">
-                    <div className="dropdown">
-                        <Button
-                            mainClass="option-btn"
-                            contentType="icon" // This trigger should remain icon-only
-                            dataBsToggle="dropdown"
-                            aria-expanded="false"
-                            tooltipTitle="More options"
-                            tooltipPlacement="top"
-                            padding="2"
-                        >
-                            <Icon mainClass="option-icon" name="three_dots" size="15px"/>
+                {/* *** Options using PopoverMenu *** */}
+                <div className="option-container d-flex align-items-center"> {/* Removed bg-light/pill here */}
+                    <PopoverMenu
+                        mainClass="option-menu" // Class for the popover content
+                        addClass="bg-white rounded shadow-sm border" // Style popover like PostOptions
+                        position="bottom-end" // Position relative to trigger
+                        trigger={ // The button that opens the menu
+                            <Button
+                                mainClass="option-btn"
+                                contentType="icon"
+                                padding="2" // Padding for the trigger button
+                                roundedPill // Make trigger button pill shape
+                                addClass="bg-light" // Keep trigger bg light
+                                dataBsToggle="tooltip" // Keep tooltip if desired
+                                dataBsTrigger="hover focus"
+                                tooltipTitle="More options"
+                                tooltipPlacement="top"
+                                ariaLabel="Comment Options"
+                                // REMOVED data-bs-toggle="dropdown"
+                            >
+                                <Icon mainClass="option-icon" name="three_dots" size="15px"/>
+                            </Button>
+                        }
+                    >
+                        {/* Content of the popover menu */}
+                        <Button mainClass="save-btn w-100" type="button" justifyContent="start" rounded={false}
+                                padding={2} onClick={handleSaveComment}>
+                            {/* Use correct Icon names if different from PostOptions */}
+                            <Icon addClass="me-2 save-icon-class" name="floppy" size="15px"/>
+                            <span>Save</span> {/* Use English or consistent language */}
                         </Button>
-                        <ul className="dropdown-menu fs-icon">
-                            <li><Button addClass="dropdown-item d-flex align-items-center"
-                                        onClick={() => console.log('Save comment clicked')}> <Icon addClass="me-2"
-                                                                                                   name="save"
-                                                                                                   size="15px"/> Save
-                            </Button></li>
-                            <li><Button addClass="dropdown-item d-flex align-items-center"
-                                        onClick={() => console.log('Report comment clicked')}> <Icon addClass="me-2"
-                                                                                                     name="report"
-                                                                                                     size="15px"/> Report
-                            </Button></li>
-                            {/* Add other options */}
-                        </ul>
-                    </div>
+                        <Button mainClass="report-btn w-100" type="button" justifyContent="start" rounded={false}
+                                padding={2} onClick={handleReportComment}>
+                            <Icon addClass="me-2 report-icon-class" name="flag" size="15px"/>
+                            <span>Report</span>
+                        </Button>
+                        {/* Add other comment options here if needed */}
+                    </PopoverMenu>
                 </div>
+                {/* *** End Options Section *** */}
+
             </div>
 
-            {/* Reply Input Area - Uses WriteComment */}
+            {/* Reply Input Area */}
             {isReplying && (
                 <div className="reply-input-area mt-3 ps-2">
                     <WriteComment
                         postId={postId}
+                        // Replace placeholders with actual current user data
                         username="CURRENT_USER_NAME"
                         src="CURRENT_USER_AVATAR_URL"
-                        time="Just now"
-                        parentId={comment.id}
+                        // time="Just now" // Likely better generated server-side
+                        parentId={comment.id} // Replying to this comment
                         onCommentSubmit={handlePostReply}
                         onCancel={() => setIsReplying(false)}
-                        isReply={true}
+                        // isReply={true} // Pass flag if WriteComment needs it for styling/logic
                     />
                 </div>
             )}
@@ -208,7 +199,7 @@ export default function Comment(props) {
                             key={reply.id}
                             comment={reply}
                             postId={postId}
-                            onReplyPosted={onReplyPosted}
+                            onReplyPosted={onReplyPosted} // Pass callback down
                         />
                     ))}
                 </div>
