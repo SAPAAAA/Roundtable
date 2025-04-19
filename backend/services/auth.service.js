@@ -404,7 +404,6 @@ class AuthService {
             throw error; // Re-throw the error with statusCode
         }
     }
-
     async loginWithSession(userId) {
         if (!userId) {
             const error = new Error('User ID is required.');

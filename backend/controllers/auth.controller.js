@@ -67,6 +67,44 @@ class AuthController {
         }
     }
 
+    finalizeLogin = async (req, res) => {
+        console.log('[AuthController.finalizeLogin] Entered.');
+        // This method now receives the req object potentially populated by AuthController.login
+        console.log('[AuthController.finalizeLogin] req.user received:', JSON.stringify(req.user));
+        console.log('[AuthController.finalizeLogin] req.session object BEFORE modification:', JSON.stringify(req.session));
+
+        // Check if req.user was successfully populated by the preceding middleware
+        if (req.user && req.user.userId) {
+            console.log(`[AuthController.finalizeLogin] req.user is TRUTHY with userId: ${req.user.userId}. Attempting to set session.userId.`);
+            try {
+                req.session.userId = req.user.userId; // Set the session
+                // It's good practice to save the session explicitly if needed, though often handled automatically
+                // req.session.save(err => { if (err) { /* handle error */ } });
+                console.log('[AuthController.finalizeLogin] req.session object AFTER modification:', JSON.stringify(req.session));
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'Login successful',
+                    user: req.user, // Send back user data (excluding sensitive info like passwords)
+                });
+
+            } catch (error) {
+                console.error('[AuthController.finalizeLogin] Error during session modification:', error);
+                return res.status(500).json({success: false, message: 'Internal server error during session update.'});
+            }
+        } else {
+            // This case should ideally be caught by AuthController.login,
+            // but it's a safeguard here. It might indicate an issue in AuthController.login not populating req.user correctly.
+            console.warn('[AuthController.finalizeLogin] req.user is FALSY or missing userId. This might indicate an issue in the preceding login middleware.');
+            console.log('[AuthController.finalizeLogin] Value of req.user:', req.user);
+            return res.status(401).json({
+                success: false,
+                message: 'Login failed or user data incomplete after authentication.'
+            });
+        }
+    }
+
+
     verifyEmail = async (req, res, next) => {
         try {
             const {email, code} = req.body;

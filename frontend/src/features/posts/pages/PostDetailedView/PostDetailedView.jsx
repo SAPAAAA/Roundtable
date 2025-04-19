@@ -8,7 +8,7 @@ import Comment from "#features/posts/components/Comment/Comment.jsx";
 // import useAuth from '#hooks/auth-hook'; // Example for getting current user
 import "./PostDetailedView.css";
 import {useParams} from "react-router";
-import CommentService from "#services/commentService";
+import PostService from "#services/postService";
 import {useAuth} from "#hooks/useAuth.jsx"; // Specific styles if needed
 
 export default function PostDetailedView(props) {
@@ -28,7 +28,7 @@ export default function PostDetailedView(props) {
     useEffect(() => {
         const fetchComments = async () => {
             try {
-                const fetchedData = await CommentService.getCommentsForPost(subtableName, postId);
+                const fetchedData = await PostService.getPostDetails(subtableName, postId);
                 console.log("Fetched data:", fetchedData);
                 setComments(fetchedData.comments);
                 setPost(fetchedData.post);

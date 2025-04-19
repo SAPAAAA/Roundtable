@@ -21,3 +21,15 @@ export function isNotAuthenticated(req, res, next) {
     }
 }
 
+// This function checks if the user has admin access
+export function grantAccess(req, res, next) {
+    if (req.session && req.session.userId && req.session.role === 'admin') {
+        return next();
+    } else {
+        return res.status(403).json({
+            message: 'Forbidden',
+            success: false,
+        });
+    }
+}
+
