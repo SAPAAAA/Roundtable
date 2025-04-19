@@ -28,7 +28,7 @@ export default function Comment(props) {
         handleDownvote
     } = useVote(
         {initialCount: comment.upvotes ?? 0, initialVoteStatus: comment.userVoteStatus ?? null},
-        comment.id,
+        comment.commentId,
         'comment'
     );
 
@@ -37,7 +37,7 @@ export default function Comment(props) {
     };
 
     const handlePostReply = async (replyData) => {
-        console.log(`Submitting reply to comment ${comment.id}`, replyData);
+        console.log(`Submitting reply to comment ${comment.commentId}`, replyData);
         // API Call Logic...
         setIsReplying(false);
         if (onReplyPosted) {
@@ -47,19 +47,19 @@ export default function Comment(props) {
 
     // --- Handlers for Comment Options ---
     const handleSaveComment = () => {
-        console.log(`Save comment clicked: ${comment.id}`);
+        console.log(`Save comment clicked: ${comment.commentId}`);
         // Implement actual save logic
     };
 
     const handleReportComment = () => {
-        console.log(`Report comment clicked: ${comment.id}`);
+        console.log(`Report comment clicked: ${comment.commentId}`);
         // Implement actual report logic
     };
     // --- End Handlers ---
 
 
     return (
-        <div className={`comment-component card p-3 my-3 ${comment.parentId ? 'comment-reply' : ''}`}>
+        <div className={`comment-component card p-3 my-3 ${comment.parentCommentId ? 'comment-reply' : ''}`}>
             {/* Comment Details */}
             <div className="d-flex align-items-center mb-2">
                 <Avatar
@@ -183,7 +183,7 @@ export default function Comment(props) {
                         username="CURRENT_USER_NAME"
                         src="CURRENT_USER_AVATAR_URL"
                         // time="Just now" // Likely better generated server-side
-                        parentId={comment.id} // Replying to this comment
+                        parentId={comment.commentId} // Replying to this comment
                         onCommentSubmit={handlePostReply}
                         onCancel={() => setIsReplying(false)}
                         // isReply={true} // Pass flag if WriteComment needs it for styling/logic
@@ -196,7 +196,7 @@ export default function Comment(props) {
                 <div className="comment-replies ps-4">
                     {comment.replies.map(reply => (
                         <Comment
-                            key={reply.id}
+                            key={reply.commentId}
                             comment={reply}
                             postId={postId}
                             onReplyPosted={onReplyPosted} // Pass callback down
