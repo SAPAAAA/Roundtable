@@ -7,7 +7,7 @@ import PostOptions from "#features/posts/components/PostOptions/PostOptions"; //
 import "./PostHeaderPreview.css";
 
 export default function PostHeaderPreview(props) {
-    const {subtable, postTime, isJoined, onJoinClick, onOptions /* pass specific handlers if needed */} = props;
+    const {subtable, post, isJoined, onJoinClick, onOptions /* pass specific handlers if needed */} = props;
 
     // Placeholder handlers for options - these could be passed down or defined here
     const handleSave = () => console.log("Preview Save clicked");
@@ -20,17 +20,21 @@ export default function PostHeaderPreview(props) {
             {/* Left side: Subtable Info */}
             <div className="d-flex align-items-center">
                 <Avatar
-                    src={subtable.avatar.src}
-                    alt={`r/${subtable.namespace}`}
+                    src={subtable.icon}
+                    alt={
+                        <Identifier
+                            type="subtable"
+                            namespace={subtable.name}/>
+                    }
                     width={20}
                     height={20}/>
                 <div className="d-flex flex-row flex-wrap fs-8">
                     <Identifier
                         addClass="ms-2 fw-bold" // Make subtable name bold
                         type="subtable"
-                        namespace={subtable.namespace}/>
+                        namespace={subtable.name}/>
                     &nbsp;•&nbsp;
-                    <span className="text-muted">{postTime}</span>
+                    <span className="text-muted">{post.createdAt}</span>
                 </div>
             </div>
 

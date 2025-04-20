@@ -21,33 +21,52 @@ function PopoverMenu(props) {
         position = 'bottom-end',
         menuStyle = {},
         controlledIsOpen,
-        onClose,
+        onClose: controlledOnClose, // Renamed prop
+        onOpen: controlledOnOpen,   // New prop for controlled
         mainClass = '',
         addClass = '',
+        // --- NEW PROPS ---
+        onMenuOpen, // Callback when menu opens internally
+        onMenuClose // Callback when menu closes internally
     } = props;
 
     const [isOpenInternal, setIsOpenInternal] = useState(false);
     const triggerRef = useRef(null);
     const menuRef = useRef(null);
 
-    const isControlled = controlledIsOpen !== undefined && onClose !== undefined;
+    // Determine if controlled or internal state is used
+    const isControlled = controlledIsOpen !== undefined && controlledOnClose !== undefined;
     const isOpen = isControlled ? controlledIsOpen : isOpenInternal;
 
+    // --- UPDATED open/close handlers ---
     const openMenu = useCallback(() => {
-        if (!isControlled) setIsOpenInternal(true);
-    }, [isControlled]);
+        if (isControlled) {
+            controlledOnOpen?.(); // Call controlled open if provided
+        } else {
+            setIsOpenInternal(true);
+            onMenuOpen?.();      // Call internal open callback
+        }
+    }, [isControlled, controlledOnOpen, onMenuOpen]);
 
     const closeMenu = useCallback(() => {
-        if (isControlled) onClose();
-        else setIsOpenInternal(false);
-    }, [isControlled, onClose]);
+        if (isControlled) {
+            controlledOnClose(); // Call controlled close
+        } else {
+            setIsOpenInternal(false);
+            onMenuClose?.();     // Call internal close callback
+        }
+    }, [isControlled, controlledOnClose, onMenuClose]);
 
     const toggleMenu = useCallback(() => {
-        console.log('toggleMenu called. Current isOpen:', isOpen);
-        if (isOpen) closeMenu();
-        else openMenu();
-        console.log('toggleMenu executed. New isOpen:', isOpen);
+        // console.log('toggleMenu called. Current isOpen:', isOpen);
+        if (isOpen) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+        // console.log('toggleMenu executed. New isOpen:', !isOpen); // Log based on action taken
     }, [isOpen, openMenu, closeMenu]);
+
 
     useEffect(() => {
         if (!isOpen) return;
@@ -56,16 +75,24 @@ function PopoverMenu(props) {
             const insideTrigger = triggerRef.current?.contains(e.target);
             const insideMenu = menuRef.current?.contains(e.target);
 
-            if (!insideTrigger && !insideMenu) closeMenu();
+            // Only close if click is outside BOTH trigger and menu
+            if (!insideTrigger && !insideMenu) {
+                // console.log("Clicked outside, closing menu.");
+                closeMenu();
+            }
         };
 
+        // Use 'mousedown' to potentially catch the event earlier than 'click'
+        // which might be stopped by other handlers (like the trigger's onClick).
         document.addEventListener('click', handleDocumentClick);
         return () => document.removeEventListener('click', handleDocumentClick);
-    }, [isOpen, closeMenu]);
+    }, [isOpen, closeMenu]); // Dependency array includes isOpen and closeMenu
 
     const getPositionStyles = () => {
-        const styles = {position: 'absolute', zIndex: 1050};
-        const margin = '0.125rem';
+        // Default zIndex if none is provided in menuStyle
+        const styles = {position: 'absolute', zIndex: 1050, ...menuStyle};
+        const margin = '0.125rem'; // Example margin
+        // ... (rest of your position logic)
         switch (position) {
             case 'bottom-start':
                 styles.top = '100%';
@@ -92,74 +119,64 @@ function PopoverMenu(props) {
         return styles;
     };
 
+
+    // Clone trigger, ensuring necessary props are added/overridden
     const triggerElement = React.cloneElement(trigger, {
         ref: triggerRef,
-
-        // NEW – prevent the document mousedown listener from ever seeing this press
-        onMouseDown: (e) => e.stopPropagation(),
-
         onClick: (e) => {
-            trigger.props.onClick?.(e);   // preserve any original handler
+            // Prevent document click listener from closing immediately
+            e.stopPropagation();
+            // Call original trigger onClick if it exists
+            trigger.props.onClick?.(e);
+            // Toggle menu if default wasn't prevented by original handler
             if (!e.defaultPrevented) {
                 toggleMenu();
-                e.stopPropagation();        // you already had this
             }
         },
-        ariaHaspopup: 'listbox',
-        ariaExpanded: isOpen,
+        // Ensure accessibility attributes are set
+        'aria-haspopup': 'listbox', // or 'menu' depending on content
+        'aria-expanded': isOpen,
+        // Add other necessary props like id if the menu needs aria-labelledby
     });
 
-    const popoverClasses = `list-group list-group-flush shadow-sm ${addClass}`.trim();
+
+    const popoverClasses = `popover-menu list-group list-group-flush shadow-sm ${addClass}`.trim();
 
     return (
+        // Ensure the container allows absolute positioning of the menu
         <div className={`position-relative d-inline-block ${mainClass}`}>
             {triggerElement}
             {isOpen && (
                 <div
                     ref={menuRef}
-                    className={`${popoverClasses}`}
-                    role="listbox"
-                    style={{...getPositionStyles(), minWidth: '180px', ...menuStyle}}
-                    aria-labelledby={trigger.props.id}
+                    className={popoverClasses}
+                    role="listbox" // or 'menu'
+                    style={getPositionStyles()}
+                    // Consider adding aria-labelledby if trigger has an ID
                 >
                     {React.Children.map(children, (child) => {
+                        // ... (your existing child mapping logic) ...
                         if (!React.isValidElement(child)) {
-                            return child; // Return non-elements directly (e.g., text nodes - though usually wrap text)
+                            return child;
                         }
 
-                        // Determine base item classes
                         const baseItemClasses = 'list-group-item d-flex flex-row border-0';
                         let actionClass = '';
-
-                        // Add action class for interactive elements (buttons, links)
                         if (typeof child.type === 'string' && ['button', 'a'].includes(child.type.toLowerCase())) {
                             actionClass = 'list-group-item-action';
-                        }
-                        // Also consider if an onClick is present, even on a div/span
-                        else if (child.props.onClick) {
+                        } else if (child.props.onClick) {
                             actionClass = 'list-group-item-action';
                         }
 
-                        // Combine classes: base + action (if any) + existing child classes
                         const existingClasses = child.props.className || '';
-                        const finalClassName = `${baseItemClasses} ${actionClass} ${existingClasses}`
-                            .trim() // Remove leading/trailing spaces
-                            .replace(/\s+/g, ' '); // Replace multiple spaces with single
+                        const finalClassName = `${baseItemClasses} ${actionClass} ${existingClasses}`.trim().replace(/\s+/g, ' ');
 
-                        console.log(finalClassName)
-
-                        // Clone with merged classes, role, and onClick wrapper
                         return React.cloneElement(child, {
                             className: finalClassName,
-                            // role: 'option', // Assign role if needed, might be implicit
                             onClick: (e) => {
-                                // Execute original onClick if it exists
-                                if (child.props.onClick) {
-                                    child.props.onClick(e);
-                                }
-                                // Close menu if default wasn't prevented
-                                if (!e.defaultPrevented && actionClass) { // Only auto-close actionable items
-                                    closeMenu();
+                                child.props.onClick?.(e);
+                                if (!e.defaultPrevented && actionClass) {
+                                    closeMenu(); // Close menu on item click
                                 }
                             }
                         });

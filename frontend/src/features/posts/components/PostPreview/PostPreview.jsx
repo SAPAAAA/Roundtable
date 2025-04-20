@@ -14,11 +14,11 @@ export default function PostPreview(props) {
 			<div className="post-preview-container card p-3 my-3">
 				<PostHeaderPreview
 					subtable={post.subtable}
-					postTime={post.time}
+					post={post}
 					isJoined={isJoined} // Example prop
 					onJoinClick={(e) => {
 						e.preventDefault();
-						onJoinClick?.(post.subtable.id);
+						onJoinClick?.(post.subtable.subtableId);
 					}} // Prevent navigation on join click
 				/>
 				<PostCore

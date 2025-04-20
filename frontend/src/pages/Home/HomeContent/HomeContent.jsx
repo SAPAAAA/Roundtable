@@ -1,7 +1,5 @@
 import React from "react";
 
-import ListPostPreview from "#features/posts/components/ListPostPreview/ListPostPreview";
-
 import HomeSidebarContent from "#pages/Home/HomeSidebar/HomeSidebar.jsx";
 import {Helmet} from "react-helmet";
 
@@ -60,7 +58,6 @@ export default function HomeContent() {
 
             <HomeSidebarContent/>
 
-            <ListPostPreview posts={posts}/>
         </div>
     )
 }

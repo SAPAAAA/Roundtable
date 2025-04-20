@@ -46,15 +46,18 @@ export default function PostOptions(props) {
                 {/* Using Button component consistently */}
                 <Button mainClass="save-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
                         onClick={handleSavePost}>
-                    <Icon addClass="me-2" name="floppy" size="15px"/><span>Lưu</span>
+                    <Icon addClass="me-2" name="floppy" size="15px"/>
+                    <span>Lưu</span>
                 </Button>
                 <Button mainClass="hide-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
                         onClick={handleHidePost}>
-                    <Icon addClass="me-2" name="hide" size="15px"/><span>Ẩn</span>
+                    <Icon addClass="me-2" name="hide" size="15px"/>
+                    <span>Ẩn</span>
                 </Button>
                 <Button mainClass="report-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
                         onClick={handleReportPost}>
-                    <Icon addClass="me-2" name="flag" size="15px"/><span>Báo cáo</span>
+                    <Icon addClass="me-2" name="flag" size="15px"/>
+                    <span>Báo cáo</span>
                 </Button>
             </PopoverMenu>
         </div>

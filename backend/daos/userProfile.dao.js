@@ -40,60 +40,6 @@ class UserProfileDAO {
     }
 
     /**
-     * Fetches a user profile by their Principal ID.
-     * @param {string} principalId - The UUID of the Principal.
-     * @returns {Promise<UserProfile | null>} A promise that resolves to a UserProfile instance or null if not found.
-     * @throws {Error} Throws an error if the database query fails.
-     */
-    async getByPrincipalId(principalId) {
-        if (!principalId) {
-            console.error('getByPrincipalId called with null or undefined principalId');
-            return null;
-        }
-        try {
-            // Query the 'UserProfile' VIEW using the principalId column
-            const profileRow = await postgres('UserProfile')
-                .where({principalId: principalId}) // Filter by principalId
-                .first();
-
-            if (!profileRow) {
-                return null; // User profile not found for this principalId
-            }
-            return UserProfile.fromDbRow(profileRow);
-        } catch (error) {
-            console.error(`Error fetching user profile by principalId (${principalId}):`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * Fetches a user profile by their Account ID.
-     * @param {string} accountId - The UUID of the Account.
-     * @returns {Promise<UserProfile | null>} A promise that resolves to a UserProfile instance or null if not found.
-     * @throws {Error} Throws an error if the database query fails.
-     */
-    async getByAccountId(accountId) {
-        if (!accountId) {
-            console.error('getByAccountId called with null or undefined accountId');
-            return null;
-        }
-        try {
-            // Query the 'UserProfile' VIEW using the accountId column
-            const profileRow = await postgres('UserProfile')
-                .where({accountId: accountId}) // Filter by accountId
-                .first();
-
-            if (!profileRow) {
-                return null; // User profile not found for this accountId
-            }
-            return UserProfile.fromDbRow(profileRow);
-        } catch (error) {
-            console.error(`Error fetching user profile by accountId (${accountId}):`, error);
-            throw error;
-        }
-    }
-
-    /**
      * Fetches a user profile by their username.
      * Note: Usernames should be unique based on the Account schema.
      * @param {string} username - The username string.
@@ -122,29 +68,28 @@ class UserProfileDAO {
     }
 
     /**
-     * Fetches a user profile by their email.
-     * Note: Emails should be unique based on the Account schema.
-     * @param {string} email - The email string.
+     * Fetches a user profile by their principalId.
+     * @param {string} principalId - The principalId string.
      * @returns {Promise<UserProfile | null>} A promise that resolves to a UserProfile instance or null if not found.
      * @throws {Error} Throws an error if the database query fails.
      */
-    async getByEmail(email) {
-        if (!email) {
-            console.error('getByEmail called with null or undefined email');
+    async getByPrincipalId(principalId) {
+        if (!principalId) {
+            console.error('getByPrincipalId called with null or undefined principalId');
             return null;
         }
         try {
-            // Query the 'UserProfile' VIEW using the email column
+            // Query the 'UserProfile' VIEW using the principalId column
             const profileRow = await postgres('UserProfile')
-                .where({email: email}) // Filter by email
+                .where({principalId: principalId}) // Filter by principalId
                 .first();
 
             if (!profileRow) {
-                return null; // User profile not found for this email
+                return null; // User profile not found for this principalId
             }
             return UserProfile.fromDbRow(profileRow);
         } catch (error) {
-            console.error(`Error fetching user profile by email (${email}):`, error);
+            console.error(`Error fetching user profile by principalId (${principalId}):`, error);
             throw error;
         }
     }

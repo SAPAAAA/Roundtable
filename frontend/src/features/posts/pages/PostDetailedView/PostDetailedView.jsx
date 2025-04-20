@@ -86,8 +86,8 @@ export default function PostDetailedView(props) {
             <div className="post-detailed-container card p-3 my-3">
                 <PostHeaderDetailed
                     subtable={subtable}
-                    postTime={Date.now() - post.createdAt}
-                    username={author.displayName}
+                    post={post}
+                    author={author}
                     onBackClick={handleNavigateBack}
                     // Pass options handlers if needed
                 />

@@ -16,13 +16,13 @@ export default function PostCore(props) {
         voteError,
         handleUpvote,
         handleDownvote
-    } = useVote({initialCount: post.upvotes, initialVoteStatus: null}, post.id);
+    } = useVote({initialCount: post.voteCount, initialVoteStatus: null}, post.postId);
 
     // --- Share Handler --- (Could be passed as prop if complex)
     const handleShare = () => {
-        console.log("Share action triggered for post:", post.id);
+        console.log("Share action triggered for post:", post.postId);
         // Implement actual share logic (e.g., copy link, open share modal)
-        navigator.clipboard.writeText(window.location.href + `posts/${post.id}`) // Example
+        navigator.clipboard.writeText(window.location.href + `posts/${post.postId}`) // Example
             .then(() => alert("Link copied to clipboard!"))
             .catch(err => console.error("Failed to copy link: ", err));
     };
@@ -43,7 +43,7 @@ export default function PostCore(props) {
 
             {/* PostPreview Content */}
             {/* Add a class for potential truncation/styling in preview vs detailed */}
-            <div className={`fs-content mt-2 mb-2 ${props.contentClass || ''}`}>{post.content}</div>
+            <div className={`fs-content mt-2 mb-2 ${props.contentClass || ''}`}>{post.body}</div>
 
             {/* PostPreview Actions */}
             <div className="post-actions-container d-flex align-items-center gap-2">
@@ -61,7 +61,7 @@ export default function PostCore(props) {
                               size="15px"/>
                     </Button>
                     {/* Ensure voteCount displays correctly */}
-                    <span className="fs-8 fw-bold">{voteCount ?? 0}</span>
+                    <span className="fs-8 fw-bold">{voteCount}</span>
                     <Button
                         mainClass="downvote-btn" contentType="icon"
                         dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Downvote"

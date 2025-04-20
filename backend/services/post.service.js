@@ -1,27 +1,52 @@
 // services/post.service.js
 import postDao from '#daos/post.dao.js';
 import subtableDao from '#daos/subtable.dao.js';
-import commentDao from '#daos/comment.dao.js';
 import userProfileDao from '#daos/userProfile.dao.js'; // Assuming this exists
-import HTTP_STATUS from '#constants/httpStatus.js'; // Assuming you have this
+import HTTP_STATUS from '#constants/httpStatus.js';
+import userCommentDetailsDao from "#daos/userCommentDetails.dao.js"; // Assuming you have this
 
-// Helper function for structuring comments (example: simple list)
+// Helper function for structuring comments
 function structureComments(comments) {
-    // Structure comments into a hierarchical format
-    const commentMap = {};
+    // --- Input Validation ---
+    if (!Array.isArray(comments)) {
+        console.error("Input must be an array of comments.");
+        return [];
+    }
+
+    const commentMap = {}; // Stores comments by their ID for quick lookup
+    const structuredComments = []; // Stores the final top-level comments
+
+    // --- Step 1: Initialize map and add 'replies' array to each comment ---
     comments.forEach(comment => {
-        commentMap[comment.id] = {...comment, replies: []};
+        // Create a copy to avoid modifying the original objects directly
+        const commentCopy = {...comment};
+        commentCopy.replies = []; // Initialize the array for replies
+        commentMap[commentCopy.commentId] = commentCopy;
     });
 
-    comments.forEach(comment => {
-        if (comment.parentId) {
-            commentMap[comment.parentId].replies.push(commentMap[comment.id]);
+    // --- Step 2: Link comments to their parents ---
+    Object.values(commentMap).forEach(comment => {
+        const parentCommentId = comment.parentCommentId;
+
+        // Check if it's a reply (has a valid parentId that exists in the map)
+        if (parentCommentId !== null && parentCommentId !== undefined && commentMap[parentCommentId]) {
+            // Find the parent in the map
+            const parent = commentMap[parentCommentId];
+            // Add the current comment to the parent's 'replies' array
+            parent.replies.push(comment);
+        } else {
+            // Only add if it doesn't have a parentId or its parent wasn't found in the map
+            if (parentCommentId === null || parentCommentId === undefined || !commentMap[parentCommentId]) {
+                structuredComments.push(comment);
+            }
+            if (parentCommentId !== null && parentCommentId !== undefined && !commentMap[parentCommentId]) {
+                console.warn(`Orphan comment found: ID ${comment.commentId} references non-existent parent ID ${parentCommentId}. Treating as top-level.`);
+            }
         }
     });
 
-    return Object.values(commentMap);
+    return structuredComments;
 }
-
 class PostService {
 
     /**
@@ -66,34 +91,35 @@ class PostService {
         }
 
 
-        // 4. Get Comments (example: get all, sort by creation)
-        const commentsRaw = await commentDao.getByPost(postId, {
+        // 4. Get Comments
+        const commentsRaw = await userCommentDetailsDao.getByPostId(postId, {
             sortBy: 'createdAt',
             order: 'asc',
             includeRemoved: false
         });
+
         const comments = structureComments(commentsRaw);
 
-        // 5. Get Author Profile (assuming userProfileDao.getByUserId exists)
+        console.log("Comments fetched:", comments);
+
+        // 5. Get Author Profile
         let authorProfile = null;
         if (post.authorUserId) {
             authorProfile = await userProfileDao.getByUserId(post.authorUserId);
         }
-
-        // 6. Get Comment Author Profiles (optimize this in a real app - fetch all needed authors at once)
 
         // 7. Assemble the data package
         return {
             post: {
                 ...post,
             },
-            subtable: {name: subtable.name, description: subtable.description, iconUrl: subtable.iconUrl /* etc */},
+            subtable: {
+                ...subtable,
+            },
             author: authorProfile ? {
-                userId: authorProfile.userId,
-                username: authorProfile.username,
-                displayName: authorProfile.displayName /* etc */
+                ...authorProfile,
             } : null,
-            comments: comments, // Potentially with author info embedded
+            comments: comments,
         };
     }
 

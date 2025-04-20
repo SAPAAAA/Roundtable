@@ -196,7 +196,23 @@ class AuthService {
         try {
             // --- 1. Find User Profile (View) to get IDs ---
             // This read operation doesn't strictly need to be in the transaction.
-            const userProfile = await userProfileDao.getByEmail(email);
+            const userAccount = await accountDao.getByEmail(email);
+
+            if (!userAccount || !userAccount.accountId) {
+                const error = new Error('Account not found or verification failed.');
+                error.statusCode = HTTP_STATUS.NOT_FOUND; // 404
+                throw error;
+            }
+
+            const userPrincipal = await PrincipalDAO.getByAccountId(userAccount.accountId);
+
+            if (!userPrincipal || !userPrincipal.principalId) {
+                const error = new Error('Account not found or verification failed.');
+                error.statusCode = HTTP_STATUS.NOT_FOUND; // 404
+                throw error;
+            }
+
+            const userProfile = await profileDao.getByPrincipalId(userPrincipal.principalId);
 
             if (!userProfile || !userProfile.userId) {
                 if (userProfile) console.warn(`UserProfile found for email ${email} but missing userId.`);

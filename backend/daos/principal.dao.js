@@ -46,6 +46,23 @@ class PrincipalDAO {
         }
     }
 
+    async getByAccountId(accountId) {
+        try {
+            // .first() returns the object directly or undefined
+            const principalRow = await postgres("Principal").where({accountId}).first();
+            // Check if a principal was actually found
+            if (!principalRow) {
+                return null; // Return null if not found
+            }
+            // Only call fromDbRow if we found a principal
+            return Principal.fromDbRow(principalRow);
+        } catch (error) {
+            console.error("Error fetching principal:", error);
+            // Re-throw the original error
+            throw error;
+        }
+    }
+
     async delete(principalId, trx) {
         const queryBuilder = trx ? trx : postgres;
         try {
