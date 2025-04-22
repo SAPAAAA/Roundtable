@@ -60,7 +60,7 @@ CREATE TABLE "RegisteredUser" (
     "lastActive" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE " " (
+CREATE TABLE "Admin" (
     "adminId"          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "principalId"      UUID NOT NULL UNIQUE REFERENCES "Principal"("principalId") ON DELETE CASCADE,
     "grantedAt"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -634,9 +634,9 @@ INSERT INTO "Subtable" (
   "subtableId","name","description","creatorPrincipalId","icon","banner","memberCount"
 ) VALUES
   ('00000000-0000-0000-0000-000000000041','AskAnything','A place for any question','00000000-0000-0000-0000-000000000026','https://example.com/icons/ask.png','https://example.com/banners/ask.png',100),
-  ('00000000-0000-0000-0000-000000000042','TechTalk','Discussions about technology','00000000-0000-0000-000000000027','https://example.com/icons/tech.png','https://example.com/banners/tech.png',200),
-  ('00000000-0000-0000-0000-000000000043','NewsHub','Share and discuss news','00000000-0000-0000-000000000028','https://example.com/icons/news.png','https://example.com/banners/news.png',150),
-  ('00000000-0000-0000-0000-000000000044','AnimeClub','For anime fans','00000000-0000-0000-000000000029','https://example.com/icons/anime.png','https://example.com/banners/anime.png',80),
+  ('00000000-0000-0000-0000-000000000042','TechTalk','Discussions about technology','00000000-0000-0000-0000-000000000027','https://example.com/icons/tech.png','https://example.com/banners/tech.png',200),
+  ('00000000-0000-0000-0000-000000000043','NewsHub','Share and discuss news','00000000-0000-0000-0000-000000000028','https://example.com/icons/news.png','https://example.com/banners/news.png',150),
+  ('00000000-0000-0000-0000-000000000044','AnimeClub','For anime fans','00000000-0000-0000-0000-000000000029','https://example.com/icons/anime.png','https://example.com/banners/anime.png',80),
   ('00000000-0000-0000-0000-000000000045','Foodies','Food recipes and reviews','00000000-0000-0000-0000-000000000030','https://example.com/icons/food.png','https://example.com/banners/food.png',120)
 ;
 
@@ -687,6 +687,56 @@ INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","bo
   ('00000000-0000-0000-0000-000000000074','00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000073','Great tip, thanks!'),
   ('00000000-0000-0000-0000-000000000075','00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000071','Yep, that anime is awesome.')
 ;
+
+-- Reply to comment '000...63' ("Use INNER JOIN...") on post '000...52' ("Question about SQL")
+INSERT INTO "Comment" ("commentId", "postId", "authorUserId", "parentCommentId", "body") VALUES
+(
+    '00000000-0000-0000-0000-000000000201', -- New UUID for this reply
+    '00000000-0000-0000-0000-000000000052', -- Post ID
+    '00000000-0000-0000-0000-000000000034', -- authorUserId (user4)
+    '00000000-0000-0000-0000-000000000063', -- parentCommentId
+    'Good point. What about OUTER JOINs then?'
+);
+
+-- Reply to comment '000...65' ("AI is amazing!") on post '000...53' ("Latest tech trends")
+INSERT INTO "Comment" ("commentId", "postId", "authorUserId", "parentCommentId", "body") VALUES
+(
+    '00000000-0000-0000-0000-000000000202', -- New UUID for this reply
+    '00000000-0000-0000-0000-000000000053', -- Post ID
+    '00000000-0000-0000-0000-000000000031', -- authorUserId (user1)
+    '00000000-0000-0000-0000-000000000065', -- parentCommentId
+    'Totally agree! Scares me a little too, though.'
+);
+
+-- Reply to comment '000...67' ("JS is more flexible though.") on post '000...54' ("JavaScript vs TypeScript")
+INSERT INTO "Comment" ("commentId", "postId", "authorUserId", "parentCommentId", "body") VALUES
+(
+    '00000000-0000-0000-0000-000000000203', -- New UUID for this reply
+    '00000000-0000-0000-0000-000000000054', -- Post ID
+    '00000000-0000-0000-0000-000000000033', -- authorUserId (user3)
+    '00000000-0000-0000-0000-000000000067', -- parentCommentId
+    'Flexibility vs. safety, the eternal debate! I prefer the safety net TS provides for larger projects.'
+);
+
+-- Reply to comment '000...70' ("My favorite is Naruto.") on post '000...57' ("Favorite anime")
+INSERT INTO "Comment" ("commentId", "postId", "authorUserId", "parentCommentId", "body") VALUES
+(
+    '00000000-0000-0000-0000-000000000204', -- New UUID for this reply
+    '00000000-0000-0000-0000-000000000057', -- Post ID
+    '00000000-0000-0000-0000-000000000035', -- authorUserId (user5)
+    '00000000-0000-0000-0000-000000000070', -- parentCommentId
+    'Naruto is great! Have you watched Fullmetal Alchemist: Brotherhood?'
+);
+
+-- Reply to comment '000...72' ("I love pasta recipes.") on post '000...59' ("Best recipes")
+INSERT INTO "Comment" ("commentId", "postId", "authorUserId", "parentCommentId", "body") VALUES
+(
+    '00000000-0000-0000-0000-000000000205', -- New UUID for this reply
+    '00000000-0000-0000-0000-000000000059', -- Post ID
+    '00000000-0000-0000-0000-000000000031', -- authorUserId (user1)
+    '00000000-0000-0000-0000-000000000072', -- parentCommentId
+    'Me too! Especially a good lasagna. Takes time but worth it.'
+);
 
 -- -------------------------------------------------------------------
 -- 5) Votes (20 records)
@@ -767,7 +817,7 @@ INSERT INTO "Message" (
   ('00000000-0000-0000-0000-000000000116','00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000006','Hello','Hi Admin, I have a question.'),
   ('00000000-0000-0000-0000-000000000117','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000007','Re: Hello','Sure, how can I help?'),
   ('00000000-0000-0000-0000-000000000118','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000008','Issue','I found a bug in the forum.'),
-  ('00000000-0000-0000-0000-000000000119','00000000-0000-0000-0000-000000000026','00000000-0000-0000-0000-000000000021','Re: Issue','Thanks for reporting, we’ll look into it.'),
+  ('00000000-0000-0000-0000-000000000119','00000000-0000-0000-0000-000000000026','00000000-0000-0000-0000-000000000001','Re: Issue','Thanks for reporting, we’ll look into it.'),
   ('00000000-0000-0000-0000-000000000120','00000000-0000-0000-0000-000000000024','00000000-0000-0000-0000-000000000009','Question','Can I post images?'),
   ('00000000-0000-0000-0000-000000000121','00000000-0000-0000-0000-000000000027','00000000-0000-0000-0000-000000000002','Re: Question','Yes, you can upload media.'),
   ('00000000-0000-0000-0000-000000000122','00000000-0000-0000-0000-000000000025','00000000-0000-0000-0000-000000000003','Greetings','Welcome to the community!'),
