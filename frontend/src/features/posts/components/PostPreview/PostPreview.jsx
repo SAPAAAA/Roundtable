@@ -7,18 +7,18 @@ import PostCore from "#features/posts/components/PostCore/PostCore";
 import "./PostPreview.css";
 
 export default function PostPreview(props) {
-	const {post, isJoined, onJoinClick} = props;
+	const {post, subtable, isJoined, onJoinClick} = props;
 
 	return (
-		<Link to={`/s/${post.subtable.namespace}/comments/${post.postId}`} className="post-preview-link">
+		<Link to={`/s/${subtable.name}/comments/${post.postId}`} className="post-preview-link">
 			<div className="post-preview-container card p-3 my-3">
 				<PostHeaderPreview
-					subtable={post.subtable}
+					subtable={subtable}
 					post={post}
 					isJoined={isJoined} // Example prop
 					onJoinClick={(e) => {
 						e.preventDefault();
-						onJoinClick?.(post.subtable.subtableId);
+						onJoinClick?.(subtable.subtableId);
 					}} // Prevent navigation on join click
 				/>
 				<PostCore
