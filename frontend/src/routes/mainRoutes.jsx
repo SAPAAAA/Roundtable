@@ -1,5 +1,6 @@
 import React, {lazy} from 'react';
 import getPostRoutesConfig from "./postRoutes.jsx";
+import getProfileRoutesConfig from "./profileRoutes.jsx";
 
 // Lazy-loaded components for this section
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
@@ -145,7 +146,8 @@ function mainRoutes() {
                 path: "createpost",
                 element: <CreatePost subtable={subtables}/>,
             },
-            ...getPostRoutesConfig()
+            ...getPostRoutesConfig(),
+            ...getProfileRoutesConfig(),
         ],
     };
 }
