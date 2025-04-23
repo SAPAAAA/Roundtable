@@ -1,9 +1,9 @@
 import React, {lazy} from 'react';
+import getPostRoutesConfig from "./postRoutes.jsx";
 
 // Lazy-loaded components for this section
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
 const Home = lazy(() => import('#pages/Home/HomeContent/HomeContent'));
-const PostDetailView = lazy(() => import('#features/posts/pages/PostDetailedView/PostDetailedView'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
 
 const post =
@@ -142,17 +142,10 @@ function mainRoutes() {
                 element: <Home/>
             },
             {
-                path: "comment",
-                element: <Home/>
-            },
-            {
-                path: "s/:subtableName/comments/:postId",
-                element: <PostDetailView/>,
-            },
-            {
                 path: "createpost",
                 element: <CreatePost subtable={subtables}/>,
-            }
+            },
+            ...getPostRoutesConfig()
         ],
     };
 }
