@@ -4,10 +4,13 @@ import "./WriteComment.css";
 import TextEdit from "#shared/components/UIElement/TextEditor/TextEditor";
 import Form from "#shared/components/UIElement/Form/Form";
 import Button from "#shared/components/UIElement/Button/Button";
+import {useNavigation} from "react-router";
+import Input from "#shared/components/UIElement/Input/Input.jsx";
 
 // Accepts onCommentSubmit function prop
 export default function WriteComment(props) {
     const {
+        subtableName,
         postId,
         parentId, // ID of the comment being replied to (null for top-level)
         onCancel,
@@ -16,9 +19,10 @@ export default function WriteComment(props) {
     } = props;
 
     const editorRef = useRef(null);
+    const navigation = useNavigation();
+    const isSubmitting = navigation.state === "submitting";
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
         if (!editorRef.current) return; // Guard clause
 
         const content = editorRef.current.getContent(); // Get raw HTML
@@ -32,19 +36,9 @@ export default function WriteComment(props) {
             return;
         }
 
-        // Prepare the data payload for submission
-        const newCommentData = {
-            postId: postId,
-            content: content,
-            parentId: parentId
-        };
-
         if (onCommentSubmit) {
             try {
-                await onCommentSubmit(newCommentData);
-                if (editorRef.current) {
-                    editorRef.current.clearContent(); // Clear the editor after submission
-                }
+                onCommentSubmit();
             } catch (error) {
                 console.error("Error submitting comment:", error);
                 // Handle submission error (e.g., show message)
@@ -56,9 +50,14 @@ export default function WriteComment(props) {
 
     return (
         <>
-            <Form onSubmit={handleSubmit}>
+            <Form
+                onSubmit={handleSubmit}
+                method='post'
+                action={`/s/${subtableName}/comments/${postId}`}
+            >
                 <div className="card write-comment-card"> {/* Added class for potential styling */}
                     <div className="card-body p-2"> {/* Reduced padding */}
+                        <Input name="parentId" type="hidden" value={parentId}/>
                         {/* Make sure TextEdit is properly controlled or provides content via ref */}
                         <TextEdit ref={editorRef} placeholder="Nhập bình luận của bạn..." name="content"/>
                     </div>
@@ -68,6 +67,7 @@ export default function WriteComment(props) {
                             mainClass="write-comment-button"
                             addClass="cancel-button"
                             type="button"
+                            disabled={isSubmitting}
                         >
                             Hủy
                         </Button>
@@ -77,6 +77,7 @@ export default function WriteComment(props) {
                             mainClass="write-comment-button"
                             addClass="reset-button"
                             type="button"
+                            disabled={isSubmitting}
                         >
                             Xóa
                         </Button>
@@ -85,6 +86,7 @@ export default function WriteComment(props) {
                             type="submit"
                             mainClass="write-comment-button"
                             addClass="submit-button"
+                            disabled={isSubmitting}
                         >
                             Gửi
                         </Button>
