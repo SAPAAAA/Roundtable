@@ -15,6 +15,7 @@ export default function Comment(props) {
     const {
         comment,
         postId,
+        subtableName,
         onReplyPosted
     } = props;
 
@@ -40,8 +41,7 @@ export default function Comment(props) {
         setIsReplying(prev => !prev);
     };
 
-    const handlePostReply = async (replyData) => {
-        console.log(`Submitting reply to comment ${comment.commentId}`, replyData);
+    const handlePostReply = () => {
         setIsReplying(false);
         if (onReplyPosted) {
             onReplyPosted();
@@ -196,6 +196,7 @@ export default function Comment(props) {
                 {isReplying && (
                     <div className="reply-input-area mt-3">
                         <WriteComment
+                            subtableName={subtableName}
                             postId={postId}
                             username="CURRENT_USER_NAME"
                             src="CURRENT_USER_AVATAR_URL"
@@ -217,6 +218,7 @@ export default function Comment(props) {
                             key={reply.commentId}
                             comment={reply}
                             postId={postId}
+                            subtableName={subtableName}
                             onReplyPosted={onReplyPosted}
                         />
                     ))}

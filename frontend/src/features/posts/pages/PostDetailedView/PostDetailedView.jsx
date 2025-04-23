@@ -65,7 +65,6 @@ export default function PostDetailedView(props) {
     // Callback for Comment component to signal update needed after a reply
     const triggerCommentRefetch = () => {
         console.log("A reply was posted, triggering refetch/update...");
-        alert("Reply posted (simulated). You would normally refetch comments here.");
     };
 
     // --- Back Navigation Handler ---
@@ -113,6 +112,7 @@ export default function PostDetailedView(props) {
                     ) : (
                         // Use WriteComment as originally intended for top-level
                         <WriteComment
+                            subtableName={subtable.name} // Pass subtableName down
                             postId={post.postId}
                             username={user.username}
                             parentId={null} // Explicitly null for top-level
@@ -139,6 +139,7 @@ export default function PostDetailedView(props) {
                     {comments.map((comment) => (
                         <Comment
                             key={comment.commentId}
+                            subtableName={subtable.name} // Pass subtableName down
                             comment={comment}
                             postId={post.postId} // Pass postId down
                             // Pass the original callback prop name and function
