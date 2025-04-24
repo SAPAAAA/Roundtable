@@ -1,12 +1,11 @@
 import express from 'express';
 import postController from '#controllers/post.controller.js';
+import commentController from "#controllers/comment.controller.js";
 
 const router = express.Router();
 
-// Define more specific routes FIRST
-router.get('/s/:subtableName/comments/:postId', postController.getPostDetails);
+router.get('/:postId', postController.getPostDetails);
 
-// Define the redirect route
-router.get('/comments/:postId', postController.redirectToCanonicalPostUrl);
+router.post('/:postId/comments', commentController.addComment);
 
 export default router;
