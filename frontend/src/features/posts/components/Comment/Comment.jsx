@@ -79,28 +79,30 @@ export default function Comment(props) {
             {/* --- Use the conditional class string --- */}
             <div className={commentComponentClasses}>
                 {/* ... (Comment Details - Avatar, Identifier, Body) ... */}
-                <div className="d-flex align-items-center mb-2">
-                    <Avatar
-                        src={comment.author.avatar}
-                        alt={
-                            <Identifier
-                                type="user"
-                                namespace={comment.author.username}/>
-                        }
-                        width={20}
-                        height={20}/>
-                    <div className="d-flex flex-row flex-wrap fs-8">
-                        <Identifier
-                            addClass="ms-2 fw-bold"
-                            type="user"
-                            namespace={comment.author.username}/>
-                        &nbsp;•&nbsp;
-                        <span className="text-muted">{formatTimeAgo(comment.commentCreatedAt)}</span>
+                <div className="d-flex align-items-start">
+                    <div className="d-flex align-items-center mb-2">
+                        <Avatar
+                            src={comment.author.avatar}
+                            alt={
+                                <Identifier
+                                    type="user"
+                                    namespace={comment.author.username}/>
+                            }
+                            width={20}
+                            height={20}/>
+                        <div className="d-flex flex-row flex-wrap fs-8 align-items-center">
+                            <span className="ms-2 fw-bold">
+                                {comment.author.displayName}
+                            </span>
+                            &nbsp;•&nbsp;
+                            <span className="text-muted">{formatTimeAgo(comment.commentCreatedAt)}</span>
+                        </div>
                     </div>
                 </div>
-                <div className="fs-content mt-2 mb-2">{comment.body}</div>
-
-
+                <div
+                    className="fs-content mt-2 mb-2"
+                    dangerouslySetInnerHTML={{__html: comment.body}}
+                />
                 {/* Actions */}
                 <div className="d-flex align-items-center gap-2 mt-2">
                     {/* ... (Vote, Reply, Share containers) ... */}
@@ -198,8 +200,6 @@ export default function Comment(props) {
                         <WriteComment
                             subtableName={subtableName}
                             postId={postId}
-                            username="CURRENT_USER_NAME"
-                            src="CURRENT_USER_AVATAR_URL"
                             parentId={comment.commentId}
                             onCommentSubmit={handlePostReply}
                             onCancel={() => setIsReplying(false)}
