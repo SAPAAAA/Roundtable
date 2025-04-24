@@ -61,13 +61,8 @@ export default function PostDetailedView() {
     // --- Comment Handling ---
 
     // Handles the submission process for any new comment (top-level or reply)
-    const handleCommentPosted = async (newCommentData) => {
-        console.log("Attempting to post comment data:", newCommentData);
+    const handleCommentPosted = async () => {
         try {
-            // --- !!! IMPORTANT: Add your actual API call to save the comment here !!! ---
-            // Example: await PostService.addComment(postId, newCommentData);
-            console.log("Comment posted successfully (simulated).");
-
             // Refetch comments AFTER successful post to show the new comment
             await fetchPostDetails();
 
@@ -77,16 +72,6 @@ export default function PostDetailedView() {
             console.error("Error posting comment:", error);
             alert("Failed to post comment. Please try again."); // Basic error feedback
         }
-    };
-
-    // Specific handler for submitting a top-level comment
-    const handlePostTopLevelComment = async (commentData) => {
-        const dataToPost = {
-            ...commentData,
-            parentId: null, // Explicitly set parentId to null for top-level
-            // username: user.username, // Add other necessary fields if needed
-        };
-        await handleCommentPosted(dataToPost);
     };
 
     // Callback passed to <Comment> components to trigger refetch after a reply is posted
@@ -147,8 +132,8 @@ export default function PostDetailedView() {
                             subtableName={subtable?.name || ''}
                             postId={post.postId}
                             username={user.username} // Pass username if needed
-                            parentId={null} // For top-level comment
-                            onCommentSubmit={handlePostTopLevelComment}
+                            parentCommentId={null} // For top-level comment
+                            onCommentSubmit={handleCommentPosted}
                             onCancel={() => setIsWritingTopLevelComment(false)} // Close input on cancel
                         />
                     )

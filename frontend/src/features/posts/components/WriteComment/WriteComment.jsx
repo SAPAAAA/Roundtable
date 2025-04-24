@@ -11,7 +11,7 @@ import Input from "#shared/components/UIElement/Input/Input.jsx";
 export default function WriteComment(props) {
     const {
         postId,
-        parentId, // ID of the comment being replied to (null for top-level)
+        parentCommentId, // ID of the comment being replied to (null for top-level)
         onCancel,
         onReset,
         onCommentSubmit // Callback function to handle submission
@@ -40,7 +40,6 @@ export default function WriteComment(props) {
                 onCommentSubmit();
             } catch (error) {
                 console.error("Error submitting comment:", error);
-                // Handle submission error (e.g., show message)
             }
         } else {
             console.warn("WriteComment: onCommentSubmit prop is missing!");
@@ -56,7 +55,7 @@ export default function WriteComment(props) {
             >
                 <div className="card write-comment-card"> {/* Added class for potential styling */}
                     <div className="card-body p-2"> {/* Reduced padding */}
-                        {parentId && <Input name="parentId" type="hidden" value={parentId}/>}
+                        {parentCommentId && <Input name="parentId" type="hidden" value={parentCommentId}/>}
                         {/* Make sure TextEdit is properly controlled or provides content via ref */}
                         <TextEdit ref={editorRef} placeholder="Nhập bình luận của bạn..." name="content"/>
                     </div>

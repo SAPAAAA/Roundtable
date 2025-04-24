@@ -16,7 +16,12 @@ export default async function commentAction({request}) {
         console.log("Comment Action Data:", data);
         console.log("Post ID:", postId);
 
-        const response = await commentService.addComment(postId, content, parentId);
+        let response;
+        if (!parentId) {
+            response = await commentService.addComment(postId, content);
+        } else {
+            response = await commentService.replyToComment(postId, content, parentId);
+        }
 
         console.log("Comment Service Response:", response);
 

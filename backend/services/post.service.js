@@ -26,14 +26,14 @@ function structureComments(comments) {
     Object.values(commentMap).forEach(comment => {
         const parentCommentId = comment.parentCommentId;
 
-        // Check if it's a reply (has a valid parentId that exists in the map)
+        // Check if it's a reply (has a valid parentCommentId that exists in the map)
         if (parentCommentId !== null && parentCommentId !== undefined && commentMap[parentCommentId]) {
             // Find the parent in the map
             const parent = commentMap[parentCommentId];
             // Add the current comment to the parent's 'replies' array
             parent.replies.push(comment);
         } else {
-            // Only add if it doesn't have a parentId or its parent wasn't found in the map
+            // Only add if it doesn't have a parentCommentId or its parent wasn't found in the map
             if (parentCommentId === null || parentCommentId === undefined || !commentMap[parentCommentId]) {
                 structuredComments.push(comment);
             }
