@@ -10,7 +10,6 @@ import Input from "#shared/components/UIElement/Input/Input.jsx";
 // Accepts onCommentSubmit function prop
 export default function WriteComment(props) {
     const {
-        subtableName,
         postId,
         parentId, // ID of the comment being replied to (null for top-level)
         onCancel,
@@ -53,11 +52,11 @@ export default function WriteComment(props) {
             <Form
                 onSubmit={handleSubmit}
                 method='post'
-                action={`/s/${subtableName}/comments/${postId}`}
+                action={`/comments/${postId}`}
             >
                 <div className="card write-comment-card"> {/* Added class for potential styling */}
                     <div className="card-body p-2"> {/* Reduced padding */}
-                        <Input name="parentId" type="hidden" value={parentId}/>
+                        {parentId && <Input name="parentId" type="hidden" value={parentId}/>}
                         {/* Make sure TextEdit is properly controlled or provides content via ref */}
                         <TextEdit ref={editorRef} placeholder="Nhập bình luận của bạn..." name="content"/>
                     </div>

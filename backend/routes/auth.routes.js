@@ -1,13 +1,13 @@
 import express from 'express';
-import AuthController from '#controllers/auth.controller.js';
+import authController from '#controllers/auth.controller.js';
 import {isNotAuthenticated} from "#middlewares/auth.mdw.js";
 
 const router = express.Router();
 
-router.post('/register', AuthController.register);
-router.post('/verify-email', AuthController.verifyEmail);
-router.post('/login', isNotAuthenticated, AuthController.login, AuthController.finalizeLogin);
-router.get('/session', AuthController.checkSession);
-router.post('/logout', AuthController.logout);
+router.post('/register', authController.register);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/login', isNotAuthenticated, authController.login);
+router.get('/session', authController.checkSession);
+router.post('/logout', authController.logout);
 
 export default router;
