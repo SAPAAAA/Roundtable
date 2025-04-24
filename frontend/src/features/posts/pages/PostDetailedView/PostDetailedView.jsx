@@ -1,162 +1,185 @@
 // #features/posts/components/PostDetailedView/PostDetailedView.jsx
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
+import {useParams} from "react-router";
 
-import PostHeaderDetailed from "#features/posts/components/PostHeaderDetailed/PostHeaderDetailed"; // Adjust path if needed
-import PostCore from "#features/posts/components/PostCore/PostCore"; // Adjust path if needed
+// Import child components and services
+import PostHeaderDetailed from "#features/posts/components/PostHeaderDetailed/PostHeaderDetailed";
+import PostCore from "#features/posts/components/PostCore/PostCore";
 import WriteComment from "#features/posts/components/WriteComment/WriteComment.jsx";
 import Comment from "#features/posts/components/Comment/Comment.jsx";
-// import useAuth from '#hooks/auth-hook'; // Example for getting current user
-import "./PostDetailedView.css";
-import {useParams} from "react-router";
 import PostService from "#services/postService";
-import {useAuth} from "#hooks/useAuth.jsx"; // Specific styles if needed
+import {useAuth} from "#hooks/useAuth.jsx";
+import "./PostDetailedView.css"; // Component-specific styles
 
-export default function PostDetailedView(props) {
-    const {user} = useAuth()
-    const {subtableName, postId} = useParams()
+export default function PostDetailedView() {
+    const {user} = useAuth(); // Get current user context
+    const {postId} = useParams(); // Get postId from URL parameters
 
-    // --- State for Top-Level Comment Input ---
-    const [isWritingTopLevelComment, setIsWritingTopLevelComment] = useState(false);
-
-    // --- States ---
-    const [comments, setComments] = useState([]);
+    // --- Component State ---
     const [post, setPost] = useState(null);
     const [subtable, setSubtable] = useState(null);
     const [author, setAuthor] = useState(null);
+    const [comments, setComments] = useState([]);
+    const [isLoading, setIsLoading] = useState(true); // For loading indicator
+    const [error, setError] = useState(null); // For error handling
+    const [isWritingTopLevelComment, setIsWritingTopLevelComment] = useState(false); // Controls top-level comment input visibility
 
-    // --- Fetching/Updating Logic (Example) ---
+    // --- Data Fetching ---
+    // Memoized function to fetch all post details (post, author, comments)
+    const fetchPostDetails = useCallback(async () => {
+        console.log("Fetching post details for postId:", postId);
+        setIsLoading(true);
+        setError(null);
+        try {
+            const fetchedData = await PostService.getPostDetails(postId);
+            setPost(fetchedData.post);
+            setSubtable(fetchedData.subtable);
+            setAuthor(fetchedData.author);
+            setComments(fetchedData.comments || []); // Ensure comments is always an array
+            console.log("Fetched data:", fetchedData);
+        } catch (err) {
+            console.error("Error fetching post details:", err);
+            setError("Failed to load post details. Please try again later.");
+            // Clear data on error
+            setPost(null);
+            setSubtable(null);
+            setAuthor(null);
+            setComments([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [postId]); // Re-run only if postId changes
+
+    // --- Effect for Initial Data Fetch ---
     useEffect(() => {
-        const fetchComments = async () => {
-            try {
-                const fetchedData = await PostService.getPostDetails(subtableName, postId);
-                console.log("Fetched data:", fetchedData);
-                setComments(fetchedData.comments);
-                setPost(fetchedData.post);
-                setSubtable(fetchedData.subtable);
-                setAuthor(fetchedData.author);
-            } catch (error) {
-                console.error("Error fetching comments:", error);
-            }
-        };
+        if (postId) {
+            fetchPostDetails();
+        }
+        // fetchPostDetails is memoized, safe to include
+    }, [postId, fetchPostDetails]);
 
-        fetchComments();
-        console.log("Comments state updated:", comments);
-    }, [subtableName, postId])
+    // --- Comment Handling ---
 
-
-    // --- Function to handle NEW comment/reply submission ---
+    // Handles the submission process for any new comment (top-level or reply)
     const handleCommentPosted = async (newCommentData) => {
-        console.log("Posting comment data:", newCommentData);
-        // --- TODO: API Call Logic ---
+        console.log("Attempting to post comment data:", newCommentData);
+        try {
+            // --- !!! IMPORTANT: Add your actual API call to save the comment here !!! ---
+            // Example: await PostService.addComment(postId, newCommentData);
+            console.log("Comment posted successfully (simulated).");
 
-        // --- TODO: Update State Logic (Refetch or Add Locally) ---
-        alert(`Comment/Reply posted (simulated): ${newCommentData.content}. You would normally refetch comments or update state correctly.`);
+            // Refetch comments AFTER successful post to show the new comment
+            await fetchPostDetails();
 
-        setIsWritingTopLevelComment(false); // Close top-level input if it was open
-        // Handle closing reply inputs within Comment components if needed
+            setIsWritingTopLevelComment(false); // Close top-level input
+
+        } catch (error) {
+            console.error("Error posting comment:", error);
+            alert("Failed to post comment. Please try again."); // Basic error feedback
+        }
     };
 
-    // Specific handler for top-level comments
+    // Specific handler for submitting a top-level comment
     const handlePostTopLevelComment = async (commentData) => {
-        // Ensure parentId is null for top-level, matching original WriteComment usage
-        await handleCommentPosted({...commentData, parentId: null});
+        const dataToPost = {
+            ...commentData,
+            parentId: null, // Explicitly set parentId to null for top-level
+            // username: user.username, // Add other necessary fields if needed
+        };
+        await handleCommentPosted(dataToPost);
     };
 
-    // Callback for Comment component to signal update needed after a reply
-    const triggerCommentRefetch = () => {
-        console.log("A reply was posted, triggering refetch/update...");
+    // Callback passed to <Comment> components to trigger refetch after a reply is posted
+    const triggerCommentRefetch = async () => {
+        console.log("A reply was posted, triggering refetch...");
+        await fetchPostDetails(); // Refetch all details
     };
 
-    // --- Back Navigation Handler ---
+    // --- Navigation ---
     const handleNavigateBack = () => {
         console.log("Navigate back requested");
-        window.history.back(); // Fallback
+        window.history.back(); // Browser back action
     };
 
-    console.log("Rendering with comments:", comments); // Add this log
-
-    if (!post) {
-        return <div>Loading...</div>; // Or a loading spinner
+    // --- Render Logic ---
+    if (isLoading) {
+        return <div>Loading post...</div>;
     }
 
+    if (error) {
+        return <div className="text-danger p-3">{error}</div>;
+    }
+
+    // If loading is finished but post is still null (e.g., fetch error handled)
+    if (!post) {
+        return <div>Post not found or could not be loaded.</div>;
+    }
+
+    // --- JSX Output ---
     return (
         <>
-            {/* Post Area - Uses Refactored Components */}
+            {/* Post Details Area */}
             <div className="post-detailed-container card p-3 my-3">
                 <PostHeaderDetailed
                     subtable={subtable}
                     post={post}
                     author={author}
                     onBackClick={handleNavigateBack}
-                    // Pass options handlers if needed
                 />
                 <PostCore post={post}/>
             </div>
 
-            {/* --- Comment Section - Reverted to Original Structure --- */}
-
-            {/* --- Top-Level Comment Input Area --- */}
+            {/* Top-Level Comment Input */}
             <div className="mb-3 px-3">
-                {/* Optional: Check if user is logged in before showing input */}
-                {user ? (
+                {user ? ( // Show input only if logged in
                     !isWritingTopLevelComment ? (
+                        // Collapsed input field
                         <input
                             type="text"
-                            // Restored original classes: rounded-pill and small-placeholder
                             className="form-control rounded-pill small-placeholder"
-                            // Restored original placeholder
                             placeholder="Add a comment..."
                             onClick={() => setIsWritingTopLevelComment(true)}
-                            readOnly
+                            readOnly // Prevents typing until clicked
                         />
                     ) : (
-                        // Use WriteComment as originally intended for top-level
+                        // Expanded WriteComment component
                         <WriteComment
-                            subtableName={subtable.name} // Pass subtableName down
+                            subtableName={subtable?.name || ''}
                             postId={post.postId}
-                            username={user.username}
-                            parentId={null} // Explicitly null for top-level
-                            onCommentSubmit={handlePostTopLevelComment} // Use the specific handler
-                            onCancel={() => setIsWritingTopLevelComment(false)} // Handler to close
-                            // Removed isTopLevel={true} prop added during refactoring
+                            username={user.username} // Pass username if needed
+                            parentId={null} // For top-level comment
+                            onCommentSubmit={handlePostTopLevelComment}
+                            onCancel={() => setIsWritingTopLevelComment(false)} // Close input on cancel
                         />
                     )
                 ) : (
-                    // Kept the logged-out message as it's good practice
+                    // Prompt for non-logged-in users
                     <div className="px-3 text-muted fs-8 mb-3">
                         Log in or sign up to leave a comment
                     </div>
                 )}
             </div>
 
-            {/* --- Render Comment Section using Direct Mapping --- */}
-            {/* Check if comments exist and have length */}
-            {comments && comments.length > 0 ? (
-                console.log("Rendering comments:", comments) || // Log for debugging
-                // Container div as in original
-                <div className="px-3">
-                    {/* Map directly over comments array */}
-                    {comments.map((comment) => (
+            {/* Comments List */}
+            <div className="px-3">
+                {comments && comments.length > 0 ? (
+                    // Map over the comments array to render each Comment component
+                    comments.map((comment) => (
                         <Comment
-                            key={comment.commentId}
-                            subtableName={subtable.name} // Pass subtableName down
-                            comment={comment}
-                            postId={post.postId} // Pass postId down
-                            // Pass the original callback prop name and function
+                            key={comment.commentId} // Essential for list rendering
+                            subtableName={subtable?.name || ''}
+                            comment={comment} // Pass the comment data
+                            postId={post.postId}
+                            // Pass the refetch trigger for replies within the Comment component
                             onReplyPosted={triggerCommentRefetch}
+                            currentUser={user} // Pass user info for potential use in Comment (e.g., edit/delete checks)
                         />
-                    ))}
-                </div>
-            ) : (
-                // Display original "No comments yet" message if no comments
-                !post ? null : ( // Avoid showing "No comments" while post is loading
-                    <div className="px-3 text-muted fs-8 mb-3">
-                        No comments yet.
-                    </div>
-                )
-            )}
-            {/* --- End Reverted Comment Section --- */}
-
+                    ))
+                ) : (
+                    // Message shown when there are no comments (and not loading)
+                    !isLoading && post && <div className="text-muted fs-8 mb-3">No comments yet.</div>
+                )}
+            </div>
         </>
     );
 }
