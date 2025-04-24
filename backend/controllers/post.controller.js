@@ -1,58 +1,42 @@
-// controllers/post.controller.js
-import postService from '#services/post.service.js';
+// src/controllers/post.controller.js
+
+import postService from '#services/post.service.js'; // Assuming the service exists and handles logic/validation
 import HTTP_STATUS from '#constants/httpStatus.js';
+// Assuming custom errors are defined and exported from '#errors/AppError.js'
+// We rely on a downstream centralized error handler to catch these.
 
 class PostController {
+    constructor(postService) {
+        this.postService = postService; // Use dependency injection
+    }
 
-    // Handler for GET /s/:subtableName/comments/:postId
+    /**
+     * Handles GET /s/:subtableName/comments/:postId
+     * Retrieves and returns post details as JSON.
+     */
     getPostDetails = async (req, res, next) => {
         try {
-            const {subtableName, postId} = req.params;
-            console.log(`Fetching post details for subtable: ${subtableName}, postId: ${postId}`);
-
-            if (!postId) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Invalid Post ID.'});
-            }
-            if (!subtableName) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Invalid Subtable name.'});
-            }
-
-
-            const viewData = await postService.getPostDetails(postId, subtableName);
-
-            return res.status(HTTP_STATUS.OK).json({success: true, data: viewData});
-
-        } catch (error) {
-            // Pass error to the centralized error handler
-            next(error);
-        }
-    };
-
-    // Handler for GET /comments/:postId
-    redirectToCanonicalPostUrl = async (req, res, next) => {
-        try {
             const {postId} = req.params;
+            console.log(`[PostController.getPostDetails] Processing request for postId: ${postId}`);
 
-            // Input validation
-            if (!postId) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Invalid Post ID format.'});
-            }
+            // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
+            const viewData = await this.postService.getPostDetails(postId);
 
-            const subtableName = await postService.getSubtableNameForPost(postId);
-
-            // Construct the canonical URL
-            const targetUrl = `/s/${subtableName}/comments/${postId}`;
-
-            // Issue a permanent redirect
-            return res.redirect(targetUrl);
+            // --- Success Response ---
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: viewData // Send the data returned by the service
+            });
 
         } catch (error) {
-            if (error.statusCode === HTTP_STATUS.NOT_FOUND) {
-                return res.status(HTTP_STATUS.NOT_FOUND).send('Post not found.'); // Or render a 404 page
-            }
+            // --- Error Handling ---
+            // Log the error message at controller level for context
+            console.error(`[PostController.getPostDetails] Error fetching details for postId ${req.params?.postId}:`, error.message);
+            // Pass the error (BadRequestError, NotFoundError, InternalServerError, etc.)
             next(error);
         }
     };
 }
 
-export default new PostController();
+// Export an instance, injecting the service dependency
+export default new PostController(postService);
