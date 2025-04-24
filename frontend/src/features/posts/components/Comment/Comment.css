@@ -37,6 +37,10 @@
     font-size: var(--var-fs-7);
 }
 
+.fs-content p {
+    margin: 0;
+}
+
 .comment-thread-item {
     /* position: relative; /* Add if needed for absolute positioning within thread */
 }
