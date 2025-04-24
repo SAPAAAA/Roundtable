@@ -24,6 +24,19 @@ class RegisteredUserDAO {
         }
     }
 
+    async getByPrincipalId(principalId) {
+        try {
+            const registeredUserRow = await postgres('RegisteredUser').where({principalId}).first();
+            if (!registeredUserRow) {
+                return null;
+            }
+            return RegisteredUser.fromDbRow(registeredUserRow);
+        } catch (error) {
+            console.error('Error fetching registered user:', error);
+            throw error;
+        }
+    }
+
     async getById(userId) {
         try {
             const registeredUserRow = await postgres('RegisteredUser').where({userId}).first();
