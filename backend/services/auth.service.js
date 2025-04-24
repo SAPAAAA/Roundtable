@@ -1,47 +1,57 @@
+// src/services/auth.service.js
+
+// --- Core Dependencies ---
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
-// --- Database Clients ---
-import postgres from '#db/postgres.js';
+
+// --- Database & Cache Clients ---
+import postgres from '#db/postgres.js'; // Knex instance for transactions
 import redis from '#db/redis.js'; // Redis client instance
 // --- Utility Functions ---
-import {generateShortCode} from '#utils/codeGenerator.js'; // Utility for generating short codes
-import {sendMail} from '#utils/email.js'; // Utility for sending emails
+import {generateShortCode} from '#utils/codeGenerator.js';
+import {sendMail} from '#utils/email.js';
+
 // --- Data Access Objects (DAOs) ---
 import accountDao from '#daos/account.dao.js';
+import principalDAO from '#daos/principal.dao.js';
 import profileDao from '#daos/profile.dao.js';
-import PrincipalDAO from '#daos/principal.dao.js';
-// Ensure DAOs used within transactions can accept the transaction object (trx)
 import registeredUserDao from '#daos/registeredUser.dao.js';
 import userProfileDao from '#daos/userProfile.dao.js';
+
 // --- Data Models ---
 import Account from '#models/account.model.js';
 import Profile from '#models/profile.model.js';
 import RegisteredUser from '#models/registeredUser.model.js';
 import Principal, {PrincipalRoleEnum} from '#models/principal.model.js';
-// --- Constants ---
-import HTTP_STATUS from '#constants/httpStatus.js'; // HTTP status codes
+
+// --- Constants & Custom Errors ---
 import {HASH_OPTIONS} from '#constants/security.js';
+import {
+    AuthenticationError,
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    InternalServerError,
+    NotFoundError,
+    VerificationError,
+} from '#errors/AppError.js'; // Adjust path as needed
 
-// Configure environment variables
-dotenv.config();
+dotenv.config(); // Ensure env vars are loaded
 
-const CODE_EXPIRY_MINUTES = 5; // Expiry time for email verification codes
+const CODE_EXPIRY_MINUTES = 5;
 
-
-// --- Password Hashing Utilities ---
-// (hashPassword and verifyPassword functions remain the same as previous version)
+// --- Password Hashing Utilities (Assume these are correctly defined) ---
 async function hashPassword(password) {
     try {
         return await argon2.hash(password, HASH_OPTIONS);
     } catch (error) {
         console.error('Error hashing password:', error);
-        throw new Error('Password processing failed.');
+        throw new InternalServerError('Password processing failed.');
     }
 }
 
 async function verifyPassword(hashedPassword, plainPassword) {
     try {
-        console.log(hashedPassword, plainPassword);
         return await argon2.verify(hashedPassword, plainPassword);
     } catch (error) {
         if (error.code === 'ERR_ARGON2_INVALID_HASH' || error.message.includes('incompatible') || error.message.includes('verification failed')) {
@@ -49,18 +59,18 @@ async function verifyPassword(hashedPassword, plainPassword) {
             return false;
         }
         console.error('Unexpected error during password verification:', error);
-        throw new Error('Password verification encountered an internal error.');
+        throw new InternalServerError('Password verification encountered an internal error.');
     }
 }
 
 
 /**
  * @class AuthService
- * @description Handles user authentication, registration, and email verification logic.
+ * @description Handles core business logic for authentication, registration, verification.
  */
 class AuthService {
 
-    // _sendVerificationEmail method remains the same
+    /** Sends the verification email */
     async _sendVerificationEmail(userEmail, plainCode) {
         const subject = 'Your Email Verification Code';
         const expiryMessage = `This code is valid for ${CODE_EXPIRY_MINUTES} minutes.`;
@@ -77,64 +87,61 @@ class AuthService {
             console.log(`Verification email successfully sent to ${userEmail}`);
         } catch (error) {
             console.error(`Failed to send verification email to ${userEmail}:`, error);
-            throw new Error(`Failed to send verification email. Your account is registered, but please request a new verification code or contact support if you don't receive it.`);
+            throw new InternalServerError(`Failed to send verification email.`);
         }
     }
 
-    // registerUser method remains the same as the previous version with transaction
+    /**
+     * Registers a new user using DAOs within a transaction.
+     * Sends a verification email upon successful registration.
+     * (Assumes this method is correct from previous versions)
+     */
     async registerUser(registrationData) {
         const {fullName, username, email, password} = registrationData;
 
         if (!username || !email || !password || !fullName) {
-            const error = new Error('Full name, username, email, and password are required.');
-            error.statusCode = HTTP_STATUS.BAD_REQUEST;
-            throw error;
+            throw new BadRequestError('Full name, username, email, and password are required.');
         }
 
         let createdEntities;
-
         try {
             createdEntities = await postgres.transaction(async (trx) => {
-                const existingUser = await accountDao.getByUsername(username);
-                if (existingUser) {
-                    const error = new Error('Username is already taken.');
-                    error.statusCode = HTTP_STATUS.CONFLICT;
-                    throw error;
-                }
+                // Check existing user/email
+                const existingUser = await accountDao.getByUsername(username, trx);
+                if (existingUser) throw new ConflictError('Username is already taken.');
+                const existingEmail = await accountDao.getByEmail(email, trx);
+                if (existingEmail) throw new ConflictError('Email address is already registered.');
 
-                const existingEmail = await accountDao.getByEmail(email);
-                if (existingEmail) {
-                    const error = new Error('Email address is already registered.');
-                    error.statusCode = HTTP_STATUS.CONFLICT;
-                    throw error;
-                }
-
+                // Hash password
                 const hashedPassword = await hashPassword(password);
 
+                // Create records using DAOs, passing transaction object (trx)
                 const account = new Account(null, username, hashedPassword, email);
                 const createdAccount = await accountDao.create(account, trx);
-                if (!createdAccount?.accountId) throw new Error('Failed to create account record.');
+                if (!createdAccount?.accountId) throw new Error('DB_INSERT_FAIL: Account');
 
                 const profile = new Profile(null, null, null, null, null, fullName);
                 const createdProfile = await profileDao.create(profile, trx);
-                if (!createdProfile?.profileId) throw new Error('Failed to create profile record.');
+                if (!createdProfile?.profileId) throw new Error('DB_INSERT_FAIL: Profile');
 
                 const principal = new Principal(null, createdAccount.accountId, createdProfile.profileId, PrincipalRoleEnum.USER);
-                const createdPrincipal = await PrincipalDAO.create(principal, trx);
-                if (!createdPrincipal?.principalId) throw new Error('Failed to create principal record.');
+                const createdPrincipal = await principalDAO.create(principal, trx);
+                if (!createdPrincipal?.principalId) throw new Error('DB_INSERT_FAIL: Principal');
 
+                // Use registeredUserDao.create
                 const registeredUser = new RegisteredUser(null, createdPrincipal.principalId);
                 const createdRegisteredUser = await registeredUserDao.create(registeredUser, trx);
-                if (!createdRegisteredUser?.userId) throw new Error('Failed to create registered user record.');
+                if (!createdRegisteredUser?.userId) throw new Error('DB_INSERT_FAIL: RegisteredUser');
 
                 return {
                     account: createdAccount,
                     profile: createdProfile,
                     principal: createdPrincipal,
-                    registeredUser: createdRegisteredUser,
+                    registeredUser: createdRegisteredUser
                 };
-            }); // End of postgres.transaction block
+            }); // End transaction
 
+            // --- Post-Transaction Actions ---
             const userId = createdEntities.registeredUser.userId;
             const userEmail = createdEntities.account.email;
             const plainCode = generateShortCode(6);
@@ -147,237 +154,196 @@ class AuthService {
                 await this._sendVerificationEmail(userEmail, plainCode);
             } catch (cacheOrEmailError) {
                 console.error(`Error during post-registration (Redis/Email) for userId ${userId}:`, cacheOrEmailError.message);
-                throw cacheOrEmailError;
+                throw cacheOrEmailError; // Re-throw (likely InternalServerError)
             }
 
+            // Return safe user data
             return {
-                message: 'Registration successful. Please check your email for a verification code.',
-                success: true,
-                user: {
-                    userId: createdEntities.registeredUser.userId,
-                    principalId: createdEntities.principal.principalId,
-                    username: createdEntities.account.username,
-                    displayName: createdEntities.profile.displayName,
-                    email: createdEntities.account.email,
-                    isVerified: false, // Initially set to false until verified
-                },
+                userId: createdEntities.registeredUser.userId,
+                username: createdEntities.account.username,
+                displayName: createdEntities.profile.displayName,
+                email: createdEntities.account.email,
+                isVerified: false,
             };
 
         } catch (error) {
-            console.error('User registration process failed:', error.message);
-            if (!error.statusCode) {
-                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                if (!error.message || error.message === 'Password processing failed.' || error.message.startsWith('Failed to create')) {
-                    error.message = 'Registration failed due to an unexpected internal error. Please try again later.';
-                }
+            if (error instanceof BadRequestError || error instanceof ConflictError || error instanceof InternalServerError) {
+                throw error;
             }
-            if (error.statusCode === HTTP_STATUS.INTERNAL_SERVER_ERROR) {
-                console.error(error.stack);
+            if (error.message?.startsWith('DB_INSERT_FAIL')) {
+                console.error('User registration failed during database insertion:', error.message);
+                throw new InternalServerError('Registration failed due to a database error.');
             }
-            throw error;
+            console.error('User registration process failed unexpectedly:', error);
+            throw new InternalServerError('Registration failed due to an unexpected internal error.');
         }
     }
 
 
     /**
      * Verifies a user's email address using a submitted code.
-     * Updates the isVerified flag on the RegisteredUser table within a transaction.
+     * Finds the userId via Account -> Principal -> RegisteredUser.
+     * Uses RegisteredUserDAO to check and update the isVerified flag within a transaction.
+     *
+     * @param {string} email - The user's email.
+     * @param {string} submittedCode - The code submitted by the user.
+     * @returns {Promise<boolean>} True if verification is successful or user already verified.
+     * @throws {BadRequestError} If email or code is missing.
+     * @throws {NotFoundError} If the account, principal, or registered user record is not found.
+     * @throws {VerificationError} If the code is invalid or expired.
+     * @throws {InternalServerError} For database, Redis, or other unexpected errors.
      */
     async verifyEmail(email, submittedCode) {
         if (!email || !submittedCode) {
-            const error = new Error('Email and verification code are required.');
-            error.statusCode = HTTP_STATUS.BAD_REQUEST;
-            throw error;
+            throw new BadRequestError('Email and verification code are required.');
         }
 
         let userId = null;
-        let redisKey = null; // Define redisKey here to use it after the transaction
+        let redisKey = null;
 
         try {
-            // --- 1. Find User Profile (View) to get IDs ---
-            // This read operation doesn't strictly need to be in the transaction.
-            const userAccount = await accountDao.getByEmail(email);
-
-            if (!userAccount || !userAccount.accountId) {
-                const error = new Error('Account not found or verification failed.');
-                error.statusCode = HTTP_STATUS.NOT_FOUND; // 404
-                throw error;
+            // --- 1. Find User ID from Email via Account -> Principal -> RegisteredUser ---
+            // Step 1.1: Find account by email
+            const account = await accountDao.getByEmail(email);
+            if (!account?.accountId) {
+                console.warn(`Verification attempt failed: No account found for email ${email}`);
+                throw new NotFoundError('Account not found or verification failed.');
             }
 
-            const userPrincipal = await PrincipalDAO.getByAccountId(userAccount.accountId);
-
-            if (!userPrincipal || !userPrincipal.principalId) {
-                const error = new Error('Account not found or verification failed.');
-                error.statusCode = HTTP_STATUS.NOT_FOUND; // 404
-                throw error;
+            // Step 1.2: Find principal by accountId
+            const principal = await principalDAO.getByAccountId(account.accountId);
+            if (!principal?.principalId) {
+                console.error(`Data inconsistency: Account ${account.accountId} found, but no matching Principal.`);
+                throw new InternalServerError('User data configuration error during verification.');
             }
 
-            const userProfile = await profileDao.getByPrincipalId(userPrincipal.principalId);
-
-            if (!userProfile || !userProfile.userId) {
-                if (userProfile) console.warn(`UserProfile found for email ${email} but missing userId.`);
-                const error = new Error('Account not found or verification failed.');
-                error.statusCode = HTTP_STATUS.NOT_FOUND; // 404
-                throw error;
+            // Step 1.3: Find registered user by principalId to get the userId
+            // Assuming registeredUserDao has getByPrincipalId or similar, otherwise adapt lookup.
+            // If not, we might need userProfileDao.getByPrincipalId just for the userId lookup.
+            // Let's assume registeredUserDao.getByPrincipalId exists for directness:
+            const registeredUser = await registeredUserDao.getByPrincipalId(principal.principalId);
+            if (!registeredUser?.userId) {
+                console.error(`Data inconsistency: Principal ${principal.principalId} found, but no matching RegisteredUser.`);
+                throw new InternalServerError('User registration data error during verification.');
             }
 
-            userId = userProfile.userId;
-            redisKey = `verify:email:${userId}`; // Construct Redis key
+            // Successfully found the userId
+            userId = registeredUser.userId;
+            redisKey = `verify:email:${userId}`;
+            console.log(`Verification lookup: Found userId ${userId} for email ${email}.`);
 
-            // --- 2. Check Verification Code in Redis (before DB transaction) ---
+            // --- 2. Check Verification Code in Redis ---
             const storedCode = await redis.get(redisKey);
 
             if (!storedCode) {
-                console.warn(`No verification code found in Redis for key: ${redisKey}`);
-                const error = new Error('Invalid or expired verification code.');
-                error.statusCode = HTTP_STATUS.UNAUTHORIZED; // 401 or 400
-                throw error;
+                console.warn(`No verification code found in Redis for key: ${redisKey} (email: ${email})`);
+                throw new VerificationError('Verification code is invalid or has expired. Please request a new one.');
             }
 
             if (storedCode !== submittedCode) {
                 console.warn(`Submitted code mismatch for key ${redisKey}. Stored: ${storedCode}, Submitted: ${submittedCode}`);
-                const error = new Error('Invalid or expired verification code.');
-                error.statusCode = HTTP_STATUS.UNAUTHORIZED; // 401
-                throw error;
+                throw new VerificationError('Invalid verification code.');
             }
 
-            // --- 3. Update RegisteredUser within a Transaction ---
-            // Start transaction to ensure fetch + update is atomic.
-            const updateSuccessful = await postgres.transaction(async (trx) => {
-                // Fetch the RegisteredUser record *within the transaction*
-                // Pass `trx` to the DAO method.
-                const userToUpdate = await registeredUserDao.getById(userId);
+            // --- 3. Update RegisteredUser within a Transaction using RegisteredUserDAO ---
+            let alreadyVerified = false;
+            const updatePerformed = await postgres.transaction(async (trx) => {
+                // Step 3.1: Fetch the RegisteredUser record *within the transaction* using its DAO
+                const userToUpdate = await registeredUserDao.getById(userId, trx); // Pass trx
 
                 if (!userToUpdate) {
-                    // Should not happen if userProfile was found, but handle defensively.
                     console.error(`Consistency issue inside transaction: RegisteredUser not found for update with userId ${userId}`);
-                    // Throwing error here triggers automatic rollback
-                    throw new Error('Failed to retrieve user details for verification update.');
+                    throw new InternalServerError('Failed to retrieve user details for verification update.'); // Rollback
                 }
 
-                // Check if already verified *within the transaction* to handle race conditions
-                if (userToUpdate.isVerified) {
-                    console.log(`User (userId: ${userId}) already verified (checked inside transaction).`);
-                    // Return a specific value or flag indicating already verified,
-                    // so we can skip the Redis delete later if needed, or just handle it.
-                    // Here we'll return `false` to indicate no update was needed.
+                // Step 3.2: Check if already verified
+                if (userToUpdate.isVerified === true) {
+                    console.log(`User (userId: ${userId}) already verified (checked via DAO within transaction).`);
+                    alreadyVerified = true;
                     return false; // No update needed
                 }
 
-                // Update the flag
-                userToUpdate.isVerified = true;
+                // Step 3.3: Perform the update using the DAO's update method
+                const updateSuccessful = await registeredUserDao.update(
+                    userId,
+                    {isVerified: true}, // Pass data to update
+                    trx // Pass the transaction object
+                );
 
-                // Persist the change using the DAO's update method *within the transaction*
-                // Pass `trx` to the DAO method.
-                const updatedUser = await registeredUserDao.update(userId, userToUpdate, trx);
-
-                if (!updatedUser) {
-                    console.error(`Failed to update RegisteredUser verification status in DB for userId: ${userId} within transaction.`);
-                    // Throwing error here triggers automatic rollback
-                    throw new Error('Database update for verification failed.');
+                if (!updateSuccessful) {
+                    // The DAO's update method returns boolean indicating success
+                    console.error(`Failed to update RegisteredUser verification status via DAO for userId: ${userId} within transaction.`);
+                    throw new InternalServerError('Database update for verification failed.'); // Rollback
                 }
 
-                console.log(`User (userId: ${userId}) marked as verified within transaction.`);
-                // If all steps succeed, the transaction wrapper will COMMIT automatically.
-                return true; // Indicate update was performed
+                console.log(`User (userId: ${userId}) marked as verified via DAO within transaction.`);
+                return true; // Indicate DB update was performed
             }); // End of postgres.transaction block
 
             // --- 4. Clean up Redis key ---
-            await redis.del(redisKey);
-            console.log(`Redis key ${redisKey} deleted after successful verification check/update.`);
-
-            // --- 5. Return Success Response ---
-            const message = updateSuccessful
-                ? 'Email verified successfully.'
-                : 'Email is already verified.'; // Adjust message if no update occurred
-
-            console.log(`Verification process completed for email ${email} (userId: ${userId}). Status: ${message}`);
-            return {
-                success: true,
-                message: message,
-            };
-
-        } catch (error) {
-            // Catches errors from:
-            // 1. Initial UserProfile lookup.
-            // 2. Redis operations (get).
-            // 3. The database transaction (fetch/update) - after automatic rollback.
-            // 4. Redis delete operation *after* a potentially successful transaction.
-            console.error(`Email verification process failed for email "${email}" (userId: ${userId || 'N/A'}):`, error.message);
-
-            if (!error.statusCode) {
-                // Assign generic server error if needed, but try to preserve specific messages
-                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                if (!error.message || error.message === 'Database update for verification failed.' || error.message.startsWith('Failed to retrieve')) {
-                    error.message = 'Email verification failed due to an unexpected internal error.';
+            if (updatePerformed || alreadyVerified) {
+                try {
+                    await redis.del(redisKey);
+                    console.log(`Redis key ${redisKey} deleted after successful verification check/update.`);
+                } catch (redisError) {
+                    console.error(`Failed to delete Redis key ${redisKey} after verification:`, redisError);
                 }
             }
-            if (error.statusCode === HTTP_STATUS.INTERNAL_SERVER_ERROR) {
-                console.error(error.stack);
+
+            // --- 5. Return Success ---
+            console.log(`Verification process completed for email ${email} (userId: ${userId}). Status updated: ${updatePerformed}`);
+            return true; // Indicate success to the controller
+
+        } catch (error) {
+            // Re-throw known application errors
+            if (error instanceof BadRequestError || error instanceof NotFoundError || error instanceof VerificationError || error instanceof InternalServerError) {
+                throw error;
             }
-            throw error; // Re-throw the error with statusCode
+            // Handle potential generic DB/Redis/other errors
+            console.error(`Email verification process failed unexpectedly for email "${email}" (userId: ${userId || 'N/A'}):`, error);
+            throw new InternalServerError('Email verification failed due to an unexpected internal error.');
         }
     }
 
-    // login method remains the same as previous version
+
+    /**
+     * Authenticates a user based on username and password.
+     * Uses UserProfileDAO for fetching combined profile data after successful auth.
+     * (Assumes this method is correct from previous versions)
+     */
     async login(username, password) {
         if (!username || !password) {
-            const error = new Error('Username and password are required.');
-            error.statusCode = HTTP_STATUS.BAD_REQUEST;
-            throw error;
+            throw new BadRequestError('Username and password are required.');
         }
 
         try {
+            // Find account & verify password
             const account = await accountDao.getByUsername(username);
-            if (!account) {
-                const error = new Error('Invalid username or password.');
-                error.statusCode = HTTP_STATUS.UNAUTHORIZED;
-                throw error;
+            if (!account) throw new AuthenticationError('Invalid username or password.');
+
+            const isPasswordValid = await verifyPassword(account.password, password);
+            if (!isPasswordValid) throw new AuthenticationError('Invalid username or password.');
+
+            // Fetch the full user profile using UserProfileDAO
+            const userProfile = await userProfileDao.getByUsername(username);
+            if (!userProfile?.userId) {
+                console.error(`Data inconsistency: Account found (ID: ${account.accountId}), but UserProfile data missing/incomplete.`);
+                throw new NotFoundError('User profile data not found. Please contact support.');
             }
 
-            let isPasswordValid;
-            try {
-                isPasswordValid = await verifyPassword(account.password, password);
-            } catch (verificationError) {
-                console.error(`Internal error during password verification for ${username}:`, verificationError);
-                const error = new Error('Login failed due to a server issue during authentication.');
-                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                throw error;
-            }
-
-            if (!isPasswordValid) {
-                console.log('111')
-                const error = new Error('Invalid username or password.');
-                error.statusCode = HTTP_STATUS.UNAUTHORIZED;
-                throw error;
-            }
-
-            const userProfile = await userProfileDao.getByAccountId(account.accountId);
-            if (!userProfile) {
-                console.error(`Data inconsistency: Account found for username ${username} (ID: ${account.accountId}), but no UserProfile found.`);
-                const error = new Error('Login failed due to an internal account configuration issue.');
-                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                throw error;
-            }
-
+            // Check verification & status from the UserProfile object
             if (!userProfile.isVerified) {
-                console.warn(`Login attempt failed for ${username}: Account not verified.`);
-                const error = new Error('Account not verified. Please check your email for the verification code or request a new one.');
-                error.statusCode = HTTP_STATUS.FORBIDDEN;
-                throw error;
+                throw new ForbiddenError('Your account is not verified. Please check your email.');
             }
-
-            if (userProfile.status && userProfile.status !== 'active') {
-                console.warn(`Login attempt failed for ${username}: Account status is '${userProfile.status}'.`);
+            const accountStatus = userProfile.status || 'active';
+            if (accountStatus !== 'active') {
                 let message = 'Your account is currently inactive.';
-                if (userProfile.status === 'suspended') message = 'Your account has been temporarily suspended.';
-                if (userProfile.status === 'banned') message = 'Your account has been banned.';
-
-                const error = new Error(message);
-                error.statusCode = HTTP_STATUS.FORBIDDEN;
-                throw error;
+                if (accountStatus === 'suspended') message = 'Your account has been temporarily suspended.';
+                if (accountStatus === 'banned') message = 'Your account has been permanently banned.';
+                throw new ForbiddenError(message);
             }
 
+            // Prepare safe user data from UserProfile model
             const safeUserProfile = {
                 userId: userProfile.userId,
                 principalId: userProfile.principalId,
@@ -387,71 +353,66 @@ class AuthService {
                 avatar: userProfile.avatar,
                 karma: userProfile.karma,
                 isVerified: userProfile.isVerified,
-                status: userProfile.status,
+                status: accountStatus,
                 role: userProfile.role,
             };
 
-            // TODO: Generate JWT or session token here
-            // const token = generateAuthToken(safeUserProfile.principalId, safeUserProfile.role);
-
-            console.log(`User ${username} (userId: ${safeUserProfile.userId}) logged in successfully.`);
-
-            return {
-                success: true,
-                message: 'Đăng nhập thành công.',
-                user: safeUserProfile
-                // token: token
-            };
+            console.log(`User ${username} (userId: ${safeUserProfile.userId}) credentials verified.`);
+            return safeUserProfile;
 
         } catch (error) {
-            console.error(`Login process failed for username "${username}":`, error.message);
-            if (!error.statusCode) {
-                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                if (!error.message || error.message === 'Login failed due to a server issue during authentication.' || error.message.startsWith('Data inconsistency')) {
-                    error.message = 'Login failed due to an unexpected internal error.';
-                }
-            }
-            if (error.statusCode === HTTP_STATUS.INTERNAL_SERVER_ERROR) {
-                console.error(error.stack);
-            }
-            if (error.statusCode === HTTP_STATUS.UNAUTHORIZED) {
-                console.warn(`Unauthorized access attempt for username "${username}":`, error.message);
-            }
-            throw error; // Re-throw the error with statusCode
-        }
-    }
-    async loginWithSession(userId) {
-        if (!userId) {
-            const error = new Error('User ID is required.');
-            error.statusCode = HTTP_STATUS.BAD_REQUEST;
-            throw error;
-        }
-
-        try {
-            const userProfile = await userProfileDao.getByUserId(userId);
-            if (!userProfile) {
-                const error = new Error('User not found.');
-                error.statusCode = HTTP_STATUS.NOT_FOUND;
+            if (error instanceof BadRequestError || error instanceof AuthenticationError || error instanceof ForbiddenError || error instanceof NotFoundError || error instanceof InternalServerError) {
                 throw error;
             }
+            console.error(`Login process failed unexpectedly for username "${username}":`, error);
+            throw new InternalServerError('Login failed due to an unexpected internal error.');
+        }
+    }
 
-            return {
-                success: true,
-                message: 'Session is valid.',
-                user: userProfile,
+    /**
+     * Retrieves safe user profile data based on a user ID (typically from a session).
+     * Uses UserProfileDAO.
+     * (Assumes this method is correct from previous versions)
+     */
+    async loginWithSession(userId) {
+        if (!userId) {
+            throw new BadRequestError('User ID is required for session validation.');
+        }
+        try {
+            // Use UserProfileDAO to get combined data directly
+            const userProfile = await userProfileDao.getByUserId(userId);
+            if (!userProfile?.userId) {
+                throw new NotFoundError('User associated with this session not found.');
+            }
+
+            // Optional: Re-check status/verification if needed
+            // if (userProfile.status !== 'active' || !userProfile.isVerified) {
+            //     throw new ForbiddenError('Account status changed. Please log in again.');
+            // }
+
+            // Prepare safe user data from UserProfile model
+            const safeUserProfile = {
+                userId: userProfile.userId,
+                principalId: userProfile.principalId,
+                username: userProfile.username,
+                email: userProfile.email,
+                displayName: userProfile.displayName,
+                avatar: userProfile.avatar,
+                karma: userProfile.karma,
+                isVerified: userProfile.isVerified,
+                status: userProfile.status || 'active',
+                role: userProfile.role,
             };
+
+            console.log(`Session check successful: Retrieved data for userId: ${userId}`);
+            return safeUserProfile;
+
         } catch (error) {
-            console.error(`Session check failed for userId "${userId}":`, error.message);
-            if (!error.statusCode) {
-                error.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-                if (!error.message || error.message === 'User not found.') {
-                    error.message = 'Session validation failed due to an unexpected internal error.';
-                }
+            if (error instanceof BadRequestError || error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof InternalServerError) {
+                throw error;
             }
-            if (error.statusCode === HTTP_STATUS.INTERNAL_SERVER_ERROR) {
-                console.error(error.stack);
-            }
-            throw error; // Re-throw the error with statusCode
+            console.error(`Session check failed unexpectedly for userId "${userId}":`, error);
+            throw new InternalServerError('Session validation failed due to an unexpected internal error.');
         }
     }
 }
