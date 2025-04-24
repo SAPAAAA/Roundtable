@@ -3,11 +3,15 @@ import {sendApiRequest} from "#utils/apiClient";
 
 class CommentService {
 
-    async addComment(postId, subtableName, body, parentCommentId) {
+    async addComment(postId, body) {
         try {
-            const response = await sendApiRequest(`/api/s/${subtableName}/comments/${postId}`, 'POST',
+            console.log("Adding comment:", postId, body);
+            const response = await sendApiRequest(`/api/posts/${postId}/comments`,
                 {
-                    body: {body, parentCommentId}
+                    method: 'POST',
+                    body: {
+                        body: body,
+                    }
                 }
             );
             return response.data;
