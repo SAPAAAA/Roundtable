@@ -7,7 +7,7 @@ import PostCore from "#features/posts/components/PostCore/PostCore";
 import "./PostPreview.css";
 
 export default function PostPreview(props) {
-	const {post, subtable, isJoined, onJoinClick} = props;
+	const {post, author, subtable, isJoined, onJoinClick} = props;
 
 	return (
 		<Link to={`/s/${subtable.name}/comments/${post.postId}`} className="post-preview-link">
