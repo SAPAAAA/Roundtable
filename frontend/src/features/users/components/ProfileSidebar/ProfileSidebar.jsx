@@ -2,7 +2,7 @@ import React, {useEffect} from "react";
 import '../myprofile.css';
 import UserInfor from "../UserInfor/UserInfor";
 import Setting from "../Setting/Setting";
-import {useSidebar} from '@contexts/SidebarContext.jsx';
+import useSidebar from '#hooks/useSidebar.jsx';
 
 function ProfileSideBar({imgUrl, name, postKarma, commentKarma, createdDay}) {
     const {setSidebarParts} = useSidebar();
