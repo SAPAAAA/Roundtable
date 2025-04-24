@@ -15,7 +15,8 @@
 		"#utils/*": "./utils/*",
 		"#db/*": "./db/*",
 		"#constants/*": "./constants/*",
-		"#middlewares/*": "./middlewares/*"
+		"#middlewares/*": "./middlewares/*",
+		"#errors/*": "./errors/*"
 	},
 	"main": "app.js",
 	"scripts": {
