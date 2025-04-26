@@ -1,13 +1,15 @@
 // src/controllers/post.controller.js
 
-import postService from '#services/post.service.js'; // Assuming the service exists and handles logic/validation
+import postService from '#services/post.service.js';
+import voteService from "#services/vote.service.js";
 import HTTP_STATUS from '#constants/httpStatus.js';
 // Assuming custom errors are defined and exported from '#errors/AppError.js'
 // We rely on a downstream centralized error handler to catch these.
 
 class PostController {
-    constructor(postService) {
-        this.postService = postService; // Use dependency injection
+    constructor(postService, voteService) {
+        this.postService = postService;
+        this.voteService = voteService; // Assuming voteService is defined and injected
     }
 
     /**
@@ -17,10 +19,10 @@ class PostController {
     getPostDetails = async (req, res, next) => {
         try {
             const {postId} = req.params;
-            console.log(`[PostController.getPostDetails] Processing request for postId: ${postId}`);
+            const userId = req.session.userId;
 
             // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
-            const viewData = await this.postService.getPostDetails(postId);
+            const viewData = await this.postService.getPostDetails(postId, userId);
 
             // --- Success Response ---
             return res.status(HTTP_STATUS.OK).json({
@@ -36,7 +38,31 @@ class PostController {
             next(error);
         }
     };
+
+    castVote = async (req, res, next) => {
+        try {
+            const {postId} = req.params;
+            const {voteType} = req.body;
+            const userId = req.session.userId;
+
+            console.log(`[PostController.castVote] Processing vote for postId: ${postId}, voteType: ${voteType}`);
+
+            const result = await this.voteService.createVote(userId, postId, null, voteType);
+
+
+            // --- Success Response ---
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: result // Send the result of the vote casting
+            });
+
+        } catch (error) {
+            // --- Error Handling ---
+            console.error(`[PostController.castVote] Error casting vote for postId ${req.params?.postId}:`, error.message);
+            next(error);
+        }
+    }
 }
 
 // Export an instance, injecting the service dependency
-export default new PostController(postService);
+export default new PostController(postService, voteService);
