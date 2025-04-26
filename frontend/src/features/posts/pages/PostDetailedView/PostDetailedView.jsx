@@ -20,10 +20,10 @@ export default function PostDetailedView() {
 
     // State derived from loader data or managed locally
     // Use state to allow potential updates if needed, initialized from loader
-    const [post, setPost] = useState(initialData?.post);
-    const [subtable, setSubtable] = useState(initialData?.subtable);
-    const [author, setAuthor] = useState(initialData?.author);
-    const [comments, setComments] = useState(initialData?.comments || []);
+    const [post, setPost] = useState(initialData?.data.post);
+    const [subtable, setSubtable] = useState(initialData?.data.subtable);
+    const [author, setAuthor] = useState(initialData?.data.author);
+    const [comments, setComments] = useState(initialData?.data.comments || []);
 
     // Local UI state remains the same
     const [isWritingTopLevelComment, setIsWritingTopLevelComment] = useState(false);
@@ -35,7 +35,7 @@ export default function PostDetailedView() {
         // Check navigation/revalidator state to ensure updates happen after load/revalidation
         if (navigation.state === 'idle' && revalidator.state === 'idle') {
             // Use the latest data potentially available on revalidator, fallback to initialData
-            const currentData = revalidator.data || initialData;
+            const currentData = revalidator.data || initialData.data;
             if (currentData) { // Ensure currentData is not null/undefined
                 setPost(currentData.post);
                 setSubtable(currentData.subtable);
