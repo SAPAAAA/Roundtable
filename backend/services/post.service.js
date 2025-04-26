@@ -61,7 +61,6 @@ class PostService {
 
         // 1. Get the Post details (includes author and subtable info via the view)
         const postDetails = await userPostDetailsDao.getByPostId(postId);
-        console.log("Post details fetched:", postDetails);
         if (!postDetails) {
             const error = new Error('Post not found.');
             error.statusCode = HTTP_STATUS.NOT_FOUND;
