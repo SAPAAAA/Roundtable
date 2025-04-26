@@ -218,9 +218,6 @@ class AuthService {
             }
 
             // Step 1.3: Find registered user by principalId to get the userId
-            // Assuming registeredUserDao has getByPrincipalId or similar, otherwise adapt lookup.
-            // If not, we might need userProfileDao.getByPrincipalId just for the userId lookup.
-            // Let's assume registeredUserDao.getByPrincipalId exists for directness:
             const registeredUser = await registeredUserDao.getByPrincipalId(principal.principalId);
             if (!registeredUser?.userId) {
                 console.error(`Data inconsistency: Principal ${principal.principalId} found, but no matching RegisteredUser.`);
