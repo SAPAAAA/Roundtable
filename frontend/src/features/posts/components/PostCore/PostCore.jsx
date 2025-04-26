@@ -6,100 +6,111 @@ import useVote from "#features/posts/hooks/vote-hook.jsx";
 import "./PostCore.css"; // Add specific styling if needed
 
 export default function PostCore(props) {
+    // Destructure post from props. userVote is now directly on the post object from the service.
     const {post} = props;
 
-    // Encapsulate vote logic here
+    // Initialize the hook with data from the post object
     const {
-        voteStatus,
+        voteStatus, // Will be 'upvote', 'downvote', or null
         voteCount,
         isVoting,
         voteError,
         handleUpvote,
         handleDownvote
-    } = useVote({initialCount: post.voteCount, initialVoteStatus: null}, post.postId);
+    } = useVote(
+        {
+            initialCount: post.voteCount,
+            initialVote: post.userVote,
+            postId: post.postId,
+        },
+    );
 
-    // --- Share Handler --- (Could be passed as prop if complex)
+    // --- Share Handler ---
     const handleShare = () => {
-        console.log("Share action triggered for post:", post.postId);
-        // Implement actual share logic (e.g., copy link, open share modal)
-        navigator.clipboard.writeText(window.location.href + `posts/${post.postId}`) // Example
+        const postUrl = `${window.location.origin}/posts/${post.postId}`; // Construct a more robust URL
+        navigator.clipboard.writeText(postUrl)
             .then(() => alert("Link copied to clipboard!"))
             .catch(err => console.error("Failed to copy link: ", err));
     };
 
     // --- Comment Handler Placeholder ---
-    // In the preview, this might navigate. In detailed view, it might focus the input.
-    // Or often, clicking anywhere on the post preview navigates.
-    // Let's assume clicking the comment button itself doesn't do much in the core view,
-    // navigation is handled by clicking the post container in the preview.
     const handleCommentClick = () => {
-        console.log("Comment button clicked - navigation/focus handled by parent view");
+        // Find the comment section and scroll to it, or trigger a state change in parent
+        const commentSection = document.getElementById('comment-section'); // Example ID
+        if (commentSection) {
+            commentSection.scrollIntoView({behavior: 'smooth'});
+        }
     };
 
     return (
         <>
-            {/* PostPreview Title */}
+            {/* Post Title */}
             <h5 className="fw-bold mt-2">{post.title}</h5>
 
-            {/* PostPreview Content */}
-            {/* Add a class for potential truncation/styling in preview vs detailed */}
-            <div className={`fs-content mt-2 mb-2 ${props.contentClass || ''}`}>{post.body}</div>
+            {/* Post Content */}
+            {post.body && ( // Only render body if it exists
+                <div className={`fs-content mt-2 mb-2 ${props.contentClass || ''}`}>{post.body}</div>
+            )}
 
-            {/* PostPreview Actions */}
-            <div className="post-actions-container d-flex align-items-center gap-2">
+
+            {/* Post Actions */}
+            <div className="post-actions-container d-flex align-items-center gap-2 mt-2">
                 {voteError && <div className="text-danger fs-8 me-2">Error: {voteError}</div>}
 
                 {/* Vote Buttons */}
+                {/* Use voteStatus ('upvote'/'downvote'/null) for dynamic class */}
                 <div
-                    className={`vote-container ${voteStatus || ''} d-flex align-items-center rounded-pill gap-2 bg-light p-1`}> {/* Added padding */}
+                    className={`vote-container ${voteStatus || 'no-vote'} d-flex align-items-center rounded-pill gap-2 bg-light p-1`}>
                     <Button
                         mainClass="upvote-btn" contentType="icon"
                         dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Upvote" tooltipPlacement="top"
-                        padding="1" // Adjusted padding
+                        padding="1"
                         onClick={handleUpvote} disabled={isVoting}>
-                        <Icon mainClass="upvote-icon" name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
+                        {/* Use voteStatus to determine icon state */}
+                        <Icon mainClass="upvote-icon" name="upvote"
                               size="15px"/>
                     </Button>
-                    {/* Ensure voteCount displays correctly */}
-                    <span className="fs-8 fw-bold">{voteCount}</span>
+                    <span
+                        className="fs-8 fw-bold vote-count">{voteCount}</span> {/* Added class for potential styling */}
                     <Button
                         mainClass="downvote-btn" contentType="icon"
                         dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Downvote"
                         tooltipPlacement="top"
-                        padding="1" // Adjusted padding
+                        padding="1"
                         onClick={handleDownvote} disabled={isVoting}>
-                        <Icon mainClass="downvote-icon" name={voteStatus === "downvoted" ? "downvoted" : "downvote"}
+                        {/* Use voteStatus to determine icon state */}
+                        <Icon mainClass="downvote-icon" name='downvote'
                               size="15px"/>
                     </Button>
                 </div>
 
                 {/* Comment Button */}
                 <div
-                    className="comment-container d-flex align-items-center rounded-pill gap-1 bg-light p-1"> {/* Added padding, adjusted gap */}
+                    className="comment-container d-flex align-items-center rounded-pill gap-1 bg-light p-1">
+                    {/* Make the whole div clickable or just the button */}
                     <Button
                         mainClass="comment-btn" contentType="icon"
                         dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Comments"
                         tooltipPlacement="top"
-                        padding="1" // Adjusted padding
-                        onClick={handleCommentClick} // Use the handler
+                        padding="1"
+                        onClick={handleCommentClick}
                     >
                         <Icon mainClass="comment-icon" name="comment" size="15px"/>
-                        <span className="fs-8 fw-bold">{post.commentCount ?? 0}</span>
-
+                        {/* Ensure commentCount exists before displaying */}
+                        <span className="fs-8 fw-bold ms-1">{post.commentCount ?? 0}</span>
                     </Button>
-                    {/* Display comment count next to icon */}
                 </div>
 
                 {/* Share Button */}
                 <div
-                    className="share-container d-flex align-items-center rounded-pill gap-1 bg-light p-1"> {/* Added padding, adjusted gap */}
+                    className="share-container d-flex align-items-center rounded-pill gap-1 bg-light p-1">
                     <Button
                         mainClass="share-btn" contentType="icon"
                         dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Share" tooltipPlacement="top"
-                        padding="1" // Adjusted padding
+                        padding="1"
                         onClick={handleShare}>
                         <Icon mainClass="share-icon" name="share" size="15px"/>
-                        <span className="fs-8 fw-bold">Share</span>
+                        <span className="fs-8 fw-bold ms-1">Share</span> {/* Added margin */}
                     </Button>
                 </div>
             </div>
