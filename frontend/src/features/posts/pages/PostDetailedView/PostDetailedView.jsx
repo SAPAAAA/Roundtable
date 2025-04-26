@@ -1,109 +1,113 @@
-// #features/posts/components/PostDetailedView/PostDetailedView.jsx
+// #features/posts/pages/PostDetailedView/PostDetailedView.jsx
 import React, {useCallback, useEffect, useState} from "react";
-import {useParams} from "react-router";
+// Ensure 'react-router-dom' is used if that's your router library
+import {useLoaderData, useNavigation, useRevalidator} from "react-router";
 
-// Import child components and services
 import PostHeaderDetailed from "#features/posts/components/PostHeaderDetailed/PostHeaderDetailed";
 import PostCore from "#features/posts/components/PostCore/PostCore";
 import WriteComment from "#features/posts/components/WriteComment/WriteComment.jsx";
 import Comment from "#features/posts/components/Comment/Comment.jsx";
-import PostService from "#services/postService";
 import {useAuth} from "#hooks/useAuth.jsx";
-import "./PostDetailedView.css"; // Component-specific styles
+import "./PostDetailedView.css";
 
 export default function PostDetailedView() {
-    const {user} = useAuth(); // Get current user context
-    const {postId} = useParams(); // Get postId from URL parameters
+    const {user} = useAuth();
+    // Get data from the loader
+    const initialData = useLoaderData();
+    // Get revalidator and navigation state
+    const revalidator = useRevalidator();
+    const navigation = useNavigation();
 
-    // --- Component State ---
-    const [post, setPost] = useState(null);
-    const [subtable, setSubtable] = useState(null);
-    const [author, setAuthor] = useState(null);
-    const [comments, setComments] = useState([]);
-    const [isLoading, setIsLoading] = useState(true); // For loading indicator
-    const [error, setError] = useState(null); // For error handling
-    const [isWritingTopLevelComment, setIsWritingTopLevelComment] = useState(false); // Controls top-level comment input visibility
+    // State derived from loader data or managed locally
+    // Use state to allow potential updates if needed, initialized from loader
+    const [post, setPost] = useState(initialData?.post);
+    const [subtable, setSubtable] = useState(initialData?.subtable);
+    const [author, setAuthor] = useState(initialData?.author);
+    const [comments, setComments] = useState(initialData?.comments || []);
 
-    // --- Data Fetching ---
-    // Memoized function to fetch all post details (post, author, comments)
-    const fetchPostDetails = useCallback(async () => {
-        console.log("Fetching post details for postId:", postId);
-        setIsLoading(true);
-        setError(null);
-        try {
-            const fetchedData = await PostService.getPostDetails(postId);
-            setPost(fetchedData.post);
-            setSubtable(fetchedData.subtable);
-            setAuthor(fetchedData.author);
-            setComments(fetchedData.comments || []); // Ensure comments is always an array
-            console.log("Fetched data:", fetchedData);
-        } catch (err) {
-            console.error("Error fetching post details:", err);
-            setError("Failed to load post details. Please try again later.");
-            // Clear data on error
-            setPost(null);
-            setSubtable(null);
-            setAuthor(null);
-            setComments([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [postId]); // Re-run only if postId changes
+    // Local UI state remains the same
+    const [isWritingTopLevelComment, setIsWritingTopLevelComment] = useState(false);
+    const [error, setError] = useState(null); // For fetcher/action errors or maybe loader errors if not using errorElement
 
-    // --- Effect for Initial Data Fetch ---
+    // --- Update state when loader data changes ---
     useEffect(() => {
-        if (postId) {
-            fetchPostDetails();
+        // Only update state if the component is mounted and data is available
+        // Check navigation/revalidator state to ensure updates happen after load/revalidation
+        if (navigation.state === 'idle' && revalidator.state === 'idle') {
+            // Use the latest data potentially available on revalidator, fallback to initialData
+            const currentData = revalidator.data || initialData;
+            if (currentData) { // Ensure currentData is not null/undefined
+                setPost(currentData.post);
+                setSubtable(currentData.subtable);
+                setAuthor(currentData.author);
+                // Ensure comments are always an array
+                setComments(Array.isArray(currentData.comments) ? currentData.comments : []);
+                setError(null); // Clear previous errors on successful load/reload
+                console.log("Loader data processed, component state updated.");
+            } else {
+                console.log("Loader data not available for state update.");
+                setError("Failed to retrieve data after load/revalidation.");
+            }
         }
-        // fetchPostDetails is memoized, safe to include
-    }, [postId, fetchPostDetails]);
+        // Dependencies ensure this effect runs when loading states change or data potentially updates
+    }, [navigation.state, revalidator.state, initialData, revalidator.data]);
 
-    // --- Comment Handling ---
 
-    // Handles the submission process for any new comment (top-level or reply)
-    const handleCommentPosted = async () => {
-        try {
-            // Refetch comments AFTER successful post to show the new comment
-            await fetchPostDetails();
-
-            setIsWritingTopLevelComment(false); // Close top-level input
-
-        } catch (error) {
-            console.error("Error posting comment:", error);
-            alert("Failed to post comment. Please try again."); // Basic error feedback
+    // Callback triggered by WriteComment after successful submission
+    const handleCommentPosted = useCallback(() => {
+        console.log("!!! handleCommentPosted in PostDetailedView EXECUTING !!!"); // Log execution
+        setIsWritingTopLevelComment(false); // Close the input form
+        // Trigger a reload of the loader data
+        if (revalidator.state === 'idle') { // Prevent multiple rapid revalidations
+            console.log("Triggering revalidation from handleCommentPosted...");
+            revalidator.revalidate();
+        } else {
+            console.log("Revalidator not idle, skipping revalidate call.");
         }
-    };
+    }, [revalidator]); // Depends on revalidator
 
-    // Callback passed to <Comment> components to trigger refetch after a reply is posted
-    const triggerCommentRefetch = async () => {
-        console.log("A reply was posted, triggering refetch...");
-        await fetchPostDetails(); // Refetch all details
-    };
+    // Callback for Comment component replies
+    const triggerCommentRefetch = useCallback(() => {
+        console.log("A reply was posted, triggering revalidation (triggerCommentRefetch)...");
+        // Trigger a reload of the loader data
+        if (revalidator.state === 'idle') { // Prevent multiple rapid revalidations
+            console.log("Triggering revalidation from triggerCommentRefetch...");
+            revalidator.revalidate();
+        } else {
+            console.log("Revalidator not idle, skipping revalidate call.");
+        }
+    }, [revalidator]); // Depends on revalidator
 
-    // --- Navigation ---
     const handleNavigateBack = () => {
         console.log("Navigate back requested");
-        window.history.back(); // Browser back action
+        window.history.back();
     };
 
     // --- Render Logic ---
-    if (isLoading) {
-        return <div>Loading post...</div>;
+
+    // Loading state based on navigation (initial load or revalidation)
+    const isLoading = navigation.state === "loading" || revalidator.state === "loading";
+
+    // Use the isLoading flag derived above
+    if (isLoading && !post) { // Show full loading indicator only if post data isn't available yet
+        return <div className="p-3">Loading post details...</div>;
     }
 
-    if (error) {
-        return <div className="text-danger p-3">{error}</div>;
+
+    // Handle cases where loader failed or returned no essential data
+    if (!post || !subtable || !author) {
+        // Check if it's loading, otherwise show error
+        if (isLoading) {
+            return <div className="p-3">Loading post details...</div>; // Still loading essentials
+        }
+        // If not loading and data is missing, show error.
+        console.error("Essential post data missing:", {post, subtable, author});
+        return <div className="p-3 text-danger">Failed to load essential post details. Please try refreshing.</div>;
     }
 
-    // If loading is finished but post is still null (e.g., fetch error handled)
-    if (!post) {
-        return <div>Post not found or could not be loaded.</div>;
-    }
-
-    // --- JSX Output ---
     return (
         <>
-            {/* Post Details Area */}
+            {/* --- Post Details --- */}
             <div className="post-detailed-container card p-3 my-3">
                 <PostHeaderDetailed
                     subtable={subtable}
@@ -114,55 +118,59 @@ export default function PostDetailedView() {
                 <PostCore post={post}/>
             </div>
 
-            {/* Top-Level Comment Input */}
+            {/* --- Write Top-Level Comment --- */}
             <div className="mb-3 px-3">
-                {user ? ( // Show input only if logged in
-                    !isWritingTopLevelComment ? (
-                        // Collapsed input field
+                {user ? (
+                    !isWritingTopLevelComment ? ( // Conditional rendering based on state
                         <input
                             type="text"
                             className="form-control rounded-pill small-placeholder"
                             placeholder="Add a comment..."
                             onClick={() => setIsWritingTopLevelComment(true)}
-                            readOnly // Prevents typing until clicked
+                            readOnly
                         />
                     ) : (
-                        // Expanded WriteComment component
                         <WriteComment
-                            subtableName={subtable?.name || ''}
+                            // Key added in case postId changes, forces remount/reset
+                            key={`write-comment-${post.postId}`}
                             postId={post.postId}
-                            username={user.username} // Pass username if needed
-                            parentCommentId={null} // For top-level comment
-                            onCommentSubmit={handleCommentPosted}
-                            onCancel={() => setIsWritingTopLevelComment(false)} // Close input on cancel
+                            parentCommentId={null}
+                            onCommentSubmit={handleCommentPosted} // Should trigger setIsWritingTopLevelComment(false)
+                            onCancel={() => setIsWritingTopLevelComment(false)}
                         />
                     )
                 ) : (
-                    // Prompt for non-logged-in users
                     <div className="px-3 text-muted fs-8 mb-3">
                         Log in or sign up to leave a comment
                     </div>
                 )}
             </div>
 
-            {/* Comments List */}
-            <div className="px-3">
-                {comments && comments.length > 0 ? (
-                    // Map over the comments array to render each Comment component
+            {/* Display general error (e.g., from actions if not handled elsewhere) */}
+            {error && <div className="text-danger px-3 pb-2">{error}</div>}
+
+            {/* Revalidation indicator (shows when revalidator is loading fresh data) */}
+            {revalidator.state === "loading" && <div className="px-3 pb-2 text-muted">Refreshing comments...</div>}
+
+
+            {/* --- Comments Section --- */}
+            <div className="px-3" id="comment-section">
+                {/* Defensive check: ensure comments is an array before mapping */}
+                {Array.isArray(comments) && comments.length > 0 ? (
                     comments.map((comment) => (
                         <Comment
-                            key={comment.commentId} // Essential for list rendering
+                            key={comment.commentId} // React key for list items
                             subtableName={subtable?.name || ''}
-                            comment={comment} // Pass the comment data
-                            postId={post.postId}
-                            // Pass the refetch trigger for replies within the Comment component
-                            onReplyPosted={triggerCommentRefetch}
-                            currentUser={user} // Pass user info for potential use in Comment (e.g., edit/delete checks)
+                            comment={comment}
+                            onReplyPosted={triggerCommentRefetch} // Pass down the refetch trigger
+                            currentUser={user}
+                            postId={post.postId} // Pass postId for vote hook etc.
                         />
                     ))
                 ) : (
-                    // Message shown when there are no comments (and not loading)
-                    !isLoading && post && <div className="text-muted fs-8 mb-3">No comments yet.</div>
+                    // Avoid showing "No comments" while actively loading/revalidating
+                    !(navigation.state === "loading" || revalidator.state === "loading") &&
+                    <div className="text-muted px-3 pb-3 fs-8">No comments yet.</div>
                 )}
             </div>
         </>
