@@ -6,7 +6,7 @@ class CommentService {
     async addComment(postId, body) {
         try {
             console.log("Adding comment:", postId, body);
-            const response = await sendApiRequest(`/api/posts/${postId}/comments`,
+            return await sendApiRequest(`/api/posts/${postId}/comments`,
                 {
                     method: 'POST',
                     body: {
@@ -14,9 +14,25 @@ class CommentService {
                     }
                 }
             );
-            return response.data;
         } catch (error) {
             console.error("Error adding comment:", error);
+            throw error;
+        }
+    }
+
+    async replyToComment(commentId, body) {
+        try {
+            console.log("Replying to comment from comment service:", commentId, body);
+            return await sendApiRequest(`/api/comments/${commentId}/replies`,
+                {
+                    method: 'POST',
+                    body: {
+                        body: body,
+                    }
+                }
+            );
+        } catch (error) {
+            console.error("Error replying to comment:", error);
             throw error;
         }
     }
