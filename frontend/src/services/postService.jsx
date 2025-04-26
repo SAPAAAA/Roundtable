@@ -12,7 +12,7 @@ class PostService {
 
         const response = await sendApiRequest(baseUrl, {method: 'GET'});
         if (!response.success) throw new Error(`Failed to fetch comments for post ${postId}: ${response.status} ${response.statusText}`);
-        return response.data;
+        return response;
     }
 }
 
