@@ -9,7 +9,6 @@ const TextEditor = forwardRef((props, ref) => {
 
     useEffect(() => {
         const $editorTextarea = $(editorRefInternal.current);
-        console.log("Initializing Summernote on:", editorRefInternal.current);
 
         if ($editorTextarea.next('.note-editor').length === 0) {
             $editorTextarea.summernote({
@@ -34,7 +33,6 @@ const TextEditor = forwardRef((props, ref) => {
         return () => {
             const editorNode = editorRefInternal.current;
             if (editorNode && $(editorNode).next('.note-editor').length > 0) {
-                console.log("Destroying Summernote based on sibling:", editorNode);
                 if ($(editorNode).summernote) { // Check if method exists
                     try {
                         $(editorNode).summernote("destroy");
