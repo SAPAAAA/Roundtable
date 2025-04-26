@@ -71,11 +71,9 @@ export default function MainLayout() {
 
     // Effect to check session (keep if necessary, might be handled by AuthProvider already)
     useEffect(() => {
-        // console.log("MainLayout initial checkSession effect runs");
-        // checkSession(); // Consider if this is needed here or just in AuthProvider
+        checkSession();
     }, [checkSession]);
 
-    // --- <<< ADD THIS EFFECT >>> ---
     // Effect to ensure modals are closed when the user is logged in
     useEffect(() => {
         // console.log("MainLayout user state check effect runs. User:", user);
@@ -85,11 +83,9 @@ export default function MainLayout() {
             setIsRegisterModalOpen(false);
         }
     }, [user]); // Re-run this effect whenever the user state changes
-    // --- <<< END OF ADDED EFFECT >>> ---
 
     return (
         <div>
-            {/* {console.log("MainLayout RENDER - isLoginModalOpen:", isLoginModalOpen)} */}
             <Header
                 toggleSidebar={toggleSidebar}
                 isSidebarVisible={isSidebarVisible}

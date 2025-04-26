@@ -1,4 +1,5 @@
 import {redirect} from "react-router";
+import PostService from "#services/postService.jsx";
 
 async function postDetailLoader({params}) {
     const {postId} = params;
@@ -9,17 +10,9 @@ async function postDetailLoader({params}) {
     }
     try {
         console.log("Loader: Fetching post details for postId:", postId);
-        // Assuming getPostDetails returns the structured data { post, subtable, author, comments }
-        const response = await PostService.getPostDetails(postId);
-        // Ensure comments is always an array
-        if (response.data && !Array.isArray(response.data.comments)) {
-            response.data.comments = [];
-        }
-        return response.data; // Return the data directly
+        return await PostService.getPostDetails(postId)
     } catch (err) {
         console.error("Loader error fetching post details:", err);
-        // Throwing an error here will allow you to catch it with an errorElement
-        // Or return specific error structure if you prefer handling it in the component
         throw new Response("Failed to load post details", {status: err.status || 500});
     }
 }

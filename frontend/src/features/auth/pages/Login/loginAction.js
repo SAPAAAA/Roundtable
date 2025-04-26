@@ -1,5 +1,5 @@
 // src/features/auth/pages/Login/loginAction.js
-import {sendApiRequest} from '#utils/apiClient';
+import authService from '#services/authService'; // Import the new service
 
 export default async function loginAction({request}) { // Destructure request here
     // --- Form Data Handling ---
@@ -9,42 +9,28 @@ export default async function loginAction({request}) { // Destructure request he
     // --- Get the method from the request object ---
     const httpMethod = request.method;
 
-    console.log('Login action data:', data);
-    console.log('Request method:', httpMethod); // Will log "POST" if set correctly in the Form
-
     try {
-        // Use the standalone function, passing the dynamic method and body
-        const response = await sendApiRequest('http://localhost:5000/api/auth/login', {
-            method: httpMethod,
-            body: data
-        });
-
-        // ... (rest of your success handling remains the same)
-        return {
-            success: response.success,
-            error: false,
-            message: response.message || "Đăng nhập thành công.",
-            status: 200,
-            user: response.user,
-        }
+        // Call the login method from the authService
+        return await authService.login(data, httpMethod);
 
     } catch (error) {
-        // ... (rest of your error handling remains the same)
+        // Handle errors thrown by the authService
         if (error.status === 401 || error.status === 400) {
-            console.error("Login failed:", error);
+            console.error("Login failed:", error.message); // Log the specific message
             return {
                 success: false,
                 error: true,
                 message: error.message || "Tên đăng nhập hoặc mật khẩu không chính xác.",
                 status: error.status,
-            }
+            };
         }
+        // Handle other unexpected errors (e.g., network issues, server 500)
         console.error("Server error during login:", error);
         return {
             success: false,
             error: true,
             message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.",
             status: error.status || 500,
-        }
+        };
     }
 }

@@ -10,7 +10,7 @@ export default function PostPreview(props) {
 	const {post, subtable, isJoined, onJoinClick} = props;
 
 	return (
-		<Link to={`/s/${subtable.name}/comments/${post.postId}`} className="post-preview-link">
+		<Link to={`/comments/${post.postId}`} className="post-preview-link">
 			<div className="post-preview-container card p-3 my-3">
 				<PostHeaderPreview
 					subtable={subtable}
