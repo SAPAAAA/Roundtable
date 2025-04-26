@@ -8,14 +8,14 @@ class AppError extends Error {
 }
 
 class BadRequestError extends AppError {
-}
+} // For invalid request data
 
 class AuthenticationError extends AppError {
 } // For login failures, invalid tokens etc.
 class ForbiddenError extends AppError {
 } // For permission issues, inactive accounts etc.
 class NotFoundError extends AppError {
-}
+} // For non-existent resources
 
 class ConflictError extends AppError {
 } // For existing username/email
