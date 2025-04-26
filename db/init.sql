@@ -1,5 +1,5 @@
 -- ============================================================================
--- ROUND‑TABLE (Reddit‑like) DATABASE – FULL SCHEMA  ‑‑ April 2025 (REVISED 2)
+-- ROUND‑TABLE (Reddit‑like) DATABASE – FULL SCHEMA  ‑‑ April 2025 (REVISED 3 - VoteType ENUM)
 -- ============================================================================
 
 -- Enable UUID generation
@@ -9,14 +9,15 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ENUM TYPES
 -- ============================================================================
 
-CREATE TYPE "UserStatus"     AS ENUM ('active', 'suspended', 'banned');
-CREATE TYPE "Gender"         AS ENUM ('male','female','non_binary','other','prefer_not_to_say');
+CREATE TYPE "UserStatus"       AS ENUM ('active', 'suspended', 'banned');
+CREATE TYPE "Gender"           AS ENUM ('male','female','non_binary','other','prefer_not_to_say');
 CREATE TYPE "NotificationType" AS ENUM (
     'comment_reply','post_reply','mention','message','moderator_invite',
     'system_message','report_update','vote_post','vote_comment'
 );
-CREATE TYPE "MediaType"      AS ENUM ('image','video','audio');
-CREATE TYPE "PrincipalRole"  AS ENUM ('user','admin');
+CREATE TYPE "MediaType"        AS ENUM ('image','video','audio');
+CREATE TYPE "PrincipalRole"    AS ENUM ('user','admin');
+CREATE TYPE "VoteType"         AS ENUM ('upvote', 'downvote');
 
 -- ============================================================================
 -- TABLES
@@ -51,31 +52,31 @@ CREATE TABLE "Principal" (
 -- ---------- Role sub‑tables --------------------------------------------------
 
 CREATE TABLE "RegisteredUser" (
-    "userId"     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "userId"      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "principalId" UUID NOT NULL UNIQUE REFERENCES "Principal"("principalId") ON DELETE CASCADE,
-    "karma"      INTEGER  DEFAULT 0,
+    "karma"       INTEGER  DEFAULT 0,
     "isVerified" BOOLEAN  DEFAULT FALSE,
-    "status"     "UserStatus" DEFAULT 'active',
+    "status"      "UserStatus" DEFAULT 'active',
     "lastActive" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE "Admin" (
-    "adminId"          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "principalId"      UUID NOT NULL UNIQUE REFERENCES "Principal"("principalId") ON DELETE CASCADE,
-    "grantedAt"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "adminId"         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "principalId"     UUID NOT NULL UNIQUE REFERENCES "Principal"("principalId") ON DELETE CASCADE,
+    "grantedAt"       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ---------- Community -------------------------------------------------------
 
 CREATE TABLE "Subtable" (
-    "subtableId"       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "name"             VARCHAR(50) UNIQUE NOT NULL,
-    "description"      TEXT,
-    "createdAt"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "subtableId"         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "name"               VARCHAR(50) UNIQUE NOT NULL,
+    "description"        TEXT,
+    "createdAt"          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "creatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
-    "icon"          VARCHAR(255),
-    "banner"        VARCHAR(255),
-    "memberCount"      INT DEFAULT 1 NOT NULL
+    "icon"            VARCHAR(255),
+    "banner"          VARCHAR(255),
+    "memberCount"        INT DEFAULT 1 NOT NULL
 );
 
 CREATE TABLE "Moderators" ( -- composite PK
@@ -113,13 +114,13 @@ CREATE TABLE "Comment" (
     "isRemoved"        BOOLEAN DEFAULT FALSE NOT NULL
 );
 
--- MODIFIED: Changed voterPrincipalId to voterUserId and reference
+-- MODIFIED: Changed direction to voteType ENUM
 CREATE TABLE "Vote" (
     "voteId"           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "voterUserId"      UUID NOT NULL REFERENCES "RegisteredUser"("userId") ON DELETE CASCADE, -- Changed column name and reference
+    "voterUserId"      UUID NOT NULL REFERENCES "RegisteredUser"("userId") ON DELETE CASCADE,
     "postId"           UUID REFERENCES "Post"("postId") ON DELETE CASCADE,
     "commentId"        UUID REFERENCES "Comment"("commentId") ON DELETE CASCADE,
-    "direction"        SMALLINT NOT NULL CHECK ("direction" IN (-1,1)), -- -1 for downvote, 1 for upvote
+    "voteType"         "VoteType" NOT NULL, -- Use ENUM instead of SMALLINT direction
     "createdAt"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "chk_vote_target" CHECK ( -- Ensure a vote targets a post OR a comment, not both/neither
         ("postId" IS NOT NULL AND "commentId" IS NULL) OR
@@ -130,7 +131,7 @@ CREATE TABLE "Vote" (
 CREATE TABLE "Report" (
     "reportId"            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "reporterPrincipalId" UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE CASCADE,
-    "postId"              UUID REFERENCES "Post"("postId")       ON DELETE CASCADE,
+    "postId"              UUID REFERENCES "Post"("postId")        ON DELETE CASCADE,
     "commentId"           UUID REFERENCES "Comment"("commentId") ON DELETE CASCADE,
     "reason"              TEXT NOT NULL,
     "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -146,19 +147,19 @@ CREATE TABLE "Report" (
 -- ---------- Rules & Logs ----------------------------------------------------
 
 CREATE TABLE "SystemRule" ( -- Sitewide rules
-    "ruleId"           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "title"            VARCHAR(255) NOT NULL,
-    "description"      TEXT NOT NULL,
-    "createdAt"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ruleId"             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "title"              VARCHAR(255) NOT NULL,
+    "description"        TEXT NOT NULL,
+    "createdAt"          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdByAdminId" UUID REFERENCES "Admin"("adminId") ON DELETE SET NULL
 );
 
 CREATE TABLE "SubtableRule" ( -- Community-specific rules
-    "ruleId"           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "subtableId"       UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
-    "title"            VARCHAR(255) NOT NULL,
-    "description"      TEXT NOT NULL,
-    "createdAt"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ruleId"             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "subtableId"         UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
+    "title"              VARCHAR(255) NOT NULL,
+    "description"        TEXT NOT NULL,
+    "createdAt"          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "creatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL -- Moderator or creator
 );
 
@@ -181,7 +182,7 @@ CREATE TABLE "Notification" (
 CREATE TABLE "Message" ( -- Private messages
     "messageId"           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "senderPrincipalId"   UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
-    "recipientAccountId"  UUID REFERENCES "Account"("accountId")   ON DELETE SET NULL,
+    "recipientAccountId"  UUID REFERENCES "Account"("accountId")    ON DELETE SET NULL,
     "subject"             VARCHAR(255),
     "body"                TEXT NOT NULL,
     "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -203,27 +204,27 @@ CREATE TABLE "Ban" ( -- Tracks user bans (site-wide or subtable-specific)
 -- ---------- Logs ------------------------------------------------------------
 
 CREATE TABLE "ModeratorLog" ( -- Actions taken by moderators within a subtable
-    "logId"                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "logId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "moderatorPrincipalId" UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE SET NULL,
-    "subtableId"           UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
-    "action"               VARCHAR(100) NOT NULL, -- e.g., 'remove_post', 'ban_user'
-    "targetPostId"         UUID REFERENCES "Post"("postId")       ON DELETE SET NULL,
-    "targetCommentId"      UUID REFERENCES "Comment"("commentId") ON DELETE SET NULL,
-    "targetAccountId"      UUID REFERENCES "Account"("accountId") ON DELETE SET NULL, -- User affected by action
-    "details"              TEXT, -- Optional justification or details
-    "createdAt"            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "subtableId"          UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
+    "action"              VARCHAR(100) NOT NULL, -- e.g., 'remove_post', 'ban_user'
+    "targetPostId"        UUID REFERENCES "Post"("postId")        ON DELETE SET NULL,
+    "targetCommentId"     UUID REFERENCES "Comment"("commentId") ON DELETE SET NULL,
+    "targetAccountId"     UUID REFERENCES "Account"("accountId") ON DELETE SET NULL, -- User affected by action
+    "details"             TEXT, -- Optional justification or details
+    "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE "AdminLog" ( -- Actions taken by site administrators
-    "logId"                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "adminId"              UUID NOT NULL REFERENCES "Admin"("adminId") ON DELETE SET NULL,
-    "action"               VARCHAR(100) NOT NULL, -- e.g., 'suspend_account', 'delete_subtable'
-    "targetAccountId"      UUID REFERENCES "Account"("accountId") ON DELETE SET NULL,
-    "targetSubtableId"     UUID REFERENCES "Subtable"("subtableId") ON DELETE SET NULL,
-    "targetPostId"         UUID REFERENCES "Post"("postId")       ON DELETE SET NULL,
-    "targetCommentId"      UUID REFERENCES "Comment"("commentId") ON DELETE SET NULL,
-    "details"              TEXT,
-    "createdAt"            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "logId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "adminId"             UUID NOT NULL REFERENCES "Admin"("adminId") ON DELETE SET NULL,
+    "action"              VARCHAR(100) NOT NULL, -- e.g., 'suspend_account', 'delete_subtable'
+    "targetAccountId"     UUID REFERENCES "Account"("accountId") ON DELETE SET NULL,
+    "targetSubtableId"    UUID REFERENCES "Subtable"("subtableId") ON DELETE SET NULL,
+    "targetPostId"        UUID REFERENCES "Post"("postId")        ON DELETE SET NULL,
+    "targetCommentId"     UUID REFERENCES "Comment"("commentId") ON DELETE SET NULL,
+    "details"             TEXT,
+    "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ---------- Media -----------------------------------------------------------
@@ -258,10 +259,10 @@ CREATE INDEX idx_post_createdat ON "Post"("createdAt");
 CREATE INDEX idx_comment_postid ON "Comment"("postId");
 CREATE INDEX idx_comment_authoruserid ON "Comment"("authorUserId");
 CREATE INDEX idx_comment_parentcommentid ON "Comment"("parentCommentId");
--- MODIFIED: Index name and column updated
 CREATE INDEX idx_vote_voteruserid ON "Vote"("voterUserId");
 CREATE INDEX idx_vote_postid ON "Vote"("postId");
 CREATE INDEX idx_vote_commentid ON "Vote"("commentId");
+CREATE INDEX idx_vote_votetype ON "Vote"("voteType"); -- Optional: Index the new voteType
 CREATE INDEX idx_report_reporterprincipalid ON "Report"("reporterPrincipalId");
 CREATE INDEX idx_report_postid ON "Report"("postId");
 CREATE INDEX idx_report_commentid ON "Report"("commentId");
@@ -306,42 +307,68 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Updates the vote count on the target Post or Comment when a Vote is added, deleted, or updated
+-- MODIFIED: Updates the vote count based on voteType ENUM
 CREATE OR REPLACE FUNCTION trigger_update_vote_count()
 RETURNS TRIGGER AS $$
 DECLARE
-    diff INT;
+    diff INT := 0;
     tgt_post UUID;
     tgt_comment UUID;
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        diff := NEW."direction";
+        -- Set target IDs
         tgt_post := NEW."postId";
         tgt_comment := NEW."commentId";
+        -- Calculate diff based on new voteType
+        IF NEW."voteType" = 'upvote' THEN
+            diff := 1;
+        ELSE -- 'downvote'
+            diff := -1;
+        END IF;
+
     ELSIF TG_OP = 'DELETE' THEN
-        diff := -OLD."direction";
+        -- Set target IDs
         tgt_post := OLD."postId";
         tgt_comment := OLD."commentId";
+        -- Calculate diff (reverse of the old voteType)
+        IF OLD."voteType" = 'upvote' THEN
+            diff := -1;
+        ELSE -- 'downvote'
+            diff := 1;
+        END IF;
+
     ELSIF TG_OP = 'UPDATE' THEN
-        IF OLD."direction" <> NEW."direction" THEN
-            diff := NEW."direction" - OLD."direction";
+        -- Only proceed if voteType actually changed
+        IF OLD."voteType" <> NEW."voteType" THEN
+            -- Set target IDs
             tgt_post := NEW."postId";
             tgt_comment := NEW."commentId";
+            -- Calculate diff (new effect minus old effect)
+            -- If changing upvote -> downvote, diff is -1 - 1 = -2
+            -- If changing downvote -> upvote, diff is 1 - (-1) = 2
+             IF NEW."voteType" = 'upvote' THEN -- Must have been 'downvote' before
+                diff := 2;
+             ELSE -- Must have been 'upvote' before
+                diff := -2;
+             END IF;
         ELSE
-            RETURN NULL; -- No change in direction
+             RETURN NULL; -- No change in voteType, do nothing
         END IF;
     ELSE
-         RETURN NULL;
+         RETURN NULL; -- Should not happen for this trigger
     END IF;
 
+    -- Apply the calculated difference to the appropriate counter
     IF tgt_post IS NOT NULL THEN
         UPDATE "Post" SET "voteCount" = "voteCount" + diff WHERE "postId" = tgt_post;
     ELSIF tgt_comment IS NOT NULL THEN
         UPDATE "Comment" SET "voteCount" = "voteCount" + diff WHERE "commentId" = tgt_comment;
     END IF;
+
     RETURN NULL; -- AFTER trigger
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- Prevents inserting more media items than allowed for a single post
 CREATE OR REPLACE FUNCTION check_media_limit()
@@ -386,7 +413,7 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 -- TRIGGERS
 -- ============================================================================
-
+-- ... (Triggers remain the same, the Vote trigger already points to the updated function) ...
 CREATE TRIGGER "set_account_timestamp"  BEFORE UPDATE ON "Account" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER "set_post_timestamp"     BEFORE UPDATE ON "Post"    FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER "set_comment_timestamp"  BEFORE UPDATE ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
@@ -402,8 +429,7 @@ CREATE TRIGGER "enforce_single_role_admin" BEFORE INSERT ON "Admin"          FOR
 -- ============================================================================
 -- VIEWS
 -- ============================================================================
-
--- Combined view of user account and profile information
+-- ... (UserProfile, UserCommentDetails, UserPostDetails views remain the same) ...
 CREATE OR REPLACE VIEW "UserProfile" AS
 SELECT
     ru."userId",
@@ -416,11 +442,10 @@ SELECT
     ru."isVerified",
     ru."status"
 FROM "RegisteredUser" ru
-JOIN "Principal"      p  ON p."principalId" = ru."principalId"
-JOIN "Account"        a  ON a."accountId"   = p."accountId"
-JOIN "Profile"        pr ON pr."profileId"  = p."profileId";
+JOIN "Principal"       p  ON p."principalId" = ru."principalId"
+JOIN "Account"         a  ON a."accountId"   = p."accountId"
+JOIN "Profile"         pr ON pr."profileId"  = p."profileId";
 
--- Combines comment information with details about the author from UserProfile
 CREATE OR REPLACE VIEW "UserCommentDetails" AS
 SELECT
     c."commentId",
@@ -442,7 +467,6 @@ SELECT
 FROM "Comment" c
 LEFT JOIN "UserProfile" up ON c."authorUserId" = up."userId";
 
--- Combines post information with details about the author and subtable
 CREATE OR REPLACE VIEW "UserPostDetails" AS
 SELECT
     p."postId",
@@ -473,13 +497,13 @@ FROM "Post" p
 LEFT JOIN "UserProfile" up ON p."authorUserId" = up."userId"
 LEFT JOIN "Subtable"    s  ON p."subtableId" = s."subtableId";
 
--- NEW VIEW: Combines vote information with details about the voter from UserProfile
+-- MODIFIED VIEW: Changed direction to voteType
 CREATE OR REPLACE VIEW "UserVoteDetails" AS
 SELECT
     v."voteId",
     v."postId",
     v."commentId",
-    v."direction",
+    v."voteType", -- Changed from direction
     v."createdAt" AS "voteCreatedAt",
     up."userId" AS "voterUserId",
     up."principalId" AS "voterPrincipalId",
@@ -493,9 +517,10 @@ FROM "Vote" v
 LEFT JOIN "UserProfile" up ON v."voterUserId" = up."userId";
 
 -- ============================================================================
--- REALISTIC SAMPLE DATA -- April 24, 2025 (REVISED 2)
+-- REALISTIC SAMPLE DATA -- April 24, 2025 (REVISED 3 - VoteType ENUM)
 -- ============================================================================
 
+-- ... (Sample data for Account, Profile, Principal, RegisteredUser, Admin, Subtable, Moderators, Post, Comment remain the same) ...
 -- Accounts (10 records)
 INSERT INTO "Account" ("accountId","username","password","email") VALUES
   ('00000000-0000-0000-0000-000000000001','user1','hashed_password_1','user1@example.com'),
@@ -540,10 +565,10 @@ INSERT INTO "Principal" ("principalId","accountId","profileId","role") VALUES
 
 -- RegisteredUsers (5 records for the 5 ‘user’ principals)
 INSERT INTO "RegisteredUser" ("userId","principalId","karma","isVerified","status","lastActive") VALUES
-  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021',  10, TRUE,  'active',    '2025-04-24 01:00:00'),
-  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022',  20, FALSE, 'suspended','2025-04-23 15:30:00'),
-  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000023',   5, TRUE,  'active',    '2025-04-22 12:00:00'),
-  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000024',   0, FALSE, 'banned',    '2025-04-21 08:45:00'),
+  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021',   10, TRUE,  'active',    '2025-04-24 01:00:00'),
+  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022',   20, FALSE, 'suspended', '2025-04-23 15:30:00'),
+  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000023',    5, TRUE,  'active',    '2025-04-22 12:00:00'),
+  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000024',    0, FALSE, 'banned',    '2025-04-21 08:45:00'),
   ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000025', 100, TRUE,  'active',    '2025-04-24 01:15:00')
 ;
 
@@ -612,21 +637,23 @@ INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","bo
   ('00000000-0000-0000-0000-000000000205','00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000072','Me too! Especially a good lasagna. Takes time but worth it.')
 ;
 
--- Votes (10 records - MODIFIED: Uses voterUserId, removed admin votes)
-INSERT INTO "Vote" ("voteId","voterUserId","postId","commentId","direction") VALUES
-  ('00000000-0000-0000-0000-000000000076','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000051',NULL,  1), -- user1 votes on post 51
-  ('00000000-0000-0000-0000-000000000077','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000051',NULL,  1), -- user2 votes on post 51
-  ('00000000-0000-0000-0000-000000000078','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000052',NULL, -1), -- user3 votes on post 52
-  ('00000000-0000-0000-0000-000000000079','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000053',NULL,  1), -- user4 votes on post 53
-  ('00000000-0000-0000-0000-000000000080','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000054',NULL,  1), -- user5 votes on post 54
-  ('00000000-0000-0000-0000-000000000085','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000055',NULL, -1), -- user1 votes on post 55
-  ('00000000-0000-0000-0000-000000000086','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000056',NULL,  1), -- user2 votes on post 56
-  ('00000000-0000-0000-0000-000000000087','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000057',NULL,  1), -- user3 votes on post 57
-  ('00000000-0000-0000-0000-000000000088','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000058',NULL, -1), -- user4 votes on post 58
-  ('00000000-0000-0000-0000-000000000089','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000059',NULL,  1), -- user5 votes on post 59
-  ('00000000-0000-0000-0000-000000000095','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000071',-1)  -- user1 votes on comment 71
+-- MODIFIED: Votes (10 records - Use voteType instead of direction)
+INSERT INTO "Vote" ("voteId","voterUserId","postId","commentId","voteType") VALUES
+  ('00000000-0000-0000-0000-000000000076','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000051',NULL, 'upvote'),   -- user1 upvotes post 51
+  ('00000000-0000-0000-0000-000000000077','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000051',NULL, 'upvote'),   -- user2 upvotes post 51
+  ('00000000-0000-0000-0000-000000000078','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000052',NULL, 'downvote'), -- user3 downvotes post 52
+  ('00000000-0000-0000-0000-000000000079','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000053',NULL, 'upvote'),   -- user4 upvotes post 53
+  ('00000000-0000-0000-0000-000000000080','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000054',NULL, 'upvote'),   -- user5 upvotes post 54
+  ('00000000-0000-0000-0000-000000000085','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000055',NULL, 'downvote'), -- user1 downvotes post 55
+  ('00000000-0000-0000-0000-000000000086','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000056',NULL, 'upvote'),   -- user2 upvotes post 56
+  ('00000000-0000-0000-0000-000000000087','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000057',NULL, 'upvote'),   -- user3 upvotes post 57
+  ('00000000-0000-0000-0000-000000000088','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000058',NULL, 'downvote'), -- user4 downvotes post 58
+  ('00000000-0000-0000-0000-000000000089','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000059',NULL, 'upvote'),   -- user5 upvotes post 59
+  ('00000000-0000-0000-0000-000000000095','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000071','downvote')  -- user1 downvotes comment 71
 ;
 
+
+-- ... (Sample data for Report, SystemRule, SubtableRule, Notification, Message, Ban, ModeratorLog, AdminLog, Media remain the same) ...
 -- Reports (3 records)
 INSERT INTO "Report" ("reportId","reporterPrincipalId","postId","commentId","reason") VALUES
   ('00000000-0000-0000-0000-000000000096','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000053',NULL,'Spam content'),
