@@ -14,7 +14,6 @@ import './Comment.css';
 export default function Comment(props) {
     const {
         comment,
-        postId,
         subtableName,
         onReplyPosted
     } = props;
@@ -32,9 +31,12 @@ export default function Comment(props) {
         handleUpvote,
         handleDownvote
     } = useVote(
-        {initialCount: comment.voteCount, initialVoteStatus: comment.userVoteStatus ?? null},
-        comment.commentId,
-        'comment'
+        {
+            initialCount: comment.voteCount,
+            initialVote: comment.userVote ?? null,
+            postId: comment.postId,
+            commentId: comment.commentId,
+        },
     );
 
     const handleReplyClick = () => {
@@ -199,8 +201,7 @@ export default function Comment(props) {
                     <div className="reply-input-area mt-3">
                         <WriteComment
                             subtableName={subtableName}
-                            postId={postId}
-                            parentId={comment.commentId}
+                            parentCommentId={comment.commentId}
                             onCommentSubmit={handlePostReply}
                             onCancel={() => setIsReplying(false)}
                         />
@@ -217,7 +218,7 @@ export default function Comment(props) {
                         <Comment
                             key={reply.commentId}
                             comment={reply}
-                            postId={postId}
+                            postId={reply.postId}
                             subtableName={subtableName}
                             onReplyPosted={onReplyPosted}
                         />
