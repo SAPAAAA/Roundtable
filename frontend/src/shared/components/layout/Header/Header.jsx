@@ -6,19 +6,25 @@ import Icon from "#shared/components/UIElement/Icon/Icon";
 import Link from "#shared/components/Navigation/Link/Link";
 import Identifier from "#shared/components/UIElement/Identifier/Identifier";
 import {useAuth} from "#hooks/useAuth.jsx";
-import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu'; // Assuming this is the correct path
+import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu';
+import {useNavigate} from "react-router"; // Assuming this is the correct path
 
 export default function Header(props) {
     const {toggleSidebar, openLoginModal} = props;
     const {user, logout, isLoading} = useAuth();
 
-    // Removed showPopover state, avatarRef, popoverRef, and useEffect for outside click handling
+    const navigate = useNavigate(); // Assuming useNavigate is imported from react-router-dom
 
     const handleMenuItemClick = (action) => {
         if (action) {
             action();
         }
         // Removed setShowPopover(false) - PopoverMenu handles closing
+    };
+
+    const handleNotificationsClick = () => {
+        console.log("Notifications Clicked - Navigating");
+        navigate('/notifications'); // Navigate to the notifications route
     };
 
     const handleLogoutClick = async () => {
@@ -143,7 +149,7 @@ export default function Header(props) {
                                         dataBsTrigger="hover focus"
                                         tooltipTitle="Notifications"
                                         tooltipPlacement="bottom"
-                                        onClick={() => console.log("Notifications Clicked")} // Placeholder action
+                                        onClick={handleNotificationsClick}
                                     >
                                         <Icon
                                             name="bell"
@@ -204,7 +210,7 @@ export default function Header(props) {
                                             className="px-2 py-2 logout-link"
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                handleLogoutClick();
+                                                handleLogoutClick().then(() => console.log("Logout clicked"));
                                             }}
                                         >
                                             <Icon name="logout" size="18px" addClass="me-2"/> {/* Added margin */}
