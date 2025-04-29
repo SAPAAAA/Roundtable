@@ -1,5 +1,5 @@
 import postgres from '#db/postgres.js';
-import UserCommentDetails from '#models/UserCommentDetails.model.js';
+import UserCommentDetails from '#models/userCommentDetails.model.js';
 
 /**
  * @typedef {Object} GetCommentsOptions

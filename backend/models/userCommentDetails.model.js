@@ -1,7 +1,4 @@
-import UserProfile from '#models/UserProfile.model.js'; // Assuming UserProfile is in the same directory or adjust path
-// Import enums if needed for type validation/hints later, although not strictly necessary
-// import {PrincipalRoleEnum} from "#models/principal.model.js";
-// import {UserStatusEnum} from "#models/registeredUser.model.js";
+import UserProfile from '#models/UserProfile.model.js';
 
 /**
  * Represents detailed information about a comment, including information about its author.
