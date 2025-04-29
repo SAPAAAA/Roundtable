@@ -26,7 +26,7 @@ export default defineConfig({
         },
     },
     build: {
-        outDir: 'output'
+        outDir: 'dist'
     },
     server: {
         port: 3000,
