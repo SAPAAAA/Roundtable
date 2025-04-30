@@ -29,7 +29,7 @@ const AuthProvider = ({children}) => {
         console.log("Checking backend session...");
         try {
             // Assumes GET /api/auth/session returns { success: true, user: {...} } if logged in
-            const response = await sendApiRequest('http://localhost:5000/api/auth/session', {
+            const response = await sendApiRequest('http://localhost:6000/api/auth/session', {
                 method: 'GET'
             });
 
@@ -72,7 +72,7 @@ const AuthProvider = ({children}) => {
         setError(null);
         console.log('Initiating logout...');
         try {
-            await sendApiRequest('http://localhost:5000/api/auth/logout', {
+            await sendApiRequest('http://localhost:6000/api/auth/logout', {
                 method: 'POST'
             });
             console.log('Backend logout successful.');

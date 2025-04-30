@@ -67,7 +67,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/comments', commentRoutes);
 
+app.listen(6000, () => {
+    console.log('Server running on port 6000')
+});
 
-app.listen(5000, () => {
-    console.log('Server running on port 5000')
-})
