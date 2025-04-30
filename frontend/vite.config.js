@@ -34,7 +34,7 @@ export default defineConfig({
         port: 3000,
         watch: {
             usePolling: true,
-            interval: 50, // Optional: polling frequency in ms
+            interval: 100, // Optional: polling frequency in ms
         },
         proxy: {
             '/api': {

@@ -9,7 +9,9 @@ export default function App() {
     return (
         <div className="App">
             <AuthProvider>
-                <AppRouter/>
+                <AuthProvider>
+                    <AppRouter/>
+                </AuthProvider>
             </AuthProvider>
         </div>
     );

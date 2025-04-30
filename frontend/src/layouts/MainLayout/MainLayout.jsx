@@ -1,7 +1,8 @@
 // src/layouts/MainLayout/MainLayout.jsx
 import React, {useEffect, useState} from 'react'; // Make sure useEffect is imported
 import './MainLayout.css';
-import {useAuth} from "#hooks/useAuth.jsx"; // Import useAuth
+import {useAuth} from "#hooks/useAuth.jsx";
+import useWebSocketNotifications from "#hooks/useWebSocketNotifications.jsx";
 
 // Lazy load components
 const Header = React.lazy(() => import("#shared/components/layout/Header/Header.jsx"));
@@ -21,6 +22,9 @@ export default function MainLayout() {
 
     // --- Error State for Login ---
     const [loginApiError, setLoginApiError] = useState(null);
+
+    // --- Activate WebSocket listener hook ---
+    useWebSocketNotifications();
 
     // --- Handlers ---
     const toggleSidebar = () => setSidebarVisible(prev => !prev);

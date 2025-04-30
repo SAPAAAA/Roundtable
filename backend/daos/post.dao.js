@@ -71,7 +71,7 @@ class PostDAO {
 
         if (Object.keys(allowedUpdates).length === 0) {
             console.warn(`Post update called for ID ${postId} with no valid fields to update.`);
-            return this.getById(postId); // Return current state
+            return this.getById(postId, trx); // Return current state
         }
 
         try {

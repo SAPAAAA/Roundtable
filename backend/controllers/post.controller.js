@@ -43,7 +43,7 @@ class PostController {
         try {
             const {postId} = req.params;
             const {voteType} = req.body;
-            const userId = req.session.userId;
+            const {userId} = req.session;
 
             console.log(`[PostController.castVote] Processing vote for postId: ${postId}, voteType: ${voteType}`);
 

@@ -1,18 +1,20 @@
 import commentService from '#services/comment.service.js';
 import voteService from '#services/vote.service.js';
+import notificationService from '#services/notification.service.js';
 
 
 class CommentController {
-    constructor(commentService) {
+    constructor(commentService, voteService, notificationService) {
         this.commentService = commentService;
         this.voteService = voteService;
+        this.notificationService = notificationService;
     }
 
     addComment = async (req, res) => {
         try {
             const {postId} = req.params;
             const {body} = req.body;
-            const userId = req.session.userId;
+            const {userId} = req.session;
             console.log("Comment Data:", req.body);
             console.log("Post ID:", postId);
             console.log("User ID:", userId);
@@ -20,6 +22,7 @@ class CommentController {
             if (!newComment) {
                 return res.status(400).json({error: 'Failed to create comment'});
             }
+            await this.notificationService.notifyNewComment(newComment, userId);
             res.status(201).json({
                 message: 'Comment created successfully',
                 data: {
@@ -37,11 +40,12 @@ class CommentController {
         try {
             const {commentId} = req.params;
             const {body} = req.body;
-            const userId = req.session.userId;
+            const {userId} = req.session;
             console.log("Reply Data:", req.body);
             console.log("Parent ID:", commentId);
             console.log("User ID:", userId);
             const newReply = await this.commentService.createReply(commentId, userId, body);
+            await this.notificationService.notifyNewComment(newReply, userId);
             if (!newReply) {
                 return res.status(400).json({error: 'Failed to create reply'});
             }
@@ -62,11 +66,12 @@ class CommentController {
         try {
             const {commentId} = req.params;
             const {voteType} = req.body;
-            const userId = req.session.userId;
+            const {userId} = req.session;
             console.log("Vote Data:", req.body);
             console.log("Comment ID:", commentId);
             console.log("User ID:", userId);
             const result = await this.voteService.createVote(userId, null, commentId, voteType);
+
             if (!result) {
                 return res.status(400).json({error: 'Failed to cast vote'});
             }
@@ -84,4 +89,4 @@ class CommentController {
     }
 }
 
-export default new CommentController(commentService, voteService);
+export default new CommentController(commentService, voteService, notificationService);

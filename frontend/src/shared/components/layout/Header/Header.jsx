@@ -7,11 +7,13 @@ import Link from "#shared/components/Navigation/Link/Link";
 import Identifier from "#shared/components/UIElement/Identifier/Identifier";
 import {useAuth} from "#hooks/useAuth.jsx";
 import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu';
-import {useNavigate} from "react-router"; // Assuming this is the correct path
+import {useNavigate} from "react-router";
+import useNotifications from "#hooks/useNotifications.jsx";
 
 export default function Header(props) {
     const {toggleSidebar, openLoginModal} = props;
     const {user, logout, isLoading} = useAuth();
+    const {unreadCount} = useNotifications();
 
     const navigate = useNavigate(); // Assuming useNavigate is imported from react-router-dom
 
@@ -141,20 +143,22 @@ export default function Header(props) {
                                         />
                                     </Button>
                                 </li>
-                                {/* Notifications Button */}
-                                <li className="nav-item">
+                                {/* Notifications Button with Badge */}
+                                <li className="nav-item position-relative"> {/* Added position-relative */}
                                     <Button
                                         contentType="icon"
-                                        dataBsToggle="tooltip"
-                                        dataBsTrigger="hover focus"
                                         tooltipTitle="Notifications"
-                                        tooltipPlacement="bottom"
                                         onClick={handleNotificationsClick}
+                                        aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
                                     >
-                                        <Icon
-                                            name="bell"
-                                            size="20px"
-                                        />
+                                        <Icon name="bell" size="20px"/>
+                                        {unreadCount > 0 && ( // <-- Display badge if count > 0
+                                            <span
+                                                className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
+                                                {unreadCount > 9 ? '9+' : unreadCount}
+                                                <span className="visually-hidden">unread messages</span>
+                                            </span>
+                                        )}
                                     </Button>
                                 </li>
 

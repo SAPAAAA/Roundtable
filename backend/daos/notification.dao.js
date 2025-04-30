@@ -38,8 +38,8 @@ class NotificationDAO {
         } = notification;
 
         // Basic validation: Ensure required fields are present
-        if (!insertData.recipientAccountId || !insertData.type) {
-            throw new Error('Missing required fields for notification creation: recipientAccountId and type.');
+        if (!insertData.recipientUserId || !insertData.type) {
+            throw new Error('Missing required fields for notification creation: recipientUserId and type are required.');
         }
 
         try {
@@ -133,11 +133,11 @@ class NotificationDAO {
 
     /**
      * Finds notifications for a specific recipient account, optionally paginated, filtered, and sorted.
-     * @param {string} recipientAccountId - The UUID of the recipient account.
+     * @param {string} recipientUserId - The UUID of the recipient account.
      * @param {{limit?: number, offset?: number, isRead?: boolean, sortBy?: 'createdAt', order?: 'asc' | 'desc'}} [options={}] - Pagination, filtering, and sorting options.
      * @returns {Promise<Notification[]>} An array of Notification instances.
      */
-    async findByRecipient(recipientAccountId, options = {}) {
+    async getByRecipient(recipientUserId, options = {}) {
         // Destructure options with default values
         const {limit = 25, offset = 0, isRead, sortBy = 'createdAt', order = 'desc'} = options;
         // Validate sort field and order
@@ -147,7 +147,7 @@ class NotificationDAO {
         try {
             // Start building the query
             const query = postgres('Notification')
-                .where({recipientAccountId});
+                .where({recipientUserId})
 
             // Apply isRead filter if provided
             if (isRead !== undefined) {
@@ -166,36 +166,35 @@ class NotificationDAO {
             return notificationRows.map(Notification.fromDbRow);
         } catch (error) {
             // Log errors encountered while finding notifications
-            console.error(`Error finding notifications by recipient (${recipientAccountId}):`, error);
+            console.error(`Error finding notifications by recipient (${recipientUserId}):`, error);
             // Re-throw the error
             throw error;
         }
     }
 
     /**
-     * Counts notifications for a specific recipient account, optionally filtered by read status.
-     * @param {string} recipientAccountId - The UUID of the recipient account.
-     * @param {{isRead?: boolean}} [filters={}] - Filtering options (e.g., only count unread).
-     * @returns {Promise<number>} The count of notifications.
+     * Counts notifications for a specific recipient, optionally filtered by read status.
+     * @param {string} recipientUserId - The ID of the recipient user.
+     * @param {Object} [filters] - Optional filters for counting.
+     * @param {boolean} [filters.isRead] - Filter by read status.
+     * @returns {Promise<number>} The count of notifications matching the criteria.
      */
-    async countByRecipient(recipientAccountId, filters = {}) {
+    async countByRecipient(recipientUserId, filters = {}) { // <-- Updated
         const {isRead} = filters;
         try {
-            const query = postgres('Notification').where({recipientAccountId});
+            const query = postgres('Notification').where({recipientUserId}); // <-- Updated
 
             if (isRead !== undefined) {
                 query.andWhere({isRead});
             }
-
             const result = await query.count({count: '*'}).first();
-
-            // Safely parse the count value, defaulting to 0 if not found
             return parseInt(result?.count, 10) || 0;
         } catch (error) {
-            console.error(`Error counting notifications for recipient (${recipientAccountId}):`, error);
+            console.error(`Error counting notifications for recipient (${recipientUserId}):`, error);
             throw error;
         }
     }
+
 
     /**
      * Marks multiple notifications as read for a specific recipient.

@@ -14,6 +14,7 @@
 		"#services/*": "./services/*",
 		"#utils/*": "./utils/*",
 		"#db/*": "./db/*",
+		"#websocket/*": "./websocket/*",
 		"#constants/*": "./constants/*",
 		"#middlewares/*": "./middlewares/*",
 		"#errors/*": "./errors/*"
@@ -35,7 +36,8 @@
 		"knex": "^3.1.0",
 		"nodemailer": "^6.10.1",
 		"pg": "^8.14.1",
-		"redis": "^4.7.0"
+		"redis": "^4.7.0",
+		"ws": "^8.18.1"
 	},
 	"devDependencies": {
 		"nodemon": "^3.1.10"

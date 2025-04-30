@@ -2,8 +2,21 @@
 
 /**
  * @typedef {'comment_reply'|'post_reply'|'mention'|'message'|'moderator_invite'|'system_message'|'report_update'|'vote_post'|'vote_comment'} NotificationTypeEnum
- * Represents the type of a notification, mirroring the "NotificationType" ENUM in the database.
+ * Represents the type of notification, mirroring the "NotificationType" ENUM in the database.
  */
+export const NotificationTypeEnum = Object.freeze(
+    {
+        COMMENT_REPLY: 'comment_reply',
+        POST_REPLY: 'post_reply',
+        MENTION: 'mention',
+        MESSAGE: 'message',
+        MODERATOR_INVITE: 'moderator_invite',
+        SYSTEM_MESSAGE: 'system_message',
+        REPORT_UPDATE: 'report_update',
+        VOTE_POST: 'vote_post',
+        VOTE_COMMENT: 'vote_comment'
+    }
+);
 
 /**
  * Represents a Notification sent to a user.
@@ -25,7 +38,7 @@ class Notification {
         this.notificationId = notificationId;
 
         /** @type {string} */
-        this.recipientUserId = recipientUserId; // <-- Changed from recipientAccountId
+        this.recipientUserId = recipientUserId;
 
         /** @type {string | null} */
         this.triggeringPrincipalId = triggeringPrincipalId;

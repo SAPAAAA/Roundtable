@@ -77,7 +77,7 @@ export default function Comment(props) {
     `.trim().replace(/\s+/g, ' '); // Clean up whitespace
 
     return (
-        <div className={`comment-thread-item ${isReply ? 'is-reply-item' : ''}`}>
+        <div className={`comment-thread-item comment-${comment.commentId} ${isReply ? 'is-reply-item' : ''}`}>
             {/* --- Use the conditional class string --- */}
             <div className={commentComponentClasses}>
                 {/* ... (Comment Details - Avatar, Identifier, Body) ... */}

@@ -453,16 +453,16 @@ FROM "Vote" v
 LEFT JOIN "UserProfile" up ON v."voterUserId" = up."userId";
 
 INSERT INTO "Account" ("accountId","username","password","email") VALUES
-  ('00000000-0000-0000-0000-000000000001','user1','hashed_password_1','user1@example.com'),
-  ('00000000-0000-0000-0000-000000000002','user2','hashed_password_2','user2@example.com'),
-  ('00000000-0000-0000-0000-000000000003','user3','hashed_password_3','user3@example.com'),
-  ('00000000-0000-0000-0000-000000000004','user4','hashed_password_4','user4@example.com'),
-  ('00000000-0000-0000-0000-000000000005','user5','hashed_password_5','user5@example.com'),
-  ('00000000-0000-0000-0000-000000000006','admin1','hashed_password_6','admin1@example.com'),
-  ('00000000-0000-0000-0000-000000000007','admin2','hashed_password_7','admin2@example.com'),
-  ('00000000-0000-0000-0000-000000000008','admin3','hashed_password_8','admin3@example.com'),
-  ('00000000-0000-0000-0000-000000000009','admin4','hashed_password_9','admin4@example.com'),
-  ('00000000-0000-0000-0000-000000000010','admin5','hashed_password_10','admin5@example.com')
+  ('00000000-0000-0000-0000-000000000001','user1','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user1@example.com'),
+  ('00000000-0000-0000-0000-000000000002','user2','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user2@example.com'),
+  ('00000000-0000-0000-0000-000000000003','user3','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user3@example.com'),
+  ('00000000-0000-0000-0000-000000000004','user4','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user4@example.com'),
+  ('00000000-0000-0000-0000-000000000005','user5','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user5@example.com'),
+  ('00000000-0000-0000-0000-000000000006','admin1','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin1@example.com'),
+  ('00000000-0000-0000-0000-000000000007','admin2','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin2@example.com'),
+  ('00000000-0000-0000-0000-000000000008','admin3','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin3@example.com'),
+  ('00000000-0000-0000-0000-000000000009','admin4','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin4@example.com'),
+  ('00000000-0000-0000-0000-000000000010','admin5','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin5@example.com')
 ;
 
 INSERT INTO "Profile" ("profileId","avatar","banner","bio","location","displayName","gender") VALUES
