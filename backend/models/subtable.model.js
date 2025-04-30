@@ -11,11 +11,11 @@ class Subtable {
      * @param {string | null} [description=null] - A description of the subtable.
      * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
      * @param {string | null} [creatorPrincipalId=null] - The UUID of the Principal who created the subtable.
-     * @param {string | null} [iconUrl=null] - URL for the subtable's icon image.
-     * @param {string | null} [bannerUrl=null] - URL for the subtable's banner image.
+     * @param {string | null} [icon=null] - URL for the subtable's icon image.
+     * @param {string | null} [banner=null] - URL for the subtable's banner image.
      * @param {number} [memberCount=1] - The number of members (defaults to 1 in DB on creation).
      */
-    constructor(subtableId, name, description = null, createdAt = null, creatorPrincipalId = null, iconUrl = null, bannerUrl = null, memberCount = 1) {
+    constructor(subtableId, name, description = null, createdAt = null, creatorPrincipalId = null, icon = null, banner = null, memberCount = 1) {
         /** @type {string | null} */
         this.subtableId = subtableId;
 
@@ -32,10 +32,10 @@ class Subtable {
         this.creatorPrincipalId = creatorPrincipalId;
 
         /** @type {string | null} */
-        this.iconUrl = iconUrl;
+        this.icon = icon;
 
         /** @type {string | null} */
-        this.bannerUrl = bannerUrl;
+        this.banner = banner;
 
         /** @type {number} */
         this.memberCount = memberCount; // Reflects DB default
@@ -54,8 +54,8 @@ class Subtable {
             row.description,
             row.createdAt ? new Date(row.createdAt) : null, // Ensure it's a Date object
             row.creatorPrincipalId,
-            row.iconUrl,
-            row.bannerUrl,
+            row.icon,
+            row.banner,
             row.memberCount
         );
     }

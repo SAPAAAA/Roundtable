@@ -16,7 +16,7 @@ class SubtableController {
             //console.log("userId",userId)
 
             const viewData = await this.subtableService.getSubtableDetails(subtableName);
-            //console.log("viewData",viewData)
+            console.log("viewData",viewData)
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
                 data: viewData // Send the data returned by the service

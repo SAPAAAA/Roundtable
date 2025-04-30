@@ -167,30 +167,30 @@ class UserPostDetailsDAO {
 
         return {sortBy, order, includeRemoved, limit, offset};
     }
-    async getSubtableDetails(subtableName) {
+    // async getSubtableDetails(subtableName) {
         
-        if (!subtableName) {
-            console.error('getSubtableDetails called with null or undefined subtableName');
-            return null;
-        }
-        try {
-            console.log("subtableDAO", subtableName)
-            // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD); 
-            // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
+    //     if (!subtableName) {
+    //         console.error('getSubtableDetails called with null or undefined subtableName');
+    //         return null;
+    //     }
+    //     try {
+    //         console.log("subtableDAO", subtableName)
+    //         // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD); 
+    //         // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
 
-            const viewRow = await postgres('UserPostDetails') // Query the VIEW
-                .where({subtableName: subtableName})
-            console.log("viewRow nulll", viewRow)
+    //         const viewRow = await postgres('UserPostDetails') // Query the VIEW
+    //             .where({subtableName: subtableName})
+    //         //console.log("viewRow nulll", viewRow)
             
-            if (!viewRow) {
-                return null; // Subtable not found
-            }
-            return viewRow.map(row => UserPostDetails.fromDbRow(row));
-        } catch (error) {
-            console.error(`Error fetching UserPostDetails by subtableName (${subtableName}):`, error);
-            throw error; // Re-throw the error for upstream handling
-        }
-    }
+    //         if (!viewRow) {
+    //             return null; // Subtable not found
+    //         }
+    //         return viewRow.map(row => UserPostDetails.fromDbRow(row));
+    //     } catch (error) {
+    //         console.error(`Error fetching UserPostDetails by subtableName (${subtableName}):`, error);
+    //         throw error; // Re-throw the error for upstream handling
+    //     }
+    // }
 
    
 }

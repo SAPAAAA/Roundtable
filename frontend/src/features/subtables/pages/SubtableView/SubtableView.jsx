@@ -1,5 +1,5 @@
 import './SubtableView.css'
-import ListPostReview from '../../../posts/components/ListPostPreview/ListPostPreview'
+import ListPostPreviewSubtable from '#features/posts/components/ListPostPreviewSubtable/ListPostPreviewSubtable'
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
@@ -24,21 +24,26 @@ export default function SubtableView() {
             //console.log("1111111111111111111") 
             try {
                 const response = await subtableService.getSubtableDetails(subtableName);
-                //console.log("responsellllllllll", response.data[0].subtable.iconURL)
+                console.log("responsellllllllll", response.data[0])
                 setSubtableName(response.data[0].subtable.name)
                 setSubtableAvatar(response.data[0].subtable.iconUrl)
                 setSubtableBanner(response.data[0].subtable.bannerUrl)
                 // console.log("response", response.data[0].subtable.icon)
                 // console.log("response", response.data[0].subtable.banner)
-                const posts = response.data.map((item) => ({
-                    
+                const posts = response.data.map((item) => {
+                    const post = {
+                        postId: item.postId,
                         title: item.title,
                         content: item.body,
+                        createdAt: item.postCreatedAt,
                         voteCount: item.voteCount,
-                        authorAvatar: item.author.avatar,
-                        authorName: item.author.displayName,
-
-                }))
+                        // Add other properties as needed
+                    };
+                    return {
+                        post: post,
+                        author: item.author,
+                   }
+                })
                 setPosts(posts)
                 
                 //console.log(response.data[0])
@@ -175,7 +180,7 @@ export default function SubtableView() {
 
 
                     </div>
-                    <ListPostReview posts={posts} />
+                    <ListPostPreviewSubtable posts={posts} />
                 </div>
             </div>
         </>

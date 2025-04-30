@@ -7,13 +7,15 @@ class SubtableService {
         //console.log(`Fetching subtable details for subtableName: ${subtableName}`);
 
         // Fetch subtable details from the DAO
-        const subtableDetails = await userPostDetailsDao.getSubtableDetails(subtableName);
+        //const subtableDetails = await userPostDetailsDao.getSubtableDetails(subtableName);
+        const subtableDetails = await subtableDAO.getByName(subtableName);
+        const subtableRelatedPosts = await userPostDetailsDao.getBySubtableId(subtableDetails.subtableId);
         // console.log("subtableDetails + ", subtableDetails)
 
         // --- Success Response ---
         return {
             success: true,
-            data: subtableDetails
+            data: subtableRelatedPosts
         };
     }
     async createSubtable(subtable,userId) {

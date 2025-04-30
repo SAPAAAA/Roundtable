@@ -48,8 +48,8 @@ export default function PostCore(props) {
             <h5 className="fw-bold mt-2">{post.title}</h5>
 
             {/* Post Content */}
-            {post.body && ( // Only render body if it exists
-                <div className={`fs-content mt-2 mb-2 ${props.contentClass || ''}`}>{post.body}</div>
+            {post.content && ( // Only render body if it exists
+                <div className={`fs-content mt-2 mb-2 ${props.contentClass || ''}`}>{post.content}</div>
             )}
 
 
