@@ -10,6 +10,7 @@ const __dirname = dirname(__filename);
 export default defineConfig({
     plugins: [react()],
     resolve: {
+        // ... your aliases ...
         alias: {
             '#': resolve(__dirname, 'src'),
             '#shared': resolve(__dirname, 'src/shared'),
@@ -29,10 +30,15 @@ export default defineConfig({
         outDir: 'dist'
     },
     server: {
+        host: true,
         port: 3000,
+        watch: {
+            usePolling: true,
+            interval: 50, // Optional: polling frequency in ms
+        },
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: 'http://app:5000', // Should target the backend SERVICE name for container-to-container comms
                 changeOrigin: true,
                 secure: false,
             }
