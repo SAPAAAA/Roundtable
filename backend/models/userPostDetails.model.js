@@ -94,8 +94,8 @@ class UserPostDetails {
             subtableId: row.subtableId, // Use the main subtableId from the post row
             name: row.subtableName,
             description: row.subtableDescription,
-            icon: row.subtableIcon, // Corrected field name based on VIEW alias
-            banner: row.subtableBanner, // Corrected field name based on VIEW alias
+            iconUrl: row.subtableIcon, // Corrected field name based on VIEW alias
+            bannerUrl: row.subtableBanner, // Corrected field name based on VIEW alias
             memberCount: row.subtableMemberCount,
             // createdAt and creatorPrincipalId are not included in the UserPostDetails view,
             // so we pass null or defaults if needed by the Subtable constructor

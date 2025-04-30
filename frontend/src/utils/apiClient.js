@@ -12,6 +12,7 @@
  */
 export async function sendApiRequest(url, options = {}) {
     const {method = 'GET', body = null, headers = {}} = options;
+    //console.log(`API Request: ${method} ${url}`, body ? `Body: ${JSON.stringify(body)}` : '');
 
     try {
         const response = await fetch(url, {
@@ -26,9 +27,12 @@ export async function sendApiRequest(url, options = {}) {
             // Include cookies/credentials if your API needs them
             credentials: 'include',
         });
+        //console.log("dddd")
+        console.log("ggg response", response)
 
         // Try to parse JSON body even for errors, as it might contain details
         const responseData = await response.json();
+        //console.log("responseData", responseData)
 
         if (!response.ok) {
             // Create a custom error object including status and response data

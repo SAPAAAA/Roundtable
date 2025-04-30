@@ -9,6 +9,7 @@ import authRoutes from '#routes/auth.routes.js'
 import postRoutes from "#routes/post.routes.js";
 import voteRoutes from "#routes/vote.routes.js";
 import commentRoutes from "#routes/comment.routes.js";
+import subtableRoutes from "#routes/subtable.routes.js";
 
 dotenv.config()
 
@@ -66,6 +67,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/s',subtableRoutes);
 
 
 app.listen(5000, () => {
