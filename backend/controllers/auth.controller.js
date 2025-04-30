@@ -230,7 +230,6 @@ class AuthController {
 
             } else {
                 // --- No Session Found ---
-                console.log('[AuthController.checkSession] No active session identifier found.');
                 // Use 401 Unauthorized to indicate client needs to authenticate
                 return res.status(HTTP_STATUS.UNAUTHORIZED).json({
                     success: false,
