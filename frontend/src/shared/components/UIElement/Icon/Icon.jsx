@@ -314,6 +314,22 @@ export default function Icon(props) {
                 </>
 
             )
+        },
+        plus:{
+            viewBox: "0 0 16 16",
+            path:(
+                <>
+                    <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                </>
+            )
+        },
+        layout:{
+            viewBox: "0 0 16 16",
+            path:(
+                <>
+                    <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm8.5-1v12H14a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-1 0H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5.5z"/>
+                </>
+            )
         }
     };
 

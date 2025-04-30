@@ -8,12 +8,13 @@ import http from 'http';
 import {WebSocketServer} from 'ws';
 import redis from '#db/redis.js';
 import WebSocketManager from '#websocket/manager.js';
+import postgres from "#db/postgres.js";
 
 import authRoutes from '#routes/auth.routes.js';
 import postRoutes from '#routes/post.routes.js';
 import voteRoutes from '#routes/vote.routes.js';
 import commentRoutes from '#routes/comment.routes.js';
-import postgres from "#db/postgres.js";
+import subtableRoutes from "#routes/subtable.routes.js";
 import notificationRoutes from "#routes/notification.routes.js";
 
 dotenv.config()
@@ -77,6 +78,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/s',subtableRoutes);
 
 // --- WebSocket Server Setup ---
 const server = http.createServer(app);
