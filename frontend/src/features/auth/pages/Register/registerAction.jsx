@@ -1,4 +1,4 @@
-// registerAction.js (e.g., src/features/auth/pages/Register/registerAction.js)
+// src/features/auth/pages/Register/registerAction.jsx
 import authService from '#services/authService'; // Import the auth service
 
 export default async function registerAction({request}) {

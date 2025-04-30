@@ -1,4 +1,4 @@
-// src/features/auth/pages/Login/loginAction.js
+// src/features/auth/pages/Login/loginAction.jsx
 import authService from '#services/authService'; // Import the new service
 
 export default async function loginAction({request}) { // Destructure request here
