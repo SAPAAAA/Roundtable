@@ -26,7 +26,7 @@ export default function NotificationItem(props) {
     };
 
     // Use the content directly from the notification object
-    const notificationText = notification.message || 'New notification';
+    const notificationText = notification.content || 'New notification';
 
     // Use the sourceUrl from the notification object
     const notificationLink = notification.sourceUrl || '#'; // Default link if none provided

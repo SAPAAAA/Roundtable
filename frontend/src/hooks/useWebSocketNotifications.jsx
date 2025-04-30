@@ -18,9 +18,9 @@ function useWebSocketNotifications() {
 
             console.log('[useWebSocketNotifications] Handling message:', data);
             // Check for the specific notification type from the backend
-            if (data && data.type === 'NEW_COMMENT') {
+            if (data && data.type === 'NEW_COMMENT_NOTIFICATION') {
                 console.log('[useWebSocketNotifications] New comment notification received:', data);
-                addNotification(data); // Add the nested data object
+                addNotification(data.notification); // Add the nested data object
             }
         };
 

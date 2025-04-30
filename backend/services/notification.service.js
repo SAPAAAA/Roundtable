@@ -69,13 +69,8 @@ class NotificationService {
 
                 // 6. Trigger WebSocket Notification (Observer Pattern)
                 const wsPayload = {
-                    type: 'NEW_COMMENT',
-                    message: notificationContent,
-                    commentId: createdComment.commentId,
-                    postId: createdComment.postId,
-                    sourceUrl: sourceUrl,
-                    notificationId: createdNotification.notificationId,
-                    // Add commenter details if needed
+                    type: 'NEW_COMMENT_NOTIFICATION',
+                    notification: createdNotification,
                 };
                 WebSocketManager.sendNotification(postOwner.userId, wsPayload);
 

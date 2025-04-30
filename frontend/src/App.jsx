@@ -1,6 +1,7 @@
 import React from 'react';
 import AppRouter from '#routes/index.jsx';
 import AuthProvider from "#contexts/AuthContext.jsx";
+import NotificationProvider from "#contexts/NotificationContext.jsx";
 
 // --- Main App Entry ---
 export default function App() {
@@ -9,9 +10,9 @@ export default function App() {
     return (
         <div className="App">
             <AuthProvider>
-                <AuthProvider>
+                <NotificationProvider>
                     <AppRouter/>
-                </AuthProvider>
+                </NotificationProvider>
             </AuthProvider>
         </div>
     );
