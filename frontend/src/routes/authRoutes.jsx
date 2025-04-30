@@ -1,8 +1,8 @@
 // src/routes/authRoutes.jsx
 import React, {lazy} from 'react';
-import loginAction from "#features/auth/pages/Login/loginAction.js";
-import registerAction from "#features/auth/pages/Register/registerAction.js";
-import verifyEmailAction from "#features/auth/pages/VerifyEmail/verifyEmailAction.js";
+import loginAction from "#features/auth/pages/Login/loginAction.jsx";
+import registerAction from "#features/auth/pages/Register/registerAction.jsx";
+import verifyEmailAction from "#features/auth/pages/VerifyEmail/verifyEmailAction.jsx";
 // Removed unused Form and sendApiRequest imports if they were just for testing
 
 // Lazy-loaded components
