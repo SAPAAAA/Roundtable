@@ -1,5 +1,5 @@
 // frontend/src/contexts/NotificationContext.jsx
-import React, {createContext, useCallback, useState} from 'react';
+import React, {createContext, useCallback, useEffect, useState} from 'react';
 
 const NotificationContext = createContext({
     notifications: [],
@@ -13,6 +13,7 @@ const NotificationContext = createContext({
 });
 const NotificationProvider = ({children}) => {
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const addNotification = useCallback((newNotificationData) => {
         console.log("[NotificationContext] addNotification CALLED with:", newNotificationData); // <-- Log entry
@@ -41,7 +42,13 @@ const NotificationProvider = ({children}) => {
         // TODO: Add API call here to mark all as read or delete on backend if needed
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const updateUnreadCount = useCallback(() => {
+        setUnreadCount(notifications.filter(n => !n.isRead).length);
+    }, [notifications]);
+
+    useEffect(() => {
+        updateUnreadCount();
+    }, [notifications, updateUnreadCount]);
 
     const value = {
         notifications,
