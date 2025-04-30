@@ -1,10 +1,10 @@
-import React, {createContext, useCallback, useState} from 'react';
+import React, {createContext, useCallback, useEffect, useState} from 'react';
+import {useAuth} from "#hooks/useAuth.jsx";
+import notificationService from "#services/notificationService.jsx";
 
 const NotificationContext = createContext({
     notifications: [],
     unreadCount: 0,
-    initializeNotifications: (initialNotifications) => {
-    }, // Add placeholder
     addNotification: () => {
     },
     markAsRead: () => {
@@ -15,55 +15,107 @@ const NotificationContext = createContext({
 
 const NotificationProvider = ({children}) => {
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0); // State for the global count
+    const [isLoadingCount, setIsLoadingCount] = useState(true); // Loading state for initial count fetch
 
-    // Function to load initial notifications
-    const initializeNotifications = useCallback((initialNotifications) => {
-        console.log("[NotificationContext] Initializing notifications with:", initialNotifications);
-        // Ensure initialNotifications is an array
-        if (Array.isArray(initialNotifications)) {
-            setNotifications(initialNotifications.slice(0, 50)); // Replace and limit
-        } else {
-            console.warn("[NotificationContext] initializeNotifications called with non-array:", initialNotifications);
-            setNotifications([]); // Reset to empty if invalid data received
-        }
-    }, []);
+    const {user} = useAuth();
 
+    // --- Fetch initial unread count when user logs in ---
+    useEffect(() => {
+        let isMounted = true;
+        const fetchCount = async () => {
+            if (user && user.userId) { // Check if user is logged in
+                setIsLoadingCount(true);
+                try {
+                    const count = await notificationService.getUnreadCount();
+                    if (isMounted) {
+                        setUnreadCount(count);
+                    }
+                } catch (error) {
+                    console.error("Error fetching unread count:", error);
+                    // Handle error (e.g., user session expired during fetch)
+                    if (isMounted) {
+                        setUnreadCount(0); // Reset count on error
+                    }
+                } finally {
+                    if (isMounted) {
+                        setIsLoadingCount(false);
+                    }
+                }
+            } else {
+                // If user logs out, reset count
+                setUnreadCount(0);
+                setNotifications([]); // Also clear the local list
+                setIsLoadingCount(false);
+            }
+        };
+
+        fetchCount();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user]);
+// --- Update state based on WebSocket messages ---
     const addNotification = useCallback((newNotificationData) => {
-        console.log("[NotificationContext] addNotification CALLED with:", newNotificationData);
+        const alreadyExists = notifications.some(n => n.notificationId === newNotificationData.notificationId);
+        let shouldIncrementCount = false;
+
+        if (!alreadyExists && !newNotificationData.isRead) {
+            shouldIncrementCount = true;
+        }
+
+        // --- Schedule State Update for the List ---
         setNotifications(prev => {
-            // Prevent duplicates based on notificationId
+            // Duplicate check inside setNotifications is still a good safeguard
             if (prev.some(n => n.notificationId === newNotificationData.notificationId)) {
-                console.log("[NotificationContext] Notification already exists, skipping:", newNotificationData.notificationId);
                 return prev;
             }
-            // Add new notification to the beginning and limit array size
-            const updatedNotifications = [newNotificationData, ...prev].slice(0, 50);
-            console.log("[NotificationContext] New notification added, updated list:", updatedNotifications);
-            return updatedNotifications;
+            return [newNotificationData, ...prev].slice(0, 50);
         });
-    }, []); // Empty dependency array, stable function
 
+        // --- Increment Count if Necessary (based on the check above) ---
+        if (shouldIncrementCount) {
+            setUnreadCount(prevCount => prevCount + 1);
+        }
+
+    }, [notifications]);
+
+    // --- Update count when marking as read ---
     const markAsRead = useCallback((notificationId) => {
+        let wasUnread = false;
         setNotifications(prev =>
-            prev.map(n =>
-                n.notificationId === notificationId ? {...n, isRead: true} : n
-            )
+            prev.map(n => {
+                if (n.notificationId === notificationId) {
+                    if (!n.isRead) {
+                        wasUnread = true;
+                    }
+                    return {...n, isRead: true};
+                }
+                return n;
+            })
         );
-        // TODO: Add API call here
-    }, []);
 
+        // Decrement count only if the notification was previously unread
+        if (wasUnread) {
+            setUnreadCount(prevCount => Math.max(0, prevCount - 1)); // Ensure count doesn't go below 0
+        }
+
+        // TODO: Add API call here to mark as read on backend
+    }, []); // Stable function
+
+    // --- Update count when clearing notifications ---
     const clearNotifications = useCallback(() => {
         setNotifications([]);
-        // TODO: Add API call here
+        setUnreadCount(0); // Reset count to 0
+        // TODO: Add API call here to mark all as read or delete on backend
     }, []);
 
-    // Calculate unreadCount directly from the current notifications state
-    const currentUnreadCount = notifications.filter(n => !n.isRead).length;
-
+    // --- Context Value ---
     const value = {
-        notifications,
-        unreadCount: currentUnreadCount, // Use the directly calculated count
-        initializeNotifications,         // Expose the initialization function
+        notifications, // Provide the list for the notification page
+        unreadCount,   // Provide the globally accurate count
+        isLoadingCount,// Indicate if the initial count is loading
         addNotification,
         markAsRead,
         clearNotifications,

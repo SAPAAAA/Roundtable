@@ -39,6 +39,25 @@ class NotificationService {
             throw error;
         }
     }
+
+    async getUnreadCount() {
+        const url = `/api/notifications/count`; // Use the new endpoint
+        try {
+            console.log(`[NotificationService] Fetching unread count from: ${url}`);
+            const response = await sendApiRequest(url, {method: 'GET'});
+            console.log("[NotificationService] Received unread count response:", response);
+            // Assuming response structure is { success: true, data: { unreadCount: number } }
+            if (response.success && response.data && typeof response.data.unreadCount === 'number') {
+                return response.data.unreadCount;
+            } else {
+                console.error("Invalid response structure for unread count:", response);
+                throw new Error("Failed to parse unread count from API.");
+            }
+        } catch (error) {
+            console.error("Error fetching unread notification count:", error);
+            throw error; // Re-throw for context/component handling
+        }
+    }
 }
 
 export default new NotificationService();

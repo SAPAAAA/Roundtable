@@ -6,12 +6,7 @@ import {isAuthenticated} from '#middlewares/auth.mdw.js';
 
 const router = express.Router();
 
-// GET /api/notifications - Fetch notifications for the logged-in user
-router.get(
-    '/',
-    isAuthenticated, // Protect the route
-    notificationController.getUserNotifications
-);
-
+router.get('/', isAuthenticated, notificationController.getUserNotifications);
+router.get('/count', isAuthenticated, notificationController.getUnreadNotificationCount);
 
 export default router;

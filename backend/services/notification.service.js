@@ -105,6 +105,21 @@ class NotificationService {
             throw new InternalServerError('Failed to retrieve notifications.');
         }
     }
+
+    async getUnreadCountForUser(userId) {
+        if (!userId) {
+            throw new BadRequestError('User ID is required to fetch unread count.');
+        }
+        try {
+            // Fetch count using the DAO, filtering for unread
+            const count = await NotificationDao.countByRecipient(userId, {isRead: false});
+            console.log(`[NotificationService] Unread count for userId ${userId}: ${count}`);
+            return count;
+        } catch (error) {
+            console.error(`[NotificationService] Error fetching unread count for userId ${userId}:`, error);
+            throw new InternalServerError('Failed to retrieve unread notification count.');
+        }
+    }
 }
 
 

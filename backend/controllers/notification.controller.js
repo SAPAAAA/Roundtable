@@ -52,6 +52,42 @@ class NotificationController {
             });
         }
     }
+
+    getUnreadNotificationCount = async (req, res, next) => {
+        const {userId} = req.session;
+
+        if (!userId) {
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+                success: false,
+                message: 'Authentication required.'
+            });
+        }
+
+        try {
+            console.log(`[NotificationController] Fetching unread count for userId: ${userId}`);
+            // Call service layer to get the count
+            const count = await this.notificationService.getUnreadCountForUser(userId);
+
+            res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: {
+                    unreadCount: count,
+                },
+            });
+
+        } catch (error) {
+            console.error(`[NotificationController] Error fetching unread count for userId ${userId}:`, error);
+            // Use appropriate error status codes
+            const statusCode = error instanceof BadRequestError
+                ? HTTP_STATUS.BAD_REQUEST
+                : HTTP_STATUS.INTERNAL_SERVER_ERROR;
+
+            return res.status(statusCode).json({
+                success: false,
+                message: error.message || 'Failed to fetch unread notification count.'
+            });
+        }
+    }
 }
 
 export default new NotificationController(notificationService);
