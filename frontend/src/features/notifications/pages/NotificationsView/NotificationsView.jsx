@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import './NotificationsView.css';
 import NotificationItem from '#features/notifications/components/NotificationItem/NotificationItem.jsx';
 import useNotifications from '#hooks/useNotifications.jsx';
@@ -23,23 +23,14 @@ export default function NotificationsView() {
     const initialNotificationData = useLoaderData();
 
     // Use context for real-time updates and unread count
-    const {notifications: realTimeNotifications, markAsRead, unreadCount} = useNotifications();
-
-    // State to hold the combined/displayed list
-    // Initialize with loader data if available
-    const [displayedNotifications, setDisplayedNotifications] = useState(initialNotificationData?.notifications || []);
+    const {notifications, unreadCount, initializeNotifications, markAsRead} = useNotifications();
     useEffect(() => {
-        const loadedIds = new Set((initialNotificationData?.notifications || []).map(n => n.notificationId));
-        const newRealTime = realTimeNotifications.filter(rt => !loadedIds.has(rt.notificationId));
-
-        setDisplayedNotifications([
-            ...newRealTime, // Add new notifications from WebSocket first
-            ...(initialNotificationData?.notifications || []) // Then add loaded notifications
-        ].slice(0, 50)); // Limit display
-
-        console.log("Updated displayed notifications:", displayedNotifications);
-
-    }, [initialNotificationData, realTimeNotifications]);
+        // Check if initialNotificationData exists and has the expected structure
+        if (initialNotificationData && Array.isArray(initialNotificationData)) {
+            initializeNotifications(initialNotificationData);
+        }
+        // Run only when initialNotificationData or initializeNotifications changes
+    }, [initialNotificationData, initializeNotifications]);
 
     const handleMarkAsRead = (id) => {
         console.log("Marking as read (UI only):", id);
@@ -53,8 +44,8 @@ export default function NotificationsView() {
                 {/* Optional: Button to mark all as read */}
             </h2>
             <div className="list-group list-group-flush">
-                {displayedNotifications.length > 0 ? (
-                    displayedNotifications.map(notification => (
+                {notifications.length > 0 ? (
+                    notifications.map(notification => (
                         <NotificationItem
                             key={notification.notificationId}
                             notification={notification}
