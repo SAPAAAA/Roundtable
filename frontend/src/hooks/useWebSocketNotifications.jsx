@@ -14,37 +14,35 @@ function useWebSocketNotifications() {
         const handleWebSocketMessage = (data) => {
             if (!isMounted) {
                 return;
-            } // Don't update if unmounted
+            }
 
-            console.log('[useWebSocketNotifications] Handling message:', data);
-            // Check for the specific notification type from the backend
-            if (data && data.type === 'NEW_COMMENT_NOTIFICATION') {
-                console.log('[useWebSocketNotifications] New comment notification received:', data);
-                addNotification(data.notification); // Add the nested data object
+            console.log('[useWebSocketNotifications] Observer received data:', data);
+            // --- Adjusted based on latest log: backend sends notification nested ---
+            if (data && data.type === 'NEW_COMMENT_NOTIFICATION' && data.notification) {
+                addNotification(data.notification);
             }
         };
 
         if (user && user.userId) {
-            console.log('[useWebSocketNotifications] User found, connecting WebSocket...');
             websocketService.connect(user.userId)
                 .then(() => {
                     if (isMounted) {
-                        console.log('[useWebSocketNotifications] WebSocket connected, adding listener.');
-                        websocketService.addMessageListener(handleWebSocketMessage);
+                        console.log('[useWebSocketNotifications] WebSocket connected, subscribing observer.');
+                        // --- Use subscribe ---
+                        websocketService.subscribe(handleWebSocketMessage);
                     }
                 })
                 .catch(err => {
                     console.error('[useWebSocketNotifications] WebSocket connection failed:', err);
                 });
         } else {
-            console.log('[useWebSocketNotifications] No user, disconnecting WebSocket.');
             websocketService.disconnect();
         }
 
         return () => {
             isMounted = false;
             console.log('[useWebSocketNotifications] Component unmounted, removing listener and disconnecting WebSocket.');
-            websocketService.removeMessageListener(handleWebSocketMessage);
+            websocketService.unsubscribe(handleWebSocketMessage);
             if (!user) {
                 websocketService.disconnect();
             }
