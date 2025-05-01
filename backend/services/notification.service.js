@@ -67,12 +67,7 @@ class NotificationService {
                 const createdNotification = await NotificationDAO.create(notification, trx);
                 console.log(`[NotificationService] DB Notification created: ${createdNotification.notificationId}`);
 
-                // 6. Trigger WebSocket Notification (Observer Pattern)
-                const wsPayload = {
-                    type: 'NEW_COMMENT_NOTIFICATION',
-                    notification: createdNotification,
-                };
-
+                // 5. Trigger the real-time WebSocket notification
                 EventBus.emitEvent('notification.comment.created', {
                     userId: postOwner.userId,
                     notification: createdNotification,
