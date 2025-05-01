@@ -1,10 +1,10 @@
 // backend/services/notification.service.js (Conceptual)
 import NotificationDao from '#daos/notification.dao.js';
 import Notification, {NotificationTypeEnum} from '#models/notification.model.js';
-import WebSocketManager from '#websocket/manager.js';
 import userPostDetailsDao from "#daos/userPostDetails.dao.js";
 import userProfileDao from "#daos/userProfile.dao.js";
 import postgres from "#db/postgres.js";
+import eventBus from '#core/eventBus.js';
 import {BadRequestError, InternalServerError} from "#errors/AppError.js"; // Import the WebSocket manager
 
 class NotificationService {
@@ -72,7 +72,11 @@ class NotificationService {
                     type: 'NEW_COMMENT_NOTIFICATION',
                     notification: createdNotification,
                 };
-                WebSocketManager.sendNotification(postOwner.userId, wsPayload);
+
+                eventBus.emitEvent('notification.comment.created', {
+                    userId: postOwner.userId,
+                    notification: createdNotification,
+                });
 
                 return createdNotification;
             });

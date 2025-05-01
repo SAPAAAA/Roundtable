@@ -6,16 +6,24 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import {WebSocketServer} from 'ws';
-import redis from '#db/redis.js';
+
+// WebSocket
 import WebSocketManager from '#websocket/manager.js';
+
+// Database
+import redis from '#db/redis.js';
 import postgres from "#db/postgres.js";
 
+// Routes
 import authRoutes from '#routes/auth.routes.js';
 import postRoutes from '#routes/post.routes.js';
 import voteRoutes from '#routes/vote.routes.js';
 import commentRoutes from '#routes/comment.routes.js';
 import subtableRoutes from "#routes/subtable.routes.js";
 import notificationRoutes from "#routes/notification.routes.js";
+
+// Listeners
+import '#listeners/notificationListeners.js';
 
 dotenv.config()
 

@@ -17,7 +17,9 @@
 		"#websocket/*": "./websocket/*",
 		"#constants/*": "./constants/*",
 		"#middlewares/*": "./middlewares/*",
-		"#errors/*": "./errors/*"
+		"#errors/*": "./errors/*",
+		"#core/*": "./core/*",
+		"#listeners/*": "./listeners/*"
 	},
 	"main": "app.js",
 	"scripts": {
