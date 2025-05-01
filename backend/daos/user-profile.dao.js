@@ -1,7 +1,7 @@
-// daos/userProfile.dao.js
+// daos/user-profile.dao.js
 
 import postgres from '#db/postgres.js'; // Assuming Knex instance is exported from here
-import UserProfile from '#models/userProfile.model.js'; // Import the UserProfile model
+import UserProfile from '#models/user-profile.model.js'; // Import the UserProfile model
 
 /**
  * @class UserProfileDAO

@@ -1,9 +1,9 @@
 import postgres from '#db/postgres.js';
-import RegisteredUser from '#models/registeredUser.model.js';
+import RegisteredUser from '#models/registered-user.model.js';
 
 class RegisteredUserDAO {
     async create(registeredUser, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx || postgres;
 
         const {userId, ...insertData} = registeredUser;
         try {
@@ -51,7 +51,7 @@ class RegisteredUserDAO {
     }
 
     async delete(userId, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx || postgres;
         try {
             const affectedRows = await queryBuilder('RegisteredUser').where({userId}).del();
             return affectedRows > 0;
@@ -62,7 +62,7 @@ class RegisteredUserDAO {
     }
 
     async update(userId, updatedData, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx || postgres;
         try {
             const affectedRows = await queryBuilder('RegisteredUser').where({userId}).update(updatedData);
             return affectedRows > 0;

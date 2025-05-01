@@ -1,10 +1,10 @@
 import express from 'express';
 import {isAuthenticated} from "#middlewares/auth.mdw.js";
-import voteController from "#controllers/vote.controller.js";
+import VoteController from "#controllers/vote.controller.js";
 
 const router = express.Router();
 
-router.delete('/:voteId', isAuthenticated, voteController.checkVoteOwnership, voteController.deleteVote);
-router.patch('/:voteId', isAuthenticated, voteController.checkVoteOwnership, voteController.updateVote);
+router.delete('/:voteId', isAuthenticated, VoteController.checkVoteOwnership, VoteController.deleteVote);
+router.patch('/:voteId', isAuthenticated, VoteController.checkVoteOwnership, VoteController.updateVote);
 
 export default router;

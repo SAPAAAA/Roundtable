@@ -12,16 +12,16 @@ import {generateShortCode} from '#utils/codeGenerator.js';
 import {sendMail} from '#utils/email.js';
 
 // --- Data Access Objects (DAOs) ---
-import accountDao from '#daos/account.dao.js';
-import principalDAO from '#daos/principal.dao.js';
-import profileDao from '#daos/profile.dao.js';
-import registeredUserDao from '#daos/registeredUser.dao.js';
-import userProfileDao from '#daos/userProfile.dao.js';
+import AccountDAO from '#daos/account.dao.js';
+import PrincipalDAO from '#daos/principal.dao.js';
+import ProfileDAO from '#daos/profile.dao.js';
+import RegisteredUserDAO from '#daos/registered-user.dao.js';
+import UserProfileDAO from '#daos/user-profile.dao.js';
 
 // --- Data Models ---
 import Account from '#models/account.model.js';
 import Profile from '#models/profile.model.js';
-import RegisteredUser from '#models/registeredUser.model.js';
+import RegisteredUser from '#models/registered-user.model.js';
 import Principal, {PrincipalRoleEnum} from '#models/principal.model.js';
 
 // --- Constants & Custom Errors ---
@@ -107,9 +107,9 @@ class AuthService {
         try {
             createdEntities = await postgres.transaction(async (trx) => {
                 // Check existing user/email
-                const existingUser = await accountDao.getByUsername(username, trx);
+                const existingUser = await AccountDAO.getByUsername(username, trx);
                 if (existingUser) throw new ConflictError('Username is already taken.');
-                const existingEmail = await accountDao.getByEmail(email, trx);
+                const existingEmail = await AccountDAO.getByEmail(email, trx);
                 if (existingEmail) throw new ConflictError('Email address is already registered.');
 
                 // Hash password
@@ -117,20 +117,20 @@ class AuthService {
 
                 // Create records using DAOs, passing transaction object (trx)
                 const account = new Account(null, username, hashedPassword, email);
-                const createdAccount = await accountDao.create(account, trx);
+                const createdAccount = await AccountDAO.create(account, trx);
                 if (!createdAccount?.accountId) throw new Error('DB_INSERT_FAIL: Account');
 
                 const profile = new Profile(null, null, null, null, null, fullName);
-                const createdProfile = await profileDao.create(profile, trx);
+                const createdProfile = await ProfileDAO.create(profile, trx);
                 if (!createdProfile?.profileId) throw new Error('DB_INSERT_FAIL: Profile');
 
                 const principal = new Principal(null, createdAccount.accountId, createdProfile.profileId, PrincipalRoleEnum.USER);
-                const createdPrincipal = await principalDAO.create(principal, trx);
+                const createdPrincipal = await PrincipalDAO.create(principal, trx);
                 if (!createdPrincipal?.principalId) throw new Error('DB_INSERT_FAIL: Principal');
 
-                // Use registeredUserDao.create
+                // Use RegisteredUserDAO.create
                 const registeredUser = new RegisteredUser(null, createdPrincipal.principalId);
-                const createdRegisteredUser = await registeredUserDao.create(registeredUser, trx);
+                const createdRegisteredUser = await RegisteredUserDAO.create(registeredUser, trx);
                 if (!createdRegisteredUser?.userId) throw new Error('DB_INSERT_FAIL: RegisteredUser');
 
                 return {
@@ -204,21 +204,21 @@ class AuthService {
         try {
             // --- 1. Find User ID from Email via Account -> Principal -> RegisteredUser ---
             // Step 1.1: Find account by email
-            const account = await accountDao.getByEmail(email);
+            const account = await AccountDAO.getByEmail(email);
             if (!account?.accountId) {
                 console.warn(`Verification attempt failed: No account found for email ${email}`);
                 throw new NotFoundError('Account not found or verification failed.');
             }
 
             // Step 1.2: Find principal by accountId
-            const principal = await principalDAO.getByAccountId(account.accountId);
+            const principal = await PrincipalDAO.getByAccountId(account.accountId);
             if (!principal?.principalId) {
                 console.error(`Data inconsistency: Account ${account.accountId} found, but no matching Principal.`);
                 throw new InternalServerError('User data configuration error during verification.');
             }
 
             // Step 1.3: Find registered user by principalId to get the userId
-            const registeredUser = await registeredUserDao.getByPrincipalId(principal.principalId);
+            const registeredUser = await RegisteredUserDAO.getByPrincipalId(principal.principalId);
             if (!registeredUser?.userId) {
                 console.error(`Data inconsistency: Principal ${principal.principalId} found, but no matching RegisteredUser.`);
                 throw new InternalServerError('User registration data error during verification.');
@@ -246,7 +246,7 @@ class AuthService {
             let alreadyVerified = false;
             const updatePerformed = await postgres.transaction(async (trx) => {
                 // Step 3.1: Fetch the RegisteredUser record *within the transaction* using its DAO
-                const userToUpdate = await registeredUserDao.getById(userId, trx); // Pass trx
+                const userToUpdate = await RegisteredUserDAO.getById(userId, trx); // Pass trx
 
                 if (!userToUpdate) {
                     console.error(`Consistency issue inside transaction: RegisteredUser not found for update with userId ${userId}`);
@@ -261,7 +261,7 @@ class AuthService {
                 }
 
                 // Step 3.3: Perform the update using the DAO's update method
-                const updateSuccessful = await registeredUserDao.update(
+                const updateSuccessful = await RegisteredUserDAO.update(
                     userId,
                     {isVerified: true}, // Pass data to update
                     trx // Pass the transaction object
@@ -315,14 +315,14 @@ class AuthService {
 
         try {
             // Find account & verify password
-            const account = await accountDao.getByUsername(username);
+            const account = await AccountDAO.getByUsername(username);
             if (!account) throw new AuthenticationError('Invalid username or password.');
 
             const isPasswordValid = await verifyPassword(account.password, password);
             if (!isPasswordValid) throw new AuthenticationError('Invalid username or password.');
 
             // Fetch the full user profile using UserProfileDAO
-            const userProfile = await userProfileDao.getByUsername(username);
+            const userProfile = await UserProfileDAO.getByUsername(username);
             if (!userProfile?.userId) {
                 console.error(`Data inconsistency: Account found (ID: ${account.accountId}), but UserProfile data missing/incomplete.`);
                 throw new NotFoundError('User profile data not found. Please contact support.');
@@ -377,7 +377,7 @@ class AuthService {
         }
         try {
             // Use UserProfileDAO to get combined data directly
-            const userProfile = await userProfileDao.getByUserId(userId);
+            const userProfile = await UserProfileDAO.getByUserId(userId);
             if (!userProfile?.userId) {
                 throw new NotFoundError('User associated with this session not found.');
             }

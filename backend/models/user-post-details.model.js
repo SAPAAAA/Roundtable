@@ -1,12 +1,12 @@
 /**
- * models/userPostDetails.model.js
+ * models/user-post-details.model.js
  *
  * Represents detailed information about a post, including enriched author
  * and subtable information. Mirrors the "UserPostDetails" VIEW in the database.
  */
 
 // Assuming models are in the same directory or adjust path as needed
-import UserProfile from './userProfile.model.js';
+import UserProfile from './user-profile.model.js';
 import Subtable from './subtable.model.js';
 
 class UserPostDetails {

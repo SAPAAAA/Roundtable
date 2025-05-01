@@ -1,8 +1,8 @@
 // services/post.service.js
 import HTTP_STATUS from '#constants/httpStatus.js';
-import userCommentDetailsDao from "#daos/userCommentDetails.dao.js";
-import userPostDetailsDao from "#daos/userPostDetails.dao.js";
-import voteDAO from '#daos/vote.dao.js'; // Import the VoteDAO
+import UserCommentDetailsDAO from "#daos/user-comment-details.dao.js";
+import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
+import VoteDAO from '#daos/vote.dao.js';
 
 /**
  * Helper function for structuring comments and adding user vote status.
@@ -60,7 +60,7 @@ class PostService {
         console.log(`Fetching post details for postId: ${postId}, userId: ${userId}`);
 
         // 1. Get the Post details (includes author and subtable info via the view)
-        const postDetails = await userPostDetailsDao.getByPostId(postId);
+        const postDetails = await UserPostDetailsDAO.getByPostId(postId);
         if (!postDetails) {
             const error = new Error('Post not found.');
             error.statusCode = HTTP_STATUS.NOT_FOUND;
@@ -75,7 +75,7 @@ class PostService {
         }
 
         // 3. Get Raw Comments
-        let commentsRaw = await userCommentDetailsDao.getByPostId(postId, {
+        let commentsRaw = await UserCommentDetailsDAO.getByPostId(postId, {
             sortBy: 'createdAt', // Or 'voteCount' etc.
             order: 'asc',        // Or 'desc'
             includeRemoved: false // Typically hide removed comments
@@ -84,7 +84,7 @@ class PostService {
         // 4. Get user vote status on the post (if userId is provided)
         let postUserVote = null;
         if (userId) {
-            const vote = await voteDAO.findByUserAndPost(userId, postId);
+            const vote = await VoteDAO.findByUserAndPost(userId, postId);
             postUserVote = vote ? vote : null;
             console.log(`User ${userId} vote status on post ${postId}: ${postUserVote}`);
         }
@@ -94,7 +94,7 @@ class PostService {
             // Map through comments and fetch user vote status for each
             commentsRaw = await Promise.all(
                 commentsRaw.map(async (comment) => {
-                    const vote = await voteDAO.findByUserAndComment(userId, comment.commentId);
+                    const vote = await VoteDAO.findByUserAndComment(userId, comment.commentId);
                     return {
                         ...comment,
                         userVote: vote ? vote : null // Add userVote status to each comment

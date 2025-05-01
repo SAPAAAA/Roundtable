@@ -8,7 +8,7 @@ import http from 'http';
 import {WebSocketServer} from 'ws';
 
 // WebSocket
-import WebSocketManager from '#websocket/manager.js';
+import WebSocketManager from '#core/websocket-manager.js';
 
 // Database
 import redis from '#db/redis.js';
@@ -23,7 +23,7 @@ import subtableRoutes from "#routes/subtable.routes.js";
 import notificationRoutes from "#routes/notification.routes.js";
 
 // Listeners
-import '#listeners/notificationListeners.js';
+import '#listeners/notification.listener.js';
 
 dotenv.config()
 

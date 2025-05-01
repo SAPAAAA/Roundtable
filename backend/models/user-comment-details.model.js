@@ -1,4 +1,4 @@
-import UserProfile from '#models/userProfile.model.js';
+import UserProfile from '#models/user-profile.model.js';
 
 /**
  * Represents detailed information about a comment, including information about its author.

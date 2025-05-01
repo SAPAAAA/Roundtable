@@ -1,7 +1,7 @@
 import {Vote, VoteTypeEnum} from "#models/vote.model.js";
 import {BadRequestError, NotFoundError} from "#errors/AppError.js";
 import postgres from "#db/postgres.js";
-import voteDAO from "#daos/vote.dao.js";
+import VoteDAO from "#daos/vote.dao.js";
 
 class VoteService {
     async createVote(voterUserId, postId, commentId = null, voteType) {
@@ -20,7 +20,7 @@ class VoteService {
         try {
             createdVote = await postgres.transaction(async (trx) => {
                 const vote = new Vote(null, voterUserId, postId, commentId, voteType, null);
-                return await voteDAO.create(vote, trx);
+                return await VoteDAO.create(vote, trx);
 
             });
         } catch (error) {
@@ -50,7 +50,7 @@ class VoteService {
         let deletedVote;
         try {
             deletedVote = await postgres.transaction(async (trx) => {
-                return await voteDAO.delete(voteId, trx);
+                return await VoteDAO.delete(voteId, trx);
             });
         } catch (error) {
             console.error("Error deleting vote:", error);
@@ -84,7 +84,7 @@ class VoteService {
         let updatedVote;
         try {
             updatedVote = await postgres.transaction(async (trx) => {
-                return await voteDAO.update(voteId, {voteType}, trx);
+                return await VoteDAO.update(voteId, {voteType}, trx);
             });
         } catch (error) {
             console.error("Error updating vote:", error);
@@ -110,7 +110,7 @@ class VoteService {
         }
 
         // Check if the vote belongs to the user
-        const vote = await voteDAO.getById(voteId);
+        const vote = await VoteDAO.getById(voteId);
         console.log(`[VoteService.checkVoteOwnership] Vote found: ${vote}`);
         if (!vote) {
             throw new NotFoundError(`Vote with ID ${voteId} not found.`);

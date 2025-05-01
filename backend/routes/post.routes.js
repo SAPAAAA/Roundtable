@@ -1,12 +1,12 @@
 import express from 'express';
-import postController from '#controllers/post.controller.js';
-import commentController from "#controllers/comment.controller.js";
+import PostController from '#controllers/post.controller.js';
+import CommentController from "#controllers/comment.controller.js";
 import {isAuthenticated} from "#middlewares/auth.mdw.js";
 
 const router = express.Router();
 
-router.get('/:postId', postController.getPostDetails);
-router.post('/:postId/comments', isAuthenticated, commentController.addComment);
-router.post('/:postId/vote', isAuthenticated, postController.castVote);
+router.get('/:postId', PostController.getPostDetails);
+router.post('/:postId/comments', isAuthenticated, CommentController.addComment);
+router.post('/:postId/vote', isAuthenticated, PostController.castVote);
 
 export default router;

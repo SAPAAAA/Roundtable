@@ -1,5 +1,5 @@
 import {PrincipalRoleEnum} from "#models/principal.model.js";
-import {UserStatusEnum} from "#models/registeredUser.model.js";
+import {UserStatusEnum} from "#models/registered-user.model.js";
 
 /**
  * Represents a combined view of user account and profile information,

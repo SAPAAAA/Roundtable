@@ -14,7 +14,7 @@ class EventBus extends EventEmitter {
     }
 }
 
-const eventBus = new EventBus();
-eventBus.setMaxListeners(50); // Prevent memory leak warning
+const eventBusInstance = new EventBus();
+EventBus.setMaxListeners(50);
 
-export default eventBus;
+export default eventBusInstance;

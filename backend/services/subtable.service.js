@@ -1,15 +1,15 @@
-import HTTP_STATUS from '#constants/httpStatus.js';
-import userPostDetailsDao from '#daos/userPostDetails.dao.js';
-import subtableDAO from '#daos/subtable.dao.js';
+import UserPostDetailsDAO from '#daos/user-post-details.dao.js';
+import SubtableDAO from '#daos/subtable.dao.js';
+
 class SubtableService {
     async getSubtableDetails(subtableName) {
         console.log("service"+ subtableName)
         //console.log(`Fetching subtable details for subtableName: ${subtableName}`);
 
         // Fetch subtable details from the DAO
-        //const subtableDetails = await userPostDetailsDao.getSubtableDetails(subtableName);
-        const subtableDetails = await subtableDAO.getByName(subtableName);
-        const subtableRelatedPosts = await userPostDetailsDao.getBySubtableId(subtableDetails.subtableId);
+        //const subtableDetails = await UserPostDetailsDAO.getSubtableDetails(subtableName);
+        const subtableDetails = await SubtableDAO.getByName(subtableName);
+        const subtableRelatedPosts = await UserPostDetailsDAO.getBySubtableId(subtableDetails.subtableId);
         // console.log("subtableDetails + ", subtableDetails)
 
         // --- Success Response ---
@@ -22,7 +22,7 @@ class SubtableService {
         //console.log(`Creating subtable for tableId: ${tableId}, userId: ${userId}, name: ${name}`);
 
         // Create subtable using the DAO
-        const newSubtable = await subtableDAO.create(subtable, userId);
+        const newSubtable = await SubtableDAO.create(subtable, userId);
 
         // --- Success Response ---
         return {
@@ -34,7 +34,7 @@ class SubtableService {
         //console.log(`Updating subtable for subtableId: ${subtableId}, userId: ${userId}, name: ${name}`);
 
         // Update subtable using the DAO
-        const updatedSubtable = await subtableDAO.update(subtableName, updateData);
+        const updatedSubtable = await SubtableDAO.update(subtableName, updateData);
 
         // --- Success Response ---
         return {
@@ -46,7 +46,7 @@ class SubtableService {
         //console.log(`Deleting subtable for subtableId: ${subtableId}, userId: ${userId}`);
 
         // Delete subtable using the DAO
-        const deletedSubtable = await subtableDAO.delete(subtableName);
+        const deletedSubtable = await SubtableDAO.delete(subtableName);
 
         // --- Success Response ---
         return {

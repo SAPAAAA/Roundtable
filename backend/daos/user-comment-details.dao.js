@@ -1,5 +1,5 @@
 import postgres from '#db/postgres.js';
-import UserCommentDetails from '#models/userCommentDetails.model.js';
+import UserCommentDetails from '#models/user-comment-details.model.js';
 
 /**
  * @typedef {Object} GetCommentsOptions
@@ -13,7 +13,7 @@ import UserCommentDetails from '#models/userCommentDetails.model.js';
 /**
  * DAO for interacting with the "UserCommentDetails" database VIEW.
  */
-class UserCommentDetailsDao {
+class UserCommentDetailsDAO {
 
     /**
      * Fetches comments (with author details) for a specific post from the VIEW.
@@ -107,4 +107,4 @@ class UserCommentDetailsDao {
     }
 }
 
-export default new UserCommentDetailsDao();
+export default new UserCommentDetailsDAO();

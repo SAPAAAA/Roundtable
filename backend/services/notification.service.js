@@ -1,10 +1,10 @@
 // backend/services/notification.service.js (Conceptual)
-import NotificationDao from '#daos/notification.dao.js';
+import NotificationDAO from '#daos/notification.dao.js';
 import Notification, {NotificationTypeEnum} from '#models/notification.model.js';
-import userPostDetailsDao from "#daos/userPostDetails.dao.js";
-import userProfileDao from "#daos/userProfile.dao.js";
+import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
+import UserProfileDAO from "#daos/user-profile.dao.js";
 import postgres from "#db/postgres.js";
-import eventBus from '#core/eventBus.js';
+import EventBus from '#core/event-bus.js';
 import {BadRequestError, InternalServerError} from "#errors/AppError.js"; // Import the WebSocket manager
 
 class NotificationService {
@@ -23,7 +23,7 @@ class NotificationService {
 
         try {
             // 1. Get the Post to find the owner
-            const post = await userPostDetailsDao.getByPostId(createdComment.postId);
+            const post = await UserPostDetailsDAO.getByPostId(createdComment.postId);
             if (!post || !post.author) {
                 console.log(`[NotificationService] Post (${createdComment.postId}) not found or has no author. No notification sent.`);
                 return;
@@ -38,7 +38,7 @@ class NotificationService {
             }
 
             // 3. Find the Principal ID of the commenter
-            const commenterPrincipal = await userProfileDao.getByUserId(commenterUserId); // Needs implementation in PrincipalDAO
+            const commenterPrincipal = await UserProfileDAO.getByUserId(commenterUserId); // Needs implementation in PrincipalDAO
             if (!commenterPrincipal) {
                 console.warn(`[NotificationService] Could not find principal for commenter userId ${commenterUserId}`);
                 // Decide if you still want to send notification without triggeringPrincipalId
@@ -64,7 +64,7 @@ class NotificationService {
                     null                        // createdAt
                 );
 
-                const createdNotification = await NotificationDao.create(notification, trx);
+                const createdNotification = await NotificationDAO.create(notification, trx);
                 console.log(`[NotificationService] DB Notification created: ${createdNotification.notificationId}`);
 
                 // 6. Trigger WebSocket Notification (Observer Pattern)
@@ -73,7 +73,7 @@ class NotificationService {
                     notification: createdNotification,
                 };
 
-                eventBus.emitEvent('notification.comment.created', {
+                EventBus.emitEvent('notification.comment.created', {
                     userId: postOwner.userId,
                     notification: createdNotification,
                 });
@@ -92,10 +92,10 @@ class NotificationService {
         }
         try {
             // Fetch notifications using the DAO
-            const notifications = await NotificationDao.getByRecipient(userId, options);
+            const notifications = await NotificationDAO.getByRecipient(userId, options);
 
             // Get the total count for pagination
-            const totalCount = await NotificationDao.countByRecipient(userId, {isRead: options.isRead}); // Pass filters if needed
+            const totalCount = await NotificationDAO.countByRecipient(userId, {isRead: options.isRead}); // Pass filters if needed
 
             console.log(`[NotificationService] Fetched ${notifications.length} notifications for userId ${userId}`);
 
@@ -116,7 +116,7 @@ class NotificationService {
         }
         try {
             // Fetch count using the DAO, filtering for unread
-            const count = await NotificationDao.countByRecipient(userId, {isRead: false});
+            const count = await NotificationDAO.countByRecipient(userId, {isRead: false});
             console.log(`[NotificationService] Unread count for userId ${userId}: ${count}`);
             return count;
         } catch (error) {

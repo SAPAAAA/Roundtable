@@ -1,12 +1,12 @@
 /**
- * daos/userPostDetails.dao.js
+ * daos/user-post-details.dao.js
  *
  * Data Access Object for interacting with the "UserPostDetails" database VIEW.
  * Provides methods to fetch detailed post information, including author and subtable details.
  */
 
 import postgres from '#db/postgres.js'; // Assuming Knex instance is exported from here
-import UserPostDetails from '../models/userPostDetails.model.js'; // Import the corresponding model
+import UserPostDetails from '#models/user-post-details.model.js'; // Import the corresponding model
 
 /**
  * @typedef {Object} GetPostsOptions
@@ -174,7 +174,7 @@ class UserPostDetailsDAO {
     //         return null;
     //     }
     //     try {
-    //         console.log("subtableDAO", subtableName)
+    //         console.log("SubtableDAO", subtableName)
     //         // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD); 
     //         // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
 
