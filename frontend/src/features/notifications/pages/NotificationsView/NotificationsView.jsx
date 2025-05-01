@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import './NotificationsView.css';
 import NotificationItem from '#features/notifications/components/NotificationItem/NotificationItem.jsx';
 import useNotifications from '#hooks/useNotifications.jsx';
@@ -7,10 +7,18 @@ import {useLoaderData} from "react-router";
 export default function NotificationsView() {
     // Get data from the loader
     const loaderData = useLoaderData();
-    const displayedNotifications = loaderData?.notifications || [];
+    const fetchedNotifications = loaderData?.notifications || [];
 
     // Use context for real-time updates and unread count
-    const {unreadCount, markAsRead} = useNotifications();
+    const {unreadCount, markAsRead, notifications, initializeNotifications} = useNotifications();
+
+    // Initialize notifications from the loader data
+    useEffect(() => {
+        initializeNotifications(fetchedNotifications);
+    }, [fetchedNotifications]);
+
+    // Determine which notifications to display
+    const displayedNotifications = notifications.length > 0 ? notifications : fetchedNotifications;
 
     const handleMarkAsRead = (id) => {
         console.log("Marking as read (UI):", id);

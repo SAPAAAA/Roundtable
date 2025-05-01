@@ -5,6 +5,8 @@ import notificationService from "#services/notificationService.jsx";
 const NotificationContext = createContext({
     notifications: [],
     unreadCount: 0,
+    initializeNotifications: () => {
+    },
     addNotification: () => {
     },
     markAsRead: () => {
@@ -56,7 +58,14 @@ const NotificationProvider = ({children}) => {
             isMounted = false;
         };
     }, [user]);
-// --- Update state based on WebSocket messages ---
+
+    // --- Initialize state with initial notifications ---
+    const initializeNotifications = useCallback((initialNotifications) => {
+        setNotifications(initialNotifications);
+        setUnreadCount(initialNotifications.filter(n => !n.isRead).length);
+    }, []);
+
+    // --- Update state based on WebSocket messages ---
     const addNotification = useCallback((newNotificationData) => {
         const alreadyExists = notifications.some(n => n.notificationId === newNotificationData.notificationId);
         let shouldIncrementCount = false;
@@ -74,10 +83,8 @@ const NotificationProvider = ({children}) => {
             return [newNotificationData, ...prev].slice(0, 50);
         });
 
-        // --- Increment Count if Necessary (based on the check above) ---
-        if (shouldIncrementCount) {
-            setUnreadCount(prevCount => prevCount + 1);
-        }
+        // --- Schedule State Update for the Count ---
+        setUnreadCount(prevCount => prevCount + (shouldIncrementCount ? 1 : 0));
 
     }, [notifications]);
 
@@ -113,6 +120,7 @@ const NotificationProvider = ({children}) => {
 
     // --- Context Value ---
     const value = {
+        initializeNotifications,
         notifications, // Provide the list for the notification page
         unreadCount,   // Provide the globally accurate count
         isLoadingCount,// Indicate if the initial count is loading

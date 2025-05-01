@@ -24,6 +24,9 @@ export default defineConfig({
             '#assets': resolve(__dirname, 'src/assets'),
             '#utils': resolve(__dirname, 'src/utils'),
             '#services': resolve(__dirname, 'src/services'),
+            '#interfaces': resolve(__dirname, 'src/interfaces'),
+            '#subjects': resolve(__dirname, 'src/subjects'),
+            '#observers': resolve(__dirname, 'src/observers'),
         },
     },
     build: {

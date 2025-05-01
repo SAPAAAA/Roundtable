@@ -144,19 +144,20 @@ export default function Header(props) {
                                     </Button>
                                 </li>
                                 {/* Notifications Button with Badge */}
-                                <li className="nav-item position-relative"> {/* Added position-relative */}
+                                <li className="nav-item"> {/* No longer needs position-relative here */}
                                     <Button
                                         contentType="icon"
                                         tooltipTitle="Notifications"
                                         onClick={handleNotificationsClick}
                                         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+                                        addClass="position-relative" // Add relative positioning to the button
                                     >
                                         <Icon name="bell" size="20px"/>
-                                        {unreadCount > 0 && ( // <-- Display badge if count > 0
+                                        {unreadCount > 0 && (
                                             <span
-                                                className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
-                                                {unreadCount > 9 ? '9+' : unreadCount}
-                                                <span className="visually-hidden">unread messages</span>
+                                                className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
+                                            >
+                                                {unreadCount > 99 ? '99+' : unreadCount}
                                             </span>
                                         )}
                                     </Button>
