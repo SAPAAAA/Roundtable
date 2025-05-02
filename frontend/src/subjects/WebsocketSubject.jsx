@@ -1,19 +1,18 @@
-// frontend/src/subjects/websocketSubject.jsx
+// frontend/src/subjects/WebsocketSubject.jsx
 import ISubject from "#interfaces/ISubject.jsx";
 
-
 /**
- * @class WebSocketSubject
+ * @class WebsocketSubject
  * @implements {ISubject}
  * Manages the WebSocket connection and notifies registered observers of incoming messages.
  */
-class WebSocketSubject {
+class WebsocketSubject {
     /**
      * @param {string} wsUrl The WebSocket server URL.
      */
     constructor(wsUrl) {
         if (!wsUrl) {
-            throw new Error("WebSocketSubject requires a wsUrl.");
+            throw new Error("WebsocketSubject requires a wsUrl.");
         }
         this.wsUrl = wsUrl;
         /** @type {WebSocket | null} */
@@ -53,7 +52,7 @@ class WebSocketSubject {
         if (observer && typeof observer.update === 'function') {
             this.observers.add(observer);
         } else {
-            console.error("[WebSocketSubject] Invalid observer provided. Must have an 'update' method.", observer);
+            console.error("[WebsocketSubject] Invalid observer provided. Must have an 'update' method.", observer);
         }
     }
 
@@ -79,7 +78,7 @@ class WebSocketSubject {
                 // No need to check for update method here if subscribe enforces it
                 observer.update(data);
             } catch (error) {
-                console.error("[WebSocketSubject] Error calling observer update method:", error, observer);
+                console.error("[WebsocketSubject] Error calling observer update method:", error, observer);
             }
         });
     }
@@ -88,7 +87,7 @@ class WebSocketSubject {
     connect(userId) {
         // ... connection logic ...
         if (!userId) {
-            console.warn("[WebSocketSubject] Cannot connect without userId.");
+            console.warn("[WebsocketSubject] Cannot connect without userId.");
             return Promise.reject(new Error("User ID is required to connect WebSocket."));
         }
         this.currentUserId = userId;
@@ -101,7 +100,7 @@ class WebSocketSubject {
                 this.socket.onerror = (error) => this._handleError(reject, error);
                 this.socket.onclose = this._handleClose;
             } catch (error) {
-                console.error("[WebSocketSubject] Error creating WebSocket instance:", error);
+                console.error("[WebsocketSubject] Error creating WebSocket instance:", error);
                 this.connectionPromise = null;
                 reject(error);
             }
@@ -129,10 +128,10 @@ class WebSocketSubject {
                     this.socket.send(JSON.stringify(message));
                 }
             } catch (error) {
-                console.error("[WebSocketSubject] Error sending message:", error, message);
+                console.error("[WebsocketSubject] Error sending message:", error, message);
             }
         } else {
-            console.error("[WebSocketSubject] Cannot send message, socket not open or available.");
+            console.error("[WebsocketSubject] Cannot send message, socket not open or available.");
         }
     }
 
@@ -152,12 +151,12 @@ class WebSocketSubject {
             const data = JSON.parse(event.data);
             this.notify(data);
         } catch (error) {
-            console.error("[WebSocketSubject] Error parsing message:", error, "Raw data:", event.data);
+            console.error("[WebsocketSubject] Error parsing message:", error, "Raw data:", event.data);
         }
     }
 
     _handleError(reject, error) {
-        console.error("[WebSocketSubject] WebSocket error occurred:", error);
+        console.error("[WebsocketSubject] WebSocket error occurred:", error);
         if (this.connectionPromise && reject) {
             reject(new Error("WebSocket connection error."));
         }
@@ -221,7 +220,7 @@ class WebSocketSubject {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                 this.sendMessage('ping');
             } else {
-                console.warn("[WebSocketSubject] Keepalive: Socket not open, stopping ping.");
+                console.warn("[WebsocketSubject] Keepalive: Socket not open, stopping ping.");
                 this._stopKeepalive();
             }
         }, 30000);
@@ -238,6 +237,5 @@ class WebSocketSubject {
 // --- Create and Export Singleton Instance ---
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.hostname}:5000`;
-const webSocketSubject = new WebSocketSubject(wsUrl);
 
-export default webSocketSubject;
+export default new WebsocketSubject(wsUrl);

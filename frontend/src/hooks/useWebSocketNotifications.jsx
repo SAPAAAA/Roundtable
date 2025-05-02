@@ -1,14 +1,14 @@
 // frontend/src/hooks/useWebSocketNotifications.jsx
 import {useEffect, useRef} from 'react'; // Import useRef
-import webSocketSubject from '#subjects/websocketSubject.jsx';
-import NotificationObserver from '#observers/notificationObserver.jsx';
+import WebSocketSubject from '#subjects/WebsocketSubject.jsx';
+import NotificationObserver from '#observers/NotificationObserver.jsx';
 import {useAuth} from '#hooks/useAuth.jsx';
 import useNotifications from '#hooks/useNotifications.jsx';
 
 /**
  * Custom hook to manage WebSocket notifications using the class-based Observer pattern.
  * It creates an instance of NotificationObserver and subscribes/unsubscribes it
- * to the global webSocketSubject (the Concrete Subject).
+ * to the global WebSocketSubject (the Concrete Subject).
  */
 function useWebSocketNotifications() {
     const {user} = useAuth();
@@ -26,7 +26,6 @@ function useWebSocketNotifications() {
         observerRef.current = null;
     }
 
-
     // --- Effect to manage connection and subscription lifecycle ---
     useEffect(() => {
         let isMounted = true;
@@ -40,12 +39,12 @@ function useWebSocketNotifications() {
 
         if (user?.userId) { // Check if user is logged in
             // Connect (idempotent) and then subscribe the observer instance
-            webSocketSubject.connect(user.userId)
+            WebSocketSubject.connect(user.userId)
                 .then(() => {
                     // Check if component is still mounted after async connect
                     if (isMounted) {
                         // Subscribe the observer INSTANCE to the Subject
-                        webSocketSubject.subscribe(currentObserver);
+                        WebSocketSubject.subscribe(currentObserver);
                     }
                 })
                 .catch(err => {
@@ -55,7 +54,7 @@ function useWebSocketNotifications() {
         } else {
             // If there's no user, ensure the WebSocket is disconnected
             // Disconnecting also clears observers in the Subject implementation
-            webSocketSubject.disconnect();
+            WebSocketSubject.disconnect();
         }
 
         // Cleanup function runs on unmount or before re-running
@@ -63,7 +62,7 @@ function useWebSocketNotifications() {
             isMounted = false;
 
             if (observerRef.current) {
-                webSocketSubject.unsubscribe(observerRef.current);
+                WebSocketSubject.unsubscribe(observerRef.current);
             }
         };
     }, [user]);

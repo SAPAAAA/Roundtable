@@ -18,6 +18,7 @@ export default defineConfig({
             '#layouts': resolve(__dirname, 'src/layouts'),
             '#pages': resolve(__dirname, 'src/pages'),
             '#contexts': resolve(__dirname, 'src/contexts'),
+            '#providers': resolve(__dirname, 'src/providers'),
             '#hooks': resolve(__dirname, 'src/hooks'),
             '#routes': resolve(__dirname, 'src/routes'),
             '#constants': resolve(__dirname, 'src/constants'),

@@ -1,7 +1,7 @@
 import React from 'react';
 import AppRouter from '#routes/index.jsx';
-import AuthProvider from "#contexts/AuthContext.jsx";
-import NotificationProvider from "#contexts/NotificationContext.jsx";
+import AuthProvider from "#providers/AuthProvider.jsx";
+import NotificationProvider from "#providers/NotificationProvider.jsx";
 
 // --- Main App Entry ---
 export default function App() {
