@@ -1,53 +1,40 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 import HomeSidebarContent from "#pages/Home/HomeSidebar/HomeSidebar.jsx";
 import {Helmet} from "react-helmet";
+import PostPreview from "#features/posts/components/PostPreview/PostPreview";
+import homeService from "#services/homeService";
 
 export default function HomeContent() {
-    const posts = [
-        {
-            subtable: {
-                namespace: "AskAnything",
-                avatar: {
-                    src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80"
-                }
-            },
-            id: 1,
-            time: "1 hr. ago",
-            title: "What is the most interesting fact you know?",
-            content: "I'm curious to know what interesting facts you all know...",
-            upvotes: 500,
-            comments: 100,
-        },
-        {
-            subtable: {
-                namespace: "CoolTech",
-                avatar: {
-                    src: "https://images.unsplash.com/photo-1581091012184-7e0cdfbb6791?w=100&q=80"
-                }
-            },
-            id: 2,
-            time: "2 hr. ago",
-            title: "What is the best tech stack for web development?",
-            content: "I'm looking to start a new project and need some advice...",
-            upvotes: 1000,
-            comments: 200,
-        },
-        {
-            subtable: {
-                namespace: "CodeTalk",
-                avatar: {
-                    src: "https://images.unsplash.com/photo-1587620931283-d91f5f6d9984?w=100&q=80"
-                }
-            },
-            id: 3,
-            time: "3 hr. ago",
-            title: "What is the best programming language to learn?",
-            content: "I'm new to programming and want to learn a new language...",
-            upvotes: 750,
-            comments: 150,
-        },
-    ];
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                setLoading(true);
+                const options = {
+                    limit: 20,
+                    offset: 0,
+                    sortBy: 'createdAt',
+                    order: 'desc'
+                };
+                const data = await homeService.getHomeData(options);
+                setPosts(data);
+                setLoading(false);
+            } catch (error) {
+                console.error("Lỗi khi lấy dữ liệu bài viết:", error);
+                setError("Không thể tải dữ liệu bài viết. Vui lòng thử lại sau.");
+                setLoading(false);
+            }
+        };
+
+        fetchPosts();
+    }, []);
+
+    if (loading) return <div>Đang tải dữ liệu...</div>;
+    if (error) return <div>{error}</div>;
 
     return (
         <div>
@@ -58,6 +45,32 @@ export default function HomeContent() {
 
             <HomeSidebarContent/>
 
+            <div className="posts-container">
+                {posts.length > 0 ? (
+                    posts.map(post => (
+                        <PostPreview 
+                            key={post.id}
+                            post={{
+                                postId: post.id,
+                                title: post.title,
+                                body: post.content,
+                                voteCount: post.upvotes,
+                                commentCount: post.comments,
+                                postCreatedAt: post.time
+                            }}
+                            subtable={{
+                                subtableId: post.id,
+                                name: post.subtable.namespace,
+                                icon: post.subtable.avatar.src
+                            }}
+                            isJoined={false}
+                            onJoinClick={() => console.log(`Join clicked for ${post.subtable.namespace}`)}
+                        />
+                    ))
+                ) : (
+                    <div>Không có bài viết nào.</div>
+                )}
+            </div>
         </div>
     )
 }

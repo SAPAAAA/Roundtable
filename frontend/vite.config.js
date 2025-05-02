@@ -10,7 +10,6 @@ const __dirname = dirname(__filename);
 export default defineConfig({
     plugins: [react()],
     resolve: {
-        // ... your aliases ...
         alias: {
             '#': resolve(__dirname, 'src'),
             '#shared': resolve(__dirname, 'src/shared'),

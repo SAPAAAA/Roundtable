@@ -140,6 +140,81 @@ class UserPostDetailsDAO {
     }
 
     /**
+     * Fetches a list of posts for the home page from the VIEW.
+     * @param {GetPostsOptions} [options={}] - Options for sorting, filtering, and pagination.
+     * @returns {Promise<Object[]>} - A promise resolving to an array of formatted post objects.
+     * @throws {Error} Throws an error if the database query fails.
+     */
+    async getHomePosts(options = {}) {
+        const {
+            limit = 20,
+            offset = 0,
+            sortBy = 'createdAt',
+            order = 'desc'
+        } = options;
+
+        // Mapping giữa tên tham số và tên cột trong DB
+        const sortColumnMapping = {
+            'createdAt': 'postCreatedAt',
+            'voteCount': 'voteCount',
+            'commentCount': 'commentCount'
+        };
+
+        const allowedSortColumns = Object.keys(sortColumnMapping);
+        const validSortBy = allowedSortColumns.includes(sortBy) ? sortColumnMapping[sortBy] : 'postCreatedAt';
+        const validOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toLowerCase() : 'desc';
+
+        try {
+            console.log("(dao)homePostsDAO", { limit, offset, sortBy, order });
+            // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD);
+            // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
+
+            const viewRows = await postgres('UserPostDetails') 
+                .select('*')
+                .where('isRemoved', false) 
+                .orderBy(validSortBy, validOrder) 
+                .offset(offset)
+                .limit(limit !== null ? limit : undefined);
+
+            // console.log("(dao)viewRows null?", viewRows);
+
+            if (!viewRows || viewRows.length === 0) {
+                return []; // No posts found
+            }
+
+            // Chuyển đổi dữ liệu từ view thành đối tượng UserPostDetails
+            return viewRows.map(row => {
+                const postDetails = UserPostDetails.fromDbRow(row);
+
+                if (!postDetails) return null;
+
+                return {
+                    id: postDetails.postId,
+                    title: postDetails.title,
+                    content: postDetails.body,
+                    time: postDetails.postCreatedAt,
+                    upvotes: postDetails.voteCount || 0,
+                    comments: postDetails.commentCount || 0,
+                    subtable: {
+                        namespace: postDetails.subtable?.name || 'Unknown',
+                        avatar: {
+                            src: postDetails.subtable?.iconUrl || 'https://via.placeholder.com/100'
+                        }
+                    },
+                    author: postDetails.author ? {
+                        username: postDetails.author.username,
+                        displayName: postDetails.author.displayName,
+                        avatar: postDetails.author.avatar
+                    } : null
+                };
+            }).filter(post => post !== null);
+        } catch (error) {
+            console.error(`(dao)Error fetching home posts:`, error);
+            throw error; // Re-throw the error for upstream handling
+        }
+    }
+
+    /**
      * Helper function to process and validate query options.
      * @private
      * @param {GetPostsOptions} options - Raw options object.
@@ -195,5 +270,4 @@ class UserPostDetailsDAO {
    
 }
 
-// Export a singleton instance of the DAO
 export default new UserPostDetailsDAO();

@@ -21,6 +21,7 @@ import voteRoutes from '#routes/vote.routes.js';
 import commentRoutes from '#routes/comment.routes.js';
 import subtableRoutes from "#routes/subtable.routes.js";
 import notificationRoutes from "#routes/notification.routes.js";
+import homeRoutes from "#routes/home.routes.js"; // Thêm route mới
 
 // Listeners
 import '#listeners/notification.listener.js';
@@ -87,6 +88,7 @@ app.use('/api/votes', voteRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/s',subtableRoutes);
+app.use('/api/home', homeRoutes);
 
 // --- WebSocket Server Setup ---
 const server = http.createServer(app);
