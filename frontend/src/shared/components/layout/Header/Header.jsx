@@ -11,7 +11,7 @@ import {useNavigate} from "react-router";
 import useNotifications from "#hooks/useNotifications.jsx";
 
 export default function Header(props) {
-    const {toggleSidebar, openLoginModal} = props;
+    const {toggleSidebar, toggleChat, openLoginModal} = props;
     const {user, logout, isLoading} = useAuth();
     const {unreadCount} = useNotifications();
 
@@ -135,7 +135,7 @@ export default function Header(props) {
                                         dataBsTrigger="hover focus"
                                         tooltipTitle="Chat"
                                         tooltipPlacement="bottom"
-                                        onClick={() => console.log("Chat Clicked")} // Placeholder action
+                                        onClick={toggleChat}
                                     >
                                         <Icon
                                             name="chat"

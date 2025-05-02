@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react'; // Make sure useEffect is impo
 import './MainLayout.css';
 import {useAuth} from "#hooks/useAuth.jsx";
 import useWebSocketNotifications from "#hooks/useWebSocketNotifications.jsx";
+import ChatAppWrapper from "#features/chats/components/ChatAppWrapper/ChatAppWrapper";
 
 // Lazy load components
 const Header = React.lazy(() => import("#shared/components/layout/Header/Header.jsx"));
@@ -23,11 +24,17 @@ export default function MainLayout() {
     // --- Error State for Login ---
     const [loginApiError, setLoginApiError] = useState(null);
 
+    // --- State for ChatBox ---
+    const [isChatboxOpen, setIsChatboxOpen] = useState(false);
+
     // --- Activate WebSocket listener hook ---
     useWebSocketNotifications();
 
     // --- Handlers ---
     const toggleSidebar = () => setSidebarVisible(prev => !prev);
+    const toggleChat = () => setIsChatboxOpen(prev => !prev);
+
+    console.log("Chatbox isOpen:", isChatboxOpen);
 
     // --- Modal Control ---
     const openLoginModal = () => {
@@ -91,6 +98,7 @@ export default function MainLayout() {
     return (
         <div>
             <Header
+                toggleChat={toggleChat}
                 toggleSidebar={toggleSidebar}
                 isSidebarVisible={isSidebarVisible}
                 openLoginModal={openLoginModal}
@@ -121,6 +129,9 @@ export default function MainLayout() {
                 onSwitchToLogin={switchToLogin}
                 // No submit/loading/error props needed if using RR action
             />
+
+            {/* --- Render ChatApp --- */}
+            <ChatAppWrapper isOpen={isChatboxOpen} toggleChatVisibility={toggleChat}/>
         </div>
     );
 }
