@@ -166,8 +166,6 @@ class UserPostDetailsDAO {
 
         try {
             console.log("(dao)homePostsDAO", { limit, offset, sortBy, order });
-            // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD);
-            // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
 
             const viewRows = await postgres('UserPostDetails') 
                 .select('*')
@@ -186,26 +184,12 @@ class UserPostDetailsDAO {
             return viewRows.map(row => {
                 const postDetails = UserPostDetails.fromDbRow(row);
 
-                if (!postDetails) return null;
+                if (!postDetails) {
+                    return null;
+                }
 
                 return {
-                    id: postDetails.postId,
-                    title: postDetails.title,
-                    content: postDetails.body,
-                    time: postDetails.postCreatedAt,
-                    upvotes: postDetails.voteCount || 0,
-                    comments: postDetails.commentCount || 0,
-                    subtable: {
-                        namespace: postDetails.subtable?.name || 'Unknown',
-                        avatar: {
-                            src: postDetails.subtable?.iconUrl || 'https://via.placeholder.com/100'
-                        }
-                    },
-                    author: postDetails.author ? {
-                        username: postDetails.author.username,
-                        displayName: postDetails.author.displayName,
-                        avatar: postDetails.author.avatar
-                    } : null
+                    ...postDetails
                 };
             }).filter(post => post !== null);
         } catch (error) {
@@ -267,7 +251,6 @@ class UserPostDetailsDAO {
     //     }
     // }
 
-   
 }
 
 export default new UserPostDetailsDAO();

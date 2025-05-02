@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {useEffect, useState} from "react";
 
 import HomeSidebarContent from "#pages/Home/HomeSidebar/HomeSidebar.jsx";
 import {Helmet} from "react-helmet";
@@ -33,8 +33,12 @@ export default function HomeContent() {
         fetchPosts();
     }, []);
 
-    if (loading) return <div>Đang tải dữ liệu...</div>;
-    if (error) return <div>{error}</div>;
+    if (loading) {
+        return <div>Đang tải dữ liệu...</div>;
+    }
+    if (error) {
+        return <div>{error}</div>;
+    }
 
     return (
         <div>
@@ -47,30 +51,23 @@ export default function HomeContent() {
 
             <div className="posts-container">
                 {posts.length > 0 ? (
-                    posts.map(post => (
-                        <PostPreview 
-                            key={post.id}
-                            post={{
-                                postId: post.id,
-                                title: post.title,
-                                body: post.content,
-                                voteCount: post.upvotes,
-                                commentCount: post.comments,
-                                postCreatedAt: post.time
-                            }}
-                            subtable={{
-                                subtableId: post.id,
-                                name: post.subtable.namespace,
-                                icon: post.subtable.avatar.src
-                            }}
-                            isJoined={false}
-                            onJoinClick={() => console.log(`Join clicked for ${post.subtable.namespace}`)}
-                        />
-                    ))
+                    posts.map(post => {
+                        const {subtable, author, ...postdetails} = post;
+
+                        return (
+                            <PostPreview
+                                key={postdetails.postId}
+                                post={postdetails}
+                                subtable={subtable}
+                                isJoined={false}
+                                onJoinClick={() => console.log(`Join clicked for ${post.subtable.namespace}`)}
+                            />
+                        );
+                    })
                 ) : (
                     <div>Không có bài viết nào.</div>
                 )}
             </div>
         </div>
-    )
+    );
 }

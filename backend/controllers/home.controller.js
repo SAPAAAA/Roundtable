@@ -27,15 +27,11 @@ class HomeController {
             };
             
             console.log('(controller)Processed options:', options);
-          
+
             const posts = await this.service.getHomePosts(options);
             console.log(`(controller)Received ${posts?.length || 0} posts from service`);
-            
-            // Log mẫu bài đầu tiên nếu có
-            // if (posts && posts.length > 0) {
-            //     console.log('(controller)First post sample:', JSON.stringify(posts[0], null, 2));
-            // }
-            
+
+
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
                 data: posts

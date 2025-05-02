@@ -5,8 +5,8 @@ import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import {useParams} from 'react-router'
 import subtableService from "#services/subtableService";
-import {useState} from 'react'
-import { useEffect } from 'react';
+import {useEffect, useState} from 'react'
+
 export default function SubtableView() {
     const [subtablename, setSubtableName] = useState("")
     const [subtableBanner, setSubtableBanner] = useState("")
@@ -21,13 +21,11 @@ export default function SubtableView() {
     //console.log(subtableName)
     useEffect(() => {
         const fetchSubtableDetails = async () => {
-            //console.log("1111111111111111111") 
             try {
                 const response = await subtableService.getSubtableDetails(subtableName);
-                console.log("responsellllllllll", response.data[0])
                 setSubtableName(response.data[0].subtable.name)
-                setSubtableAvatar(response.data[0].subtable.iconUrl)
-                setSubtableBanner(response.data[0].subtable.bannerUrl)
+                setSubtableAvatar(response.data[0].subtable.icon)
+                setSubtableBanner(response.data[0].subtable.banner)
                 // console.log("response", response.data[0].subtable.icon)
                 // console.log("response", response.data[0].subtable.banner)
                 const posts = response.data.map((item) => {

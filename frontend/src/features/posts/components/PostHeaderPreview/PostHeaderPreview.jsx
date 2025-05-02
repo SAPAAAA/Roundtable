@@ -5,6 +5,7 @@ import Identifier from "#shared/components/UIElement/Identifier/Identifier";
 import Button from "#shared/components/UIElement/Button/Button"; // Assuming you might add a Join button
 import PostOptions from "#features/posts/components/PostOptions/PostOptions"; // Import the options component
 import "./PostHeaderPreview.css";
+import {formatTimeAgo} from "#utils/time.js";
 
 export default function PostHeaderPreview(props) {
     const {subtable, post, isJoined, onJoinClick, onOptions /* pass specific handlers if needed */} = props;
@@ -14,7 +15,7 @@ export default function PostHeaderPreview(props) {
     const handleHide = () => console.log("Preview Hide clicked");
     const handleReport = () => console.log("Preview Report clicked");
 
-
+    console.log("PostHeaderPreview", props);
     return (
         <div className="d-flex align-items-center justify-content-between mb-2">
             {/* Left side: Subtable Info */}
@@ -34,7 +35,7 @@ export default function PostHeaderPreview(props) {
                         type="subtable"
                         namespace={subtable.name}/>
                     &nbsp;•&nbsp;
-                    <span className="text-muted">{post.createdAt}</span>
+                    <span className="text-muted">{formatTimeAgo(post.postCreatedAt)}</span>
                 </div>
             </div>
 
