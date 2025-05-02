@@ -22,7 +22,6 @@ import commentRoutes from '#routes/comment.routes.js';
 import subtableRoutes from "#routes/subtable.routes.js";
 import notificationRoutes from "#routes/notification.routes.js";
 import homeRoutes from "#routes/home.routes.js"; // Thêm route mới
-
 // Listeners
 import '#listeners/notification.listener.js';
 
@@ -152,7 +151,7 @@ wss.on('connection', (ws, request, authenticatedUserId) => {
 });
 
 // Start the HTTP server (which includes WebSocket handling)
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 6000;
 server.listen(PORT, () => {
     console.log(`HTTP and WebSocket Server running on port ${PORT}`);
 });

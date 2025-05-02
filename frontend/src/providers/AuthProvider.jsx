@@ -10,7 +10,7 @@ const AuthProvider = ({children}) => {
     const checkSession = useCallback(async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         try {
-            const response = await sendApiRequest('http://localhost:5000/api/auth/session', {
+            const response = await sendApiRequest('/api/auth/session', {
                 method: 'GET',
             });
             if (response?.user) {
@@ -40,7 +40,7 @@ const AuthProvider = ({children}) => {
         setIsLoading(true);
         setError(null);
         try {
-            await sendApiRequest('http://localhost:5000/api/auth/logout', {method: 'POST'});
+            await sendApiRequest('/api/auth/logout', {method: 'POST'});
         } catch (err) {
             console.error("Logout API error:", err);
         } finally {

@@ -236,6 +236,6 @@ class WebsocketSubject {
 
 // --- Create and Export Singleton Instance ---
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const wsUrl = `${wsProtocol}//${window.location.hostname}:5000`;
+const wsUrl = `${wsProtocol}//${window.location.hostname}:6000`;
 
 export default new WebsocketSubject(wsUrl);

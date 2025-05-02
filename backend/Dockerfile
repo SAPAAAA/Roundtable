@@ -10,7 +10,7 @@ COPY package.json package-lock.json* ./
 RUN npm install
 
 # Expose the port the application listens on
-EXPOSE ${BACKEND_PORT:-5000}
+EXPOSE ${BACKEND_PORT:-6000}
 
 # Default command (relies on code being mounted at /app)
 CMD ["npm", "run", "dev"]

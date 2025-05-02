@@ -41,7 +41,7 @@ export default defineConfig({
         },
         proxy: {
             '/api': {
-                target: 'http://app:5000', // Should target the backend SERVICE name for container-to-container comms
+                target: 'http://app:6000', // Should target the backend SERVICE name for container-to-container comms
                 changeOrigin: true,
                 secure: false,
             }
