@@ -9,6 +9,7 @@ import authRoutes from '#routes/auth.routes.js'
 import postRoutes from "#routes/post.routes.js";
 import voteRoutes from "#routes/vote.routes.js";
 import commentRoutes from "#routes/comment.routes.js";
+import homeRoutes from "#routes/home.routes.js"; // Thêm route mới
 
 dotenv.config()
 
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 const allowedOrigins = [
+    '*',
     'http://localhost:3000',
 ]
 
@@ -66,6 +68,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/home', homeRoutes); 
 
 app.listen(6000, () => {
     console.log('Server running on port 6000')
