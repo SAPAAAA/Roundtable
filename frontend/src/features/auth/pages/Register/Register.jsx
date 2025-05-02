@@ -23,7 +23,6 @@ function Register() {
 
 
     const {
-        fullName, setFullName,
         username, setUsername,
         email, setEmail,
         password, setPassword,
@@ -45,9 +44,6 @@ function Register() {
         }
 
         switch (name) {
-            case 'fullName':
-                setFullName(newValue);
-                break;
             case 'username':
                 setUsername(newValue);
                 break;
@@ -81,7 +77,6 @@ function Register() {
     // --- Validate Form ---
     const validateForm = () => {
         const newErrors = {};
-        if (!fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ tên';
         if (!username.trim()) newErrors.username = 'Vui lòng nhập tên đăng nhập';
         if (!email.trim()) newErrors.email = 'Vui lòng nhập email';
         else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
@@ -122,7 +117,6 @@ function Register() {
                 // Registration successful!
                 console.log('Registration successful (via actionData):', actionData.user);
                 // Clear the form fields
-                setFullName('');
                 setUsername('');
                 setEmail('');
                 setPassword('');
@@ -136,8 +130,7 @@ function Register() {
                 navigate('/verify-email', {
                     replace: true,
                     state: {
-                        message: actionData.success,
-                        prefilledEmail: actionData.user.email
+                        prefilledEmail: actionData.data.email
                     }
                 });
             } else {
@@ -146,7 +139,7 @@ function Register() {
                 setLocalApiError("Phản hồi từ máy chủ không hợp lệ.");
             }
         }
-    }, [actionData, navigate, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]); // Add setters to dependency array if needed by your ESLint rules
+    }, [actionData, navigate, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]); // Add setters to dependency array if needed by your ESLint rules
 
     // --- Render ---
     return (
@@ -171,16 +164,6 @@ function Register() {
                     mainClass="register-form"
                     // noValidate // Optional: disable browser's built-in validation UI
                 >
-                    {/* === Full Name === */}
-                    <div className="form-group">
-                        <Input
-                            id="registerFullName" name="fullName" label="Họ và tên"
-                            placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
-                            isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
-                            addon={<Icon name="user" size="16"/>}
-                            disabled={isSubmitting}
-                        />
-                    </div>
                     {/* === Username === */}
                     <div className="form-group">
                         <Input

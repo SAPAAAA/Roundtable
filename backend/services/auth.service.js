@@ -97,10 +97,10 @@ class AuthService {
      * (Assumes this method is correct from previous versions)
      */
     async registerUser(registrationData) {
-        const {fullName, username, email, password} = registrationData;
+        const {username, email, password} = registrationData;
 
-        if (!username || !email || !password || !fullName) {
-            throw new BadRequestError('Full name, username, email, and password are required.');
+        if (!username || !email || !password) {
+            throw new BadRequestError('Username, email, and password are required.');
         }
 
         let createdEntities;
@@ -108,9 +108,13 @@ class AuthService {
             createdEntities = await postgres.transaction(async (trx) => {
                 // Check existing user/email
                 const existingUser = await AccountDAO.getByUsername(username, trx);
-                if (existingUser) throw new ConflictError('Username is already taken.');
+                if (existingUser) {
+                    throw new ConflictError('Username is already taken.');
+                }
                 const existingEmail = await AccountDAO.getByEmail(email, trx);
-                if (existingEmail) throw new ConflictError('Email address is already registered.');
+                if (existingEmail) {
+                    throw new ConflictError('Email address is already registered.');
+                }
 
                 // Hash password
                 const hashedPassword = await hashPassword(password);
@@ -118,20 +122,28 @@ class AuthService {
                 // Create records using DAOs, passing transaction object (trx)
                 const account = new Account(null, username, hashedPassword, email);
                 const createdAccount = await AccountDAO.create(account, trx);
-                if (!createdAccount?.accountId) throw new Error('DB_INSERT_FAIL: Account');
+                if (!createdAccount?.accountId) {
+                    throw new Error('DB_INSERT_FAIL: Account');
+                }
 
-                const profile = new Profile(null, null, null, null, null, fullName);
+                const profile = new Profile(null, null, null, null, null, null);
                 const createdProfile = await ProfileDAO.create(profile, trx);
-                if (!createdProfile?.profileId) throw new Error('DB_INSERT_FAIL: Profile');
+                if (!createdProfile?.profileId) {
+                    throw new Error('DB_INSERT_FAIL: Profile');
+                }
 
                 const principal = new Principal(null, createdAccount.accountId, createdProfile.profileId, PrincipalRoleEnum.USER);
                 const createdPrincipal = await PrincipalDAO.create(principal, trx);
-                if (!createdPrincipal?.principalId) throw new Error('DB_INSERT_FAIL: Principal');
+                if (!createdPrincipal?.principalId) {
+                    throw new Error('DB_INSERT_FAIL: Principal');
+                }
 
                 // Use RegisteredUserDAO.create
                 const registeredUser = new RegisteredUser(null, createdPrincipal.principalId);
                 const createdRegisteredUser = await RegisteredUserDAO.create(registeredUser, trx);
-                if (!createdRegisteredUser?.userId) throw new Error('DB_INSERT_FAIL: RegisteredUser');
+                if (!createdRegisteredUser?.userId) {
+                    throw new Error('DB_INSERT_FAIL: RegisteredUser');
+                }
 
                 return {
                     account: createdAccount,
@@ -142,7 +154,7 @@ class AuthService {
             }); // End transaction
 
             // --- Post-Transaction Actions ---
-            const userId = createdEntities.registeredUser.userId;
+            const {userId} = createdEntities.registeredUser;
             const userEmail = createdEntities.account.email;
             const plainCode = generateShortCode(6);
             const redisKey = `verify:email:${userId}`;
@@ -161,7 +173,6 @@ class AuthService {
             return {
                 userId: createdEntities.registeredUser.userId,
                 username: createdEntities.account.username,
-                displayName: createdEntities.profile.displayName,
                 email: createdEntities.account.email,
                 isVerified: false,
             };

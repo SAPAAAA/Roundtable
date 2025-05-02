@@ -29,19 +29,19 @@ class AuthController {
      */
     register = async (req, res, next) => {
         try {
-            const {fullName, username, email, password} = req.body;
+            const {username, email, password} = req.body;
             // Basic logging (avoid logging password)
             console.log('[AuthController.register] Attempting registration for username:', username);
 
             // Call the service layer - it returns data or throws specific errors
-            const user = await this.authService.registerUser({fullName, username, email, password});
+            const data = await this.authService.registerUser({username, email, password});
 
             // --- Success Response ---
             // Controller formats the successful response
             return res.status(HTTP_STATUS.CREATED).json({ // Use 201 Created status
                 success: true,
                 message: 'Registration successful. Please check your email for a verification code.',
-                user: user, // Send back the user data returned by the service
+                data: data, // Send back the user data returned by the service
             });
 
         } catch (error) {

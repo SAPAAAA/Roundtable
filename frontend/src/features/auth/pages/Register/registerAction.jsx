@@ -8,7 +8,7 @@ export default async function registerAction({request}) {
     // --- Get the method from the request object ---
     const httpMethod = request.method;
 
-    // Basic validation (optional, can also be done in the service)
+    // Basic validation
     if (!data.email || !data.password || !data.username) { // Add other required fields
         const errorData = {message: 'Missing required registration fields.'};
         throw new Response(JSON.stringify(errorData), {

@@ -49,7 +49,6 @@ function VerifyEmail() {
             navigate('/login', {replace: true});
         }
         if (actionData && actionData.error) {
-            // Handle error (e.g., show a message)
             console.error(actionData.error);
         }
     }, [actionData, navigate]);
