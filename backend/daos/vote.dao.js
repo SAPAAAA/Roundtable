@@ -1,5 +1,5 @@
 // dao/vote.dao.js
-import postgres from '#db/postgres.js'; // Assuming your postgres connection setup file
+import {postgresInstance} from '#db/postgres.js'; // Assuming your postgresInstance connection setup file
 import Vote, {VoteTypeEnum} from '#models/vote.model.js'; // Import model and enum
 
 class VoteDAO {
@@ -11,7 +11,7 @@ class VoteDAO {
      * @returns {Promise<Vote | null>} The created Vote instance with DB-generated fields, or null on failure.
      */
     async create(vote, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         // voteId and createdAt are handled by the DB.
         const {voteId, createdAt, ...insertData} = vote;
 
@@ -27,7 +27,7 @@ class VoteDAO {
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('Vote creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during vote creation: No data returned.');
+                throw new Error('PostgresDB error during vote creation: No data returned.');
             }
             return Vote.fromDbRow(insertedRows[0]);
         } catch (error) {
@@ -47,7 +47,7 @@ class VoteDAO {
      */
     async getById(voteId) {
         try {
-            const voteRow = await postgres('Vote').where({voteId}).first();
+            const voteRow = await postgresInstance('Vote').where({voteId}).first();
             // fromDbRow now correctly handles voteType
             return voteRow ? Vote.fromDbRow(voteRow) : null;
         } catch (error) {
@@ -64,7 +64,7 @@ class VoteDAO {
      */
     async findByUserAndPost(voterUserId, postId) {
         try {
-            const voteRow = await postgres('Vote')
+            const voteRow = await postgresInstance('Vote')
                 .where({
                     voterUserId: voterUserId,
                     postId: postId
@@ -86,7 +86,7 @@ class VoteDAO {
      */
     async findByUserAndComment(voterUserId, commentId) {
         try {
-            const voteRow = await postgres('Vote')
+            const voteRow = await postgresInstance('Vote')
                 .where({
                     voterUserId: voterUserId,
                     commentId: commentId
@@ -107,7 +107,7 @@ class VoteDAO {
      */
     async findVotesByPostId(postId) {
         try {
-            const voteRows = await postgres('Vote').where({postId});
+            const voteRows = await postgresInstance('Vote').where({postId});
             // fromDbRow now correctly handles voteType
             return voteRows.map(row => Vote.fromDbRow(row));
         } catch (error) {
@@ -123,7 +123,7 @@ class VoteDAO {
      */
     async findVotesByCommentId(commentId) {
         try {
-            const voteRows = await postgres('Vote').where({commentId});
+            const voteRows = await postgresInstance('Vote').where({commentId});
             // fromDbRow now correctly handles voteType
             return voteRows.map(row => Vote.fromDbRow(row));
         } catch (error) {
@@ -141,7 +141,7 @@ class VoteDAO {
      * @returns {Promise<Vote | null>} The updated Vote instance, or null if not found or update failed.
      */
     async update(voteId, updates, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
 
         // Validate the provided voteType
         if (!updates || !Vote.isValidVoteType(updates.voteType)) {
@@ -175,7 +175,7 @@ class VoteDAO {
      * @returns {Promise<number>} The number of rows deleted (should be 1 if successful, 0 if not found).
      */
     async delete(voteId, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
             const deletedCount = await queryBuilder('Vote')
                 .where({voteId})

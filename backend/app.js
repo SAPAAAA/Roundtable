@@ -10,9 +10,9 @@ import {WebSocketServer} from 'ws';
 // WebSocket
 import WebSocketManager from '#core/websocket-manager.js';
 
-// Database
-import redis from '#db/redis.js';
-import postgres from "#db/postgres.js";
+// --- PostgresDB & Cache Clients ---
+import redisClient from '#db/redis.js';
+import PostgresDB from "#db/postgres.js";
 
 // Routes
 import authRoutes from '#routes/auth.routes.js';
@@ -57,7 +57,7 @@ const corsOptions = {
 }
 
 const redisStore = new RedisStore({
-    client: redis,
+    client: redisClient,
     prefix: 'session:',
 });
 
@@ -165,11 +165,11 @@ Object.keys(signals).forEach((signal) => {
         server.close(() => {
             console.log('HTTP server closed.');
             // Close database connections
-            redis.quit(() => {
+            redisClient.quit(() => {
                 console.log('Redis connection closed.');
                 process.exit(128 + signals[signal]);
             });
-            postgres.destroy(() => {
+            PostgresDB.destroy(() => {
                 console.log('Postgres connection pool closed.');
             }); // Close Knex pool
         });

@@ -2,16 +2,12 @@ import homeService from '#services/home.service.js';
 import HTTP_STATUS from '#constants/httpStatus.js';
 
 class HomeController {
- 
     constructor() {
         this.service = homeService;
         // Bind method để đảm bảo this luôn đúng context
         this.getHomePosts = this.getHomePosts.bind(this);
     }
-
-  
     async getHomePosts(req, res, next) {
-   
 
         try {
             //console.log('(controller)Request query params:', req.query);

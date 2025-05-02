@@ -1,9 +1,9 @@
-import postgres from "#db/postgres.js";
+import {postgresInstance} from "#db/postgres.js";
 import Principal from "#models/principal.model.js";
 
 class PrincipalDAO {
     async create(principal, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
 
         const {principalId, ...insertData} = principal;
         try {
@@ -17,7 +17,7 @@ class PrincipalDAO {
                     insertedRows
                 );
                 throw new Error(
-                    "Database error during Principal creation: No data returned."
+                    "PostgresDB error during Principal creation: No data returned."
                 );
             }
             // Use the first element (which includes the DB-generated principalId)
@@ -32,7 +32,7 @@ class PrincipalDAO {
     async getById(principalId) {
         try {
             // .first() returns the object directly or undefined
-            const principalRow = await postgres("Principal").where({principalId}).first();
+            const principalRow = await postgresInstance("Principal").where({principalId}).first();
             // Check if a principal was actually found
             if (!principalRow) {
                 return null; // Return null if not found
@@ -49,7 +49,7 @@ class PrincipalDAO {
     async getByAccountId(accountId) {
         try {
             // .first() returns the object directly or undefined
-            const principalRow = await postgres("Principal").where({accountId}).first();
+            const principalRow = await postgresInstance("Principal").where({accountId}).first();
             // Check if a principal was actually found
             if (!principalRow) {
                 return null; // Return null if not found
@@ -64,7 +64,7 @@ class PrincipalDAO {
     }
 
     async delete(principalId, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
             // .del() returns the number of affected rows
             const affectedRows = await queryBuilder("Principal").where({principalId}).del();

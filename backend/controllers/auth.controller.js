@@ -215,7 +215,7 @@ class AuthController {
         try {
             // --- Session Check (Controller Logic) ---
             if (req.session && req.session.userId) {
-                const userId = req.session.userId;
+                const {userId} = req.session;
                 console.log('[AuthController.checkSession] Active session found for userId:', userId);
 
                 // Call service to get user data based on session ID

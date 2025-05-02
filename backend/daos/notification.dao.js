@@ -1,5 +1,5 @@
 // daos/notification.dao.js
-import postgres from '#db/postgres.js'; // Assuming your Knex instance is exported as default
+import {postgresInstance} from '#db/postgres.js'; // Assuming your Knex instance is exported as default
 import Notification from '#models/notification.model.js';
 
 class NotificationDAO {
@@ -11,7 +11,7 @@ class NotificationDAO {
     async getById(notificationId) {
         try {
             // Select the notification from the "Notification" table where notificationId matches
-            const notificationRow = await postgres('Notification').where({notificationId}).first();
+            const notificationRow = await postgresInstance('Notification').where({notificationId}).first();
             // Convert the database row to a Notification model instance, or return null if not found
             return Notification.fromDbRow(notificationRow);
         } catch (error) {
@@ -29,8 +29,8 @@ class NotificationDAO {
      * @returns {Promise<Notification>} The newly created Notification instance with DB-generated values.
      */
     async create(notification, trx = null) {
-        // Use the provided transaction or the default postgres connection
-        const queryBuilder = trx ?? postgres;
+        // Use the provided transaction or the default postgresInstance connection
+        const queryBuilder = trx ?? postgresInstance;
         // Destructure the notification object, excluding fields managed by DB defaults
         const {
             notificationId, createdAt,
@@ -49,7 +49,7 @@ class NotificationDAO {
             // Validate the insertion result
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('Notification creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during notification creation: No data returned.');
+                throw new Error('PostgresDB error during notification creation: No data returned.');
             }
             // Convert the first returned row into a Notification model instance
             return Notification.fromDbRow(insertedRows[0]);
@@ -69,8 +69,8 @@ class NotificationDAO {
      * @returns {Promise<Notification | null>} The updated Notification instance, or null if not found.
      */
     async update(notificationId, updateData, trx = null) {
-        // Use the provided transaction or the default postgres connection
-        const queryBuilder = trx ?? postgres;
+        // Use the provided transaction or the default postgresInstance connection
+        const queryBuilder = trx ?? postgresInstance;
         // Only allow specific fields to be updated (currently just 'isRead')
         const allowedUpdates = {};
         if (updateData.isRead !== undefined) {
@@ -112,8 +112,8 @@ class NotificationDAO {
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
     async hardDelete(notificationId, trx = null) {
-        // Use the provided transaction or the default postgres connection
-        const queryBuilder = trx ?? postgres;
+        // Use the provided transaction or the default postgresInstance connection
+        const queryBuilder = trx ?? postgresInstance;
         try {
             // Delete the notification from the "Notification" table
             const deletedCount = await queryBuilder('Notification')
@@ -146,7 +146,7 @@ class NotificationDAO {
 
         try {
             // Start building the query
-            const query = postgres('Notification')
+            const query = postgresInstance('Notification')
                 .where({recipientUserId})
 
             // Apply isRead filter if provided
@@ -182,7 +182,7 @@ class NotificationDAO {
     async countByRecipient(recipientUserId, filters = {}) { // <-- Updated
         const {isRead} = filters;
         try {
-            const query = postgres('Notification').where({recipientUserId}); // <-- Updated
+            const query = postgresInstance('Notification').where({recipientUserId}); // <-- Updated
 
             if (isRead !== undefined) {
                 query.andWhere({isRead});
@@ -207,7 +207,7 @@ class NotificationDAO {
         if (!notificationIds || notificationIds.length === 0) {
             return 0; // Nothing to update
         }
-        const queryBuilder = trx ?? postgres;
+        const queryBuilder = trx ?? postgresInstance;
         try {
             return await queryBuilder('Notification')
                 .where({recipientAccountId})
@@ -227,7 +227,7 @@ class NotificationDAO {
      * @returns {Promise<number>} The number of notifications updated.
      */
     async markAllAsRead(recipientAccountId, trx = null) {
-        const queryBuilder = trx ?? postgres;
+        const queryBuilder = trx ?? postgresInstance;
         try {
             return await queryBuilder('Notification')
                 .where({recipientAccountId, isRead: false})

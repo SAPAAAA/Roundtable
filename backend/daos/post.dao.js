@@ -1,5 +1,5 @@
 // daos/post.dao.js
-import postgres from '#db/postgres.js';
+import {postgresInstance} from '#db/postgres.js';
 import Post from '#models/post.model.js';
 
 class PostDAO {
@@ -10,7 +10,7 @@ class PostDAO {
      */
     async getById(postId) {
         try {
-            const postRow = await postgres('Post').where({postId}).first();
+            const postRow = await postgresInstance('Post').where({postId}).first();
             return Post.fromDbRow(postRow);
         } catch (error) {
             console.error(`Error finding post by ID (${postId}):`, error);
@@ -25,7 +25,7 @@ class PostDAO {
      * @returns {Promise<Post>} The newly created Post instance with DB-generated values.
      */
     async create(post, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         // Exclude fields managed by DB defaults or triggers
         const {
             postId, createdAt, updatedAt, voteCount,
@@ -43,7 +43,7 @@ class PostDAO {
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('Post creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during post creation: No data returned.');
+                throw new Error('PostgresDB error during post creation: No data returned.');
             }
             return Post.fromDbRow(insertedRows[0]);
         } catch (error) {
@@ -60,7 +60,7 @@ class PostDAO {
      * @returns {Promise<Post | null>} The updated Post instance, or null if not found.
      */
     async update(postId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         // Only allow specific fields to be updated via this method
         const allowedUpdates = {};
         if (updateData.title !== undefined) allowedUpdates.title = updateData.title;
@@ -98,7 +98,7 @@ class PostDAO {
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
     async hardDelete(postId, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
             const deletedCount = await queryBuilder('Post')
                 .where({postId})
@@ -123,7 +123,7 @@ class PostDAO {
         const validOrder = ['asc', 'desc'].includes(order) ? order : 'desc';
 
         try {
-            const postRows = await postgres('Post')
+            const postRows = await postgresInstance('Post')
                 .where({subtableId, isRemoved: false}) // Typically exclude removed posts
                 .orderBy(validSortBy, validOrder)
                 .limit(limit)
@@ -148,7 +148,7 @@ class PostDAO {
         const validOrder = ['asc', 'desc'].includes(order) ? order : 'desc';
 
         try {
-            const postRows = await postgres('Post')
+            const postRows = await postgresInstance('Post')
                 .where({authorUserId, isRemoved: false}) // Optionally filter out removed
                 .orderBy(validSortBy, validOrder)
                 .limit(limit)

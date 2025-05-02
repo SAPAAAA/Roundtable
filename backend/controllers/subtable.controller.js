@@ -1,11 +1,9 @@
 import HTTP_STATUS from '#constants/httpStatus.js';
 import subtableService from '#services/subtable.service.js';
-//import {Subtable} from "#models/subtable.model.js";
+
 class SubtableController {
     constructor(subtableService) {
         this.subtableService = subtableService;
-        this.getSubtableDetails = this.getSubtableDetails.bind(this);
-        
     }
     getSubtableDetails = async (req, res, next) => {
         try{

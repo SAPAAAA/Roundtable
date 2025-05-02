@@ -1,9 +1,9 @@
-import postgres from '#db/postgres.js';
+import {postgresInstance} from '#db/postgres.js';
 import Profile from '#models/profile.model.js';
 
 class ProfileDAO {
     async create(profile, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
 
         const {profileId, ...insertData} = profile;
         try {
@@ -13,7 +13,7 @@ class ProfileDAO {
             // Check if we got an array and it's not empty
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('Profile creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during profile creation: No data returned.');
+                throw new Error('PostgresDB error during profile creation: No data returned.');
             }
             // Use the first element (which includes the DB-generated profileId)
             return Profile.fromDbRow(insertedRows[0]);
@@ -27,7 +27,7 @@ class ProfileDAO {
     async getById(profileId) {
         try {
             // .first() returns the object directly or undefined
-            const profileRow = await postgres('Profile').where({profileId}).first();
+            const profileRow = await postgresInstance('Profile').where({profileId}).first();
             // Check if a profile was actually found
             if (!profileRow) {
                 return null; // Return null if not found
@@ -42,7 +42,7 @@ class ProfileDAO {
     }
 
     async delete(profileId, trx) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
             // .del() returns the number of affected rows
             const affectedRows = await queryBuilder('Profile').where({profileId}).del();

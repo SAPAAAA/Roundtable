@@ -1,5 +1,5 @@
 // daos/comment.dao.js
-import postgres from '#db/postgres.js';
+import {postgresInstance} from '#db/postgres.js';
 import Comment from '#models/comment.model.js';
 
 class CommentDAO {
@@ -10,7 +10,7 @@ class CommentDAO {
      */
     async getById(commentId) {
         try {
-            const commentRow = await postgres('Comment').where({commentId}).first();
+            const commentRow = await postgresInstance('Comment').where({commentId}).first();
             return Comment.fromDbRow(commentRow);
         } catch (error) {
             console.error(`Error finding comment by ID (${commentId}):`, error);
@@ -26,7 +26,7 @@ class CommentDAO {
      * @returns {Promise<Comment>} The newly created Comment instance with DB-generated values.
      */
     async create(comment, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         // Exclude fields managed by DB defaults or triggers
         const {
             commentId, createdAt, updatedAt, voteCount, isRemoved,
@@ -43,7 +43,7 @@ class CommentDAO {
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('Comment creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during comment creation: No data returned.');
+                throw new Error('PostgresDB error during comment creation: No data returned.');
             }
             // The trigger 'update_post_comment_count_ins' will have fired AFTER this insert.
             return Comment.fromDbRow(insertedRows[0]);
@@ -66,7 +66,7 @@ class CommentDAO {
      * @returns {Promise<Comment | null>} The updated Comment instance, or null if not found.
      */
     async update(commentId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         const allowedUpdates = {};
         if (updateData.body !== undefined) allowedUpdates.body = updateData.body;
         if (updateData.isRemoved !== undefined) allowedUpdates.isRemoved = updateData.isRemoved;
@@ -102,7 +102,7 @@ class CommentDAO {
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
     async delete(commentId, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
             // The trigger 'update_post_comment_count_del' will fire AFTER this delete.
             const deletedCount = await queryBuilder('Comment')
@@ -136,7 +136,7 @@ class CommentDAO {
         const validOrder = ['asc', 'desc'].includes(order) ? order : 'asc'; // Default to chronological
 
         try {
-            let query = postgres('Comment').where({postId});
+            let query = postgresInstance('Comment').where({postId});
 
             if (!includeRemoved) {
                 query = query.andWhere({isRemoved: false});
@@ -169,7 +169,7 @@ class CommentDAO {
         const validOrder = ['asc', 'desc'].includes(order) ? order : 'asc';
 
         try {
-            let query = postgres('Comment').where({parentCommentId});
+            let query = postgresInstance('Comment').where({parentCommentId});
 
             if (!includeRemoved) {
                 query = query.andWhere({isRemoved: false});
@@ -199,7 +199,7 @@ class CommentDAO {
         const validOrder = ['asc', 'desc'].includes(order) ? order : 'desc';
 
         try {
-            let query = postgres('Comment').where({authorUserId});
+            let query = postgresInstance('Comment').where({authorUserId});
 
             if (!includeRemoved) {
                 query = query.andWhere({isRemoved: false});
@@ -219,7 +219,7 @@ class CommentDAO {
 
     async getAllCommentsForPost(postId) {
         try {
-            const commentRows = await postgres('Comment').where({postId});
+            const commentRows = await postgresInstance('Comment').where({postId});
             return commentRows.map(Comment.fromDbRow);
         } catch (error) {
             console.error(`Error finding all comments for post (${postId}):`, error);

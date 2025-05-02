@@ -1,6 +1,6 @@
 // daos/user-profile.dao.js
 
-import postgres from '#db/postgres.js'; // Assuming Knex instance is exported from here
+import {postgresInstance} from '#db/postgres.js'; // Assuming Knex instance is exported from here
 import UserProfile from '#models/user-profile.model.js'; // Import the UserProfile model
 
 /**
@@ -23,7 +23,7 @@ class UserProfileDAO {
         }
         try {
             // Query the 'UserProfile' VIEW using the userId column
-            const profileRow = await postgres('UserProfile') // Use the VIEW name
+            const profileRow = await postgresInstance('UserProfile') // Use the VIEW name
                 .where({userId: userId}) // Filter by userId
                 .first(); // Expecting one or zero results
 
@@ -53,7 +53,7 @@ class UserProfileDAO {
         }
         try {
             // Query the 'UserProfile' VIEW using the username column
-            const profileRow = await postgres('UserProfile')
+            const profileRow = await postgresInstance('UserProfile')
                 .where({username: username}) // Filter by username
                 .first();
 
@@ -80,7 +80,7 @@ class UserProfileDAO {
         }
         try {
             // Query the 'UserProfile' VIEW using the principalId column
-            const profileRow = await postgres('UserProfile')
+            const profileRow = await postgresInstance('UserProfile')
                 .where({principalId: principalId}) // Filter by principalId
                 .first();
 

@@ -1,20 +1,40 @@
-import knexObj from 'knex';
+import knex from 'knex';
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
 dotenv.config();
 
-const postgres = knexObj({
-    client: 'pg',
-    connection: {
-        host: process.env.DATABASE_HOST,
-        port: process.env.DATABASE_PORT,
-        user: process.env.POSTGRES_USER,
-        password: process.env.POSTGRES_PASSWORD,
-        database: process.env.POSTGRES_DB
-    },
-    pool: {min: 0, max: 7},
-});
+class PostgresDB {
+    // static instance = null;
 
-// Export the database connection
-export default postgres;
+    constructor() {
+        throw new Error('Use PostgresDB.getInstance() instead of instantiating.');
+    }
+
+    static getInstance() {
+        if (!PostgresDB.instance) {
+            PostgresDB.instance = knex({
+                client: 'pg',
+                connection: {
+                    host: process.env.DATABASE_HOST,
+                    port: Number(process.env.DATABASE_PORT),
+                    user: process.env.POSTGRES_USER,
+                    password: process.env.POSTGRES_PASSWORD,
+                    database: process.env.POSTGRES_DB,
+                },
+                pool: {min: 0, max: 7},
+            });
+        }
+
+        return PostgresDB.instance;
+    }
+
+    static async destroy() {
+        if (PostgresDB.instance) {
+            await PostgresDB.instance.destroy();
+            PostgresDB.instance = null;
+        }
+    }
+}
+
+export const postgresInstance = PostgresDB.getInstance();
+export default PostgresDB;

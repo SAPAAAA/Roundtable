@@ -1,5 +1,5 @@
 // daos/subtable.dao.js
-import postgres from '#db/postgres.js';
+import {postgresInstance} from '#db/postgres.js';
 import Subtable from '#models/subtable.model.js';
 
 class SubtableDAO {
@@ -10,7 +10,7 @@ class SubtableDAO {
      */
     async getById(subtableId) {
         try {
-            const subtableRow = await postgres('Subtable').where({subtableId}).first();
+            const subtableRow = await postgresInstance('Subtable').where({subtableId}).first();
             return Subtable.fromDbRow(subtableRow); // Returns null if subtableRow is undefined
         } catch (error) {
             console.error(`Error finding subtable by ID (${subtableId}):`, error);
@@ -25,7 +25,7 @@ class SubtableDAO {
      */
     async getByName(name) {
         try {
-            const subtableRow = await postgres('Subtable').where({name}).first();
+            const subtableRow = await postgresInstance('Subtable').where({name}).first();
             return Subtable.fromDbRow(subtableRow);
         } catch (error) {
             console.error(`Error finding subtable by name (${name}):`, error);
@@ -40,7 +40,7 @@ class SubtableDAO {
      * @returns {Promise<Subtable>} The newly created Subtable instance with DB-generated values.
      */
     async create(subtable, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         // Exclude fields managed by the database automatically (like defaults or sequences)
         // name is required, description, creatorPrincipalId, iconUrl, bannerUrl are nullable
         const {subtableId, createdAt, memberCount, ...insertData} = subtable;
@@ -50,7 +50,7 @@ class SubtableDAO {
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('Subtable creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during subtable creation: No data returned.');
+                throw new Error('PostgresDB error during subtable creation: No data returned.');
             }
             // Return the full subtable object including DB-generated fields
             return Subtable.fromDbRow(insertedRows[0]);
@@ -75,7 +75,7 @@ class SubtableDAO {
      * @returns {Promise<Subtable | null>} The updated Subtable instance, or null if not found.
      */
     async update(subtableId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         // Remove fields that shouldn't be directly updated this way
         const {
             subtableId: _,
@@ -121,7 +121,7 @@ class SubtableDAO {
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
     async delete(subtableId, trx = null) {
-        const queryBuilder = trx ? trx : postgres;
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
             const deletedCount = await queryBuilder('Subtable')
                 .where({subtableId})

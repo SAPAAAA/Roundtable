@@ -1,4 +1,4 @@
-import postgres from '#db/postgres.js';
+import {postgresInstance} from '#db/postgres.js';
 import UserCommentDetails from '#models/user-comment-details.model.js';
 
 /**
@@ -38,7 +38,7 @@ class UserCommentDetailsDAO {
         const order = finalOptions.order.toLowerCase() === 'desc' ? 'desc' : 'asc';
 
         // Use "UserCommentDetails" as the view name
-        let query = postgres('UserCommentDetails')
+        let query = postgresInstance('UserCommentDetails')
             .select('*') // Select all columns from the view
             .where({postId: postId});
 
@@ -73,7 +73,7 @@ class UserCommentDetailsDAO {
         } catch (error) {
             console.error("Error fetching UserCommentDetails by Post ID:", error);
             // Optionally log query.toSQL() here as well in case of error
-            throw new Error("Database error fetching comments."); // Or re-throw specific error
+            throw new Error("PostgresDB error fetching comments."); // Or re-throw specific error
         }
     }
 
@@ -83,7 +83,7 @@ class UserCommentDetailsDAO {
      * @returns {Promise<UserCommentDetails | null>} - A promise resolving to a UserCommentDetails instance or null if not found.
      */
     async getByCommentId(commentId) {
-        const query = postgres('"UserCommentDetails"')
+        const query = postgresInstance('"UserCommentDetails"')
             .select('*')
             .where({commentId: commentId})
             .first(); // Use .first() to get a single object or undefined
@@ -102,7 +102,7 @@ class UserCommentDetailsDAO {
 
         } catch (error) {
             console.error("Error fetching UserCommentDetails by Comment ID:", error);
-            throw new Error("Database error fetching comment.");
+            throw new Error("PostgresDB error fetching comment.");
         }
     }
 }

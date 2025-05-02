@@ -1,11 +1,4 @@
-/**
- * daos/user-post-details.dao.js
- *
- * Data Access Object for interacting with the "UserPostDetails" database VIEW.
- * Provides methods to fetch detailed post information, including author and subtable details.
- */
-
-import postgres from '#db/postgres.js'; // Assuming Knex instance is exported from here
+import {postgresInstance} from '#db/postgres.js'; // Assuming Knex instance is exported from here
 import UserPostDetails from '#models/user-post-details.model.js'; // Import the corresponding model
 
 /**
@@ -31,7 +24,7 @@ class UserPostDetailsDAO {
             return null;
         }
         try {
-            const viewRow = await postgres('UserPostDetails') // Query the VIEW
+            const viewRow = await postgresInstance('UserPostDetails') // Query the VIEW
                 .where({postId: postId})
                 .first(); // Expecting one or zero results
 
@@ -62,7 +55,7 @@ class UserPostDetailsDAO {
         const {limit, offset, sortBy, order, includeRemoved} = this._prepareQueryOptions(options);
 
         try {
-            let query = postgres('UserPostDetails')
+            let query = postgresInstance('UserPostDetails')
                 .select('*') // Select all columns from the VIEW
                 .where({subtableId: subtableId});
 
@@ -109,7 +102,7 @@ class UserPostDetailsDAO {
         const {limit, offset, sortBy, order, includeRemoved} = this._prepareQueryOptions(options);
 
         try {
-            let query = postgres('UserPostDetails')
+            let query = postgresInstance('UserPostDetails')
                 .select('*')
                 .where({authorUserId: authorUserId}); // Filter by authorUserId from the VIEW
 
@@ -167,7 +160,7 @@ class UserPostDetailsDAO {
         try {
             console.log("(dao)homePostsDAO", { limit, offset, sortBy, order });
 
-            const viewRows = await postgres('UserPostDetails') 
+            const viewRows = await postgresInstance('UserPostDetails')
                 .select('*')
                 .where('isRemoved', false) 
                 .orderBy(validSortBy, validOrder) 
@@ -237,7 +230,7 @@ class UserPostDetailsDAO {
     //         // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD); 
     //         // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
 
-    //         const viewRow = await postgres('UserPostDetails') // Query the VIEW
+    //         const viewRow = await postgresInstance('UserPostDetails') // Query the VIEW
     //             .where({subtableName: subtableName})
     //         //console.log("viewRow nulll", viewRow)
             

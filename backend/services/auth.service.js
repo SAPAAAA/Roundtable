@@ -4,9 +4,9 @@
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
 
-// --- Database & Cache Clients ---
-import postgres from '#db/postgres.js'; // Knex instance for transactions
-import redis from '#db/redis.js'; // Redis client instance
+// --- PostgresDB & Cache Clients ---
+import {postgresInstance} from '#db/postgres.js';
+import redisClient from '#db/redis.js';
 // --- Utility Functions ---
 import {generateShortCode} from '#utils/codeGenerator.js';
 import {sendMail} from '#utils/email.js';
@@ -105,7 +105,7 @@ class AuthService {
 
         let createdEntities;
         try {
-            createdEntities = await postgres.transaction(async (trx) => {
+            createdEntities = await postgresInstance.transaction(async (trx) => {
                 // Check existing user/email
                 const existingUser = await AccountDAO.getByUsername(username, trx);
                 if (existingUser) {
@@ -161,7 +161,7 @@ class AuthService {
             const redisTTL = CODE_EXPIRY_MINUTES * 60;
 
             try {
-                await redis.set(redisKey, plainCode, {EX: redisTTL});
+                await redisClient.set(redisKey, plainCode, {EX: redisTTL});
                 console.log(`Verification code stored in Redis for userId: ${userId}`);
                 await this._sendVerificationEmail(userEmail, plainCode);
             } catch (cacheOrEmailError) {
@@ -241,7 +241,7 @@ class AuthService {
             console.log(`Verification lookup: Found userId ${userId} for email ${email}.`);
 
             // --- 2. Check Verification Code in Redis ---
-            const storedCode = await redis.get(redisKey);
+            const storedCode = await redisClient.get(redisKey);
 
             if (!storedCode) {
                 console.warn(`No verification code found in Redis for key: ${redisKey} (email: ${email})`);
@@ -255,7 +255,7 @@ class AuthService {
 
             // --- 3. Update RegisteredUser within a Transaction using RegisteredUserDAO ---
             let alreadyVerified = false;
-            const updatePerformed = await postgres.transaction(async (trx) => {
+            const updatePerformed = await postgresInstance.transaction(async (trx) => {
                 // Step 3.1: Fetch the RegisteredUser record *within the transaction* using its DAO
                 const userToUpdate = await RegisteredUserDAO.getById(userId, trx); // Pass trx
 
@@ -281,17 +281,17 @@ class AuthService {
                 if (!updateSuccessful) {
                     // The DAO's update method returns boolean indicating success
                     console.error(`Failed to update RegisteredUser verification status via DAO for userId: ${userId} within transaction.`);
-                    throw new InternalServerError('Database update for verification failed.'); // Rollback
+                    throw new InternalServerError('PostgresDB update for verification failed.'); // Rollback
                 }
 
                 console.log(`User (userId: ${userId}) marked as verified via DAO within transaction.`);
                 return true; // Indicate DB update was performed
-            }); // End of postgres.transaction block
+            }); // End of postgresInstance.transaction block
 
             // --- 4. Clean up Redis key ---
             if (updatePerformed || alreadyVerified) {
                 try {
-                    await redis.del(redisKey);
+                    await redisClient.del(redisKey);
                     console.log(`Redis key ${redisKey} deleted after successful verification check/update.`);
                 } catch (redisError) {
                     console.error(`Failed to delete Redis key ${redisKey} after verification:`, redisError);

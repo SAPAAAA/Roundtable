@@ -1,9 +1,9 @@
-import postgres from '#db/postgres.js';
+import {postgresInstance} from '#db/postgres.js';
 import RegisteredUser from '#models/registered-user.model.js';
 
 class RegisteredUserDAO {
     async create(registeredUser, trx) {
-        const queryBuilder = trx || postgres;
+        const queryBuilder = trx || postgresInstance;
 
         const {userId, ...insertData} = registeredUser;
         try {
@@ -13,7 +13,7 @@ class RegisteredUserDAO {
             // Check if we got an array and it's not empty
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 console.error('RegisteredUser creation failed or did not return expected data.', insertedRows);
-                throw new Error('Database error during RegisteredUser creation: No data returned.');
+                throw new Error('PostgresDB error during RegisteredUser creation: No data returned.');
             }
             // Use the first element (which includes the DB-generated userId and defaults)
             return RegisteredUser.fromDbRow(insertedRows[0]);
@@ -26,7 +26,7 @@ class RegisteredUserDAO {
 
     async getByPrincipalId(principalId) {
         try {
-            const registeredUserRow = await postgres('RegisteredUser').where({principalId}).first();
+            const registeredUserRow = await postgresInstance('RegisteredUser').where({principalId}).first();
             if (!registeredUserRow) {
                 return null;
             }
@@ -39,7 +39,7 @@ class RegisteredUserDAO {
 
     async getById(userId) {
         try {
-            const registeredUserRow = await postgres('RegisteredUser').where({userId}).first();
+            const registeredUserRow = await postgresInstance('RegisteredUser').where({userId}).first();
             if (!registeredUserRow) {
                 return null;
             }
@@ -51,7 +51,7 @@ class RegisteredUserDAO {
     }
 
     async delete(userId, trx) {
-        const queryBuilder = trx || postgres;
+        const queryBuilder = trx || postgresInstance;
         try {
             const affectedRows = await queryBuilder('RegisteredUser').where({userId}).del();
             return affectedRows > 0;
@@ -62,7 +62,7 @@ class RegisteredUserDAO {
     }
 
     async update(userId, updatedData, trx) {
-        const queryBuilder = trx || postgres;
+        const queryBuilder = trx || postgresInstance;
         try {
             const affectedRows = await queryBuilder('RegisteredUser').where({userId}).update(updatedData);
             return affectedRows > 0;
