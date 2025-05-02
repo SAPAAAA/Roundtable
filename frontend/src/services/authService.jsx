@@ -11,7 +11,7 @@ class AuthService {
     async login(credentials, httpMethod = 'POST') {
         try {
             // Use the standalone function, passing the dynamic method and body
-            const response = await sendApiRequest('http://localhost:6000/api/auth/login', {
+            const response = await sendApiRequest('/api/auth/login', {
                 method: httpMethod,
                 body: credentials
             });
