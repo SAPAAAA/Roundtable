@@ -15,7 +15,6 @@ export default function PostHeaderPreview(props) {
     const handleHide = () => console.log("Preview Hide clicked");
     const handleReport = () => console.log("Preview Report clicked");
 
-    console.log("PostHeaderPreview", props);
     return (
         <div className="d-flex align-items-center justify-content-between mb-2">
             {/* Left side: Subtable Info */}
