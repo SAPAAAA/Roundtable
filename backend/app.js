@@ -151,7 +151,7 @@ wss.on('connection', (ws, request, authenticatedUserId) => {
 });
 
 // Start the HTTP server (which includes WebSocket handling)
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`HTTP and WebSocket Server running on port ${PORT}`);
 });

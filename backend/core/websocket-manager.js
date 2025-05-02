@@ -1,4 +1,4 @@
-// backend/websocket/websocket-manager.js (Conceptual)
+// backend/websocket/websocket-manager.js
 
 // Store active connections (e.g., mapping userId to WebSocket object)
 const userConnections = new Map();
