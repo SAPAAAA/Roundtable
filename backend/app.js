@@ -33,9 +33,13 @@ app.use(express.json());
 
 app.use(express.urlencoded({extended: true}));
 
+const internalIp = process.env.FRONTEND_INTERNAL_IP;
+const frontendPort = process.env.FRONTEND_PORT;
 const allowedOrigins = [
-    'http://localhost:3000',
-]
+    `http://localhost:${frontendPort}`,
+    `http://${internalIp}:${frontendPort}` // <-- Add this line (assuming frontend runs on 3000)
+    // Add other potential origins if needed, e.g., if frontend runs on a different port when accessed via IP
+];
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -151,9 +155,10 @@ wss.on('connection', (ws, request, authenticatedUserId) => {
 });
 
 // Start the HTTP server (which includes WebSocket handling)
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-    console.log(`HTTP and WebSocket Server running on port ${PORT}`);
+const HOST = process.env.BACKEND_HOST;
+const PORT = process.env.BACKEND_PORT;
+server.listen(PORT, HOST, () => {
+    console.log(`HTTP and WebSocket Server running on http://${HOST}:${PORT}`);
 });
 
 // --- Graceful Shutdown ---
