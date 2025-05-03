@@ -1,6 +1,6 @@
 import {Vote, VoteTypeEnum} from "#models/vote.model.js";
 import {BadRequestError, NotFoundError} from "#errors/AppError.js";
-import postgres from "#db/postgres.js";
+import {postgresInstance} from "#db/postgres.js";
 import VoteDAO from "#daos/vote.dao.js";
 
 class VoteService {
@@ -18,7 +18,7 @@ class VoteService {
         // Create the vote
         let createdVote;
         try {
-            createdVote = await postgres.transaction(async (trx) => {
+            createdVote = await postgresInstance.transaction(async (trx) => {
                 const vote = new Vote(null, voterUserId, postId, commentId, voteType, null);
                 return await VoteDAO.create(vote, trx);
 
@@ -49,7 +49,7 @@ class VoteService {
         // Delete the vote
         let deletedVote;
         try {
-            deletedVote = await postgres.transaction(async (trx) => {
+            deletedVote = await postgresInstance.transaction(async (trx) => {
                 return await VoteDAO.delete(voteId, trx);
             });
         } catch (error) {
@@ -83,7 +83,7 @@ class VoteService {
         // Update the vote
         let updatedVote;
         try {
-            updatedVote = await postgres.transaction(async (trx) => {
+            updatedVote = await postgresInstance.transaction(async (trx) => {
                 return await VoteDAO.update(voteId, {voteType}, trx);
             });
         } catch (error) {

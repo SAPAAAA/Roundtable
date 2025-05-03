@@ -1,6 +1,6 @@
 import CommentDAO from "#daos/comment.dao.js";
 import Comment from "#models/comment.model.js";
-import postgres from "#db/postgres.js";
+import {postgresInstance} from "#db/postgres.js";
 import {BadRequestError} from "#errors/AppError.js";
 
 class CommentService {
@@ -18,7 +18,7 @@ class CommentService {
         console.log("Creating comment with Post ID:", postId, "User ID:", userId, "Body:", body);
 
         try {
-            return await postgres.transaction(async (trx) => {
+            return await postgresInstance.transaction(async (trx) => {
                 const comment = new Comment(null, postId, userId, null, body);
                 console.log("Creating comment:", comment);
                 return await CommentDAO.create(comment, trx);
@@ -50,7 +50,7 @@ class CommentService {
         }
 
         try {
-            return await postgres.transaction(async (trx) => {
+            return await postgresInstance.transaction(async (trx) => {
                 const reply = new Comment(null, parentComment.postId, userId, commentId, body);
                 console.log("Creating reply:", reply);
                 return await CommentDAO.create(reply, trx);

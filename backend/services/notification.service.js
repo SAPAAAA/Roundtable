@@ -3,7 +3,7 @@ import NotificationDAO from '#daos/notification.dao.js';
 import Notification, {NotificationTypeEnum} from '#models/notification.model.js';
 import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
 import UserProfileDAO from "#daos/user-profile.dao.js";
-import postgres from "#db/postgres.js";
+import {postgresInstance} from "#db/postgres.js";
 import EventBus from '#core/event-bus.js';
 import {BadRequestError, InternalServerError} from "#errors/AppError.js"; // Import the WebSocket manager
 
@@ -48,7 +48,7 @@ class NotificationService {
 
 
             // 4. Create the Notification DB Record
-            return await postgres.transaction(async (trx) => {
+            return await postgresInstance.transaction(async (trx) => {
                 const notificationType = createdComment.parentCommentId ? NotificationTypeEnum.COMMENT_REPLY : NotificationTypeEnum.POST_REPLY;
                 const sourceUrl = `/comments/${createdComment.postId}#comment-${createdComment.commentId}`;
                 const notificationContent = `New ${notificationType === NotificationTypeEnum.COMMENT_REPLY ? 'reply' : 'comment'} on your post "${post.title.substring(0, 30)}..."`;
