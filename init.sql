@@ -1,15 +1,26 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ## DATABASE SCHEMA FOR A NEW SETUP ##
 
+-- STEP 1: Enable UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- Keeping IF NOT EXISTS as it's safe and standard
+
+-- STEP 2: Define ENUM Types
 CREATE TYPE "UserStatus"       AS ENUM ('active', 'suspended', 'banned');
 CREATE TYPE "Gender"           AS ENUM ('male','female','non_binary','other','prefer_not_to_say');
 CREATE TYPE "NotificationType" AS ENUM (
     'comment_reply','post_reply','mention','message','moderator_invite',
-    'system_message','report_update','vote_post','vote_comment'
+    'system_message','report_update'
 );
 CREATE TYPE "MediaType"        AS ENUM ('image','video','audio');
 CREATE TYPE "PrincipalRole"    AS ENUM ('user','admin');
 CREATE TYPE "VoteType"         AS ENUM ('upvote', 'downvote');
+CREATE TYPE "MessageType" AS ENUM ( -- Added Message Type
+    'direct',
+    'system',
+    'moderator_communication',
+    'admin_communication'
+);
 
+-- STEP 3: Define Tables
 CREATE TABLE "Account" (
     "accountId"  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "username"   VARCHAR(50)  NOT NULL UNIQUE,
@@ -152,12 +163,14 @@ CREATE TABLE "Notification" (
     "createdAt"             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Modified Message Table
 CREATE TABLE "Message" (
     "messageId"           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "parentMessageId"     UUID REFERENCES "Message"("messageId") ON DELETE SET NULL, -- For replies
     "senderUserId"        UUID REFERENCES "RegisteredUser"("userId") ON DELETE SET NULL,
-    "recipientUserId"     UUID REFERENCES "RegisteredUser"("userId")    ON DELETE SET NULL,
-    "subject"             VARCHAR(255),
+    "recipientUserId"     UUID REFERENCES "RegisteredUser"("userId") ON DELETE SET NULL,
     "body"                TEXT NOT NULL,
+    "messageType"         "MessageType" NOT NULL DEFAULT 'direct', -- Type category
     "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "isRead"              BOOLEAN DEFAULT FALSE NOT NULL,
     "senderDeleted"       BOOLEAN DEFAULT FALSE NOT NULL,
@@ -167,7 +180,7 @@ CREATE TABLE "Message" (
 CREATE TABLE "Ban" (
     "banId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "bannedAccountId"     UUID NOT NULL REFERENCES "Account"("accountId") ON DELETE CASCADE,
-    "issuerPrincipalId"   UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "issuerPrincipalId"   UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
     "subtableId"          UUID REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
     "reason"              TEXT,
     "expiresAt"           TIMESTAMP,
@@ -176,7 +189,7 @@ CREATE TABLE "Ban" (
 
 CREATE TABLE "ModeratorLog" (
     "logId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "moderatorPrincipalId" UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "moderatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
     "subtableId"          UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
     "action"              VARCHAR(100) NOT NULL,
     "targetPostId"        UUID REFERENCES "Post"("postId")        ON DELETE SET NULL,
@@ -188,7 +201,7 @@ CREATE TABLE "ModeratorLog" (
 
 CREATE TABLE "AdminLog" (
     "logId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "adminId"             UUID NOT NULL REFERENCES "Admin"("adminId") ON DELETE SET NULL,
+    "adminId"             UUID REFERENCES "Admin"("adminId") ON DELETE SET NULL,
     "action"              VARCHAR(100) NOT NULL,
     "targetAccountId"     UUID REFERENCES "Account"("accountId") ON DELETE SET NULL,
     "targetSubtableId"    UUID REFERENCES "Subtable"("subtableId") ON DELETE SET NULL,
@@ -201,7 +214,7 @@ CREATE TABLE "AdminLog" (
 CREATE TABLE "Media" (
     "mediaId"             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "postId"              UUID NOT NULL REFERENCES "Post"("postId") ON DELETE CASCADE,
-    "uploaderPrincipalId" UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "uploaderPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
     "url"                 VARCHAR(255) UNIQUE NOT NULL,
     "mediaType"           "MediaType" NOT NULL,
     "mimeType"            VARCHAR(50),
@@ -209,6 +222,127 @@ CREATE TABLE "Media" (
     "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- STEP 4: Functions for Triggers
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW."updatedAt" = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger_update_comment_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE "Post" SET "commentCount" = "commentCount" + 1 WHERE "postId" = NEW."postId";
+    ELSIF TG_OP = 'DELETE' THEN
+        IF OLD."postId" IS NOT NULL THEN
+             UPDATE "Post" SET "commentCount" = GREATEST(0,"commentCount" - 1) WHERE "postId" = OLD."postId";
+        END IF;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger_update_vote_count()
+RETURNS TRIGGER AS $$
+DECLARE
+    diff INT := 0;
+    tgt_post UUID;
+    tgt_comment UUID;
+    author_id UUID;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        tgt_post := NEW."postId";
+        tgt_comment := NEW."commentId";
+        IF NEW."voteType" = 'upvote' THEN diff := 1; ELSE diff := -1; END IF;
+    ELSIF TG_OP = 'DELETE' THEN
+        tgt_post := OLD."postId";
+        tgt_comment := OLD."commentId";
+        IF OLD."voteType" = 'upvote' THEN diff := -1; ELSE diff := 1; END IF;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD."voteType" <> NEW."voteType" THEN
+            tgt_post := NEW."postId";
+            tgt_comment := NEW."commentId";
+             IF NEW."voteType" = 'upvote' THEN diff := 2; ELSE diff := -2; END IF;
+        ELSE
+             RETURN NULL;
+        END IF;
+    ELSE
+         RETURN NULL;
+    END IF;
+
+    IF tgt_post IS NOT NULL THEN
+        UPDATE "Post" SET "voteCount" = "voteCount" + diff WHERE "postId" = tgt_post;
+        SELECT "authorUserId" INTO author_id FROM "Post" WHERE "postId" = tgt_post;
+        IF author_id IS NOT NULL THEN
+            UPDATE "RegisteredUser" SET "karma" = "karma" + diff WHERE "userId" = author_id;
+        END IF;
+    ELSIF tgt_comment IS NOT NULL THEN
+        UPDATE "Comment" SET "voteCount" = "voteCount" + diff WHERE "commentId" = tgt_comment;
+        SELECT "authorUserId" INTO author_id FROM "Comment" WHERE "commentId" = tgt_comment;
+         IF author_id IS NOT NULL THEN
+            UPDATE "RegisteredUser" SET "karma" = "karma" + diff WHERE "userId" = author_id;
+        END IF;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_media_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+    media_limit CONSTANT INTEGER := 3;
+    current_count INTEGER;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        SELECT count(*) INTO current_count FROM "Media" WHERE "postId" = NEW."postId";
+        IF current_count >= media_limit THEN
+            RAISE EXCEPTION 'A post may have at most % media items (postId=%)', media_limit, NEW."postId"
+                USING ERRCODE='check_violation', HINT='Remove existing media or upload to a different post.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION enforce_principal_single_role()
+RETURNS TRIGGER AS $$
+DECLARE
+    principal_target_id UUID;
+BEGIN
+    IF TG_TABLE_NAME = 'registereduser' THEN
+        principal_target_id := NEW."principalId";
+        IF EXISTS (SELECT 1 FROM "Admin" WHERE "principalId" = principal_target_id) THEN
+            RAISE EXCEPTION 'Principal % cannot be added as RegisteredUser because they are already an Admin.', principal_target_id
+                USING ERRCODE='integrity_constraint_violation', HINT='A principal must have only one role (User or Admin).';
+        END IF;
+    ELSIF TG_TABLE_NAME = 'admin' THEN
+        principal_target_id := NEW."principalId";
+        IF EXISTS (SELECT 1 FROM "RegisteredUser" WHERE "principalId" = principal_target_id) THEN
+            RAISE EXCEPTION 'Principal % cannot be added as Admin because they are already a RegisteredUser.', principal_target_id
+                 USING ERRCODE='integrity_constraint_violation', HINT='A principal must have only one role (User or Admin).';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- STEP 5: Assign Triggers
+CREATE TRIGGER "set_account_timestamp"  BEFORE UPDATE ON "Account" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER "set_post_timestamp"     BEFORE UPDATE ON "Post"    FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER "set_comment_timestamp"  BEFORE UPDATE ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER "update_post_comment_count_ins" AFTER INSERT ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_update_comment_count();
+CREATE TRIGGER "update_post_comment_count_del" AFTER DELETE ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_update_comment_count();
+CREATE TRIGGER "update_vote_count_ins"  AFTER INSERT ON "Vote" FOR EACH ROW EXECUTE FUNCTION trigger_update_vote_count();
+CREATE TRIGGER "update_vote_count_del"  AFTER DELETE ON "Vote" FOR EACH ROW EXECUTE FUNCTION trigger_update_vote_count();
+CREATE TRIGGER "update_vote_count_upd"  AFTER UPDATE ON "Vote" FOR EACH ROW EXECUTE FUNCTION trigger_update_vote_count();
+CREATE TRIGGER "enforce_media_limit" BEFORE INSERT ON "Media" FOR EACH ROW EXECUTE FUNCTION check_media_limit();
+CREATE TRIGGER "enforce_single_role_user"  BEFORE INSERT ON "RegisteredUser" FOR EACH ROW EXECUTE FUNCTION enforce_principal_single_role();
+CREATE TRIGGER "enforce_single_role_admin" BEFORE INSERT ON "Admin" FOR EACH ROW EXECUTE FUNCTION enforce_principal_single_role();
+
+-- STEP 6: Create Indexes
 CREATE INDEX idx_account_username ON "Account"("username");
 CREATE INDEX idx_account_email ON "Account"("email");
 CREATE INDEX idx_principal_accountid ON "Principal"("accountId");
@@ -238,6 +372,8 @@ CREATE INDEX idx_notification_recipientuserid ON "Notification"("recipientUserId
 CREATE INDEX idx_notification_triggeringprincipalid ON "Notification"("triggeringPrincipalId");
 CREATE INDEX idx_message_senderuserid ON "Message"("senderUserId");
 CREATE INDEX idx_message_recipientuserid ON "Message"("recipientUserId");
+CREATE INDEX idx_message_parentmessageid ON "Message"("parentMessageId"); -- Index for replies
+CREATE INDEX idx_message_messagetype ON "Message"("messageType");       -- Index for type
 CREATE INDEX idx_ban_bannedaccountid ON "Ban"("bannedAccountId");
 CREATE INDEX idx_ban_subtableid ON "Ban"("subtableId");
 CREATE INDEX idx_moderatorlog_subtableid ON "ModeratorLog"("subtableId");
@@ -246,127 +382,7 @@ CREATE INDEX idx_adminlog_adminid ON "AdminLog"("adminId");
 CREATE INDEX idx_media_postid ON "Media"("postId");
 CREATE INDEX idx_media_uploaderprincipalid ON "Media"("uploaderPrincipalId");
 
-CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW."updatedAt" = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION trigger_update_comment_count()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE "Post" SET "commentCount" = "commentCount" + 1 WHERE "postId" = NEW."postId";
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE "Post" SET "commentCount" = GREATEST(0,"commentCount" - 1) WHERE "postId" = OLD."postId";
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION trigger_update_vote_count()
-RETURNS TRIGGER AS $$
-DECLARE
-    diff INT := 0;
-    tgt_post UUID;
-    tgt_comment UUID;
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        tgt_post := NEW."postId";
-        tgt_comment := NEW."commentId";
-        IF NEW."voteType" = 'upvote' THEN
-            diff := 1;
-        ELSE
-            diff := -1;
-        END IF;
-
-    ELSIF TG_OP = 'DELETE' THEN
-        tgt_post := OLD."postId";
-        tgt_comment := OLD."commentId";
-        IF OLD."voteType" = 'upvote' THEN
-            diff := -1;
-        ELSE
-            diff := 1;
-        END IF;
-
-    ELSIF TG_OP = 'UPDATE' THEN
-        IF OLD."voteType" <> NEW."voteType" THEN
-            tgt_post := NEW."postId";
-            tgt_comment := NEW."commentId";
-             IF NEW."voteType" = 'upvote' THEN
-                diff := 2;
-             ELSE
-                diff := -2;
-             END IF;
-        ELSE
-             RETURN NULL;
-        END IF;
-    ELSE
-         RETURN NULL;
-    END IF;
-
-    IF tgt_post IS NOT NULL THEN
-        UPDATE "Post" SET "voteCount" = "voteCount" + diff WHERE "postId" = tgt_post;
-    ELSIF tgt_comment IS NOT NULL THEN
-        UPDATE "Comment" SET "voteCount" = "voteCount" + diff WHERE "commentId" = tgt_comment;
-    END IF;
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION check_media_limit()
-RETURNS TRIGGER AS $$
-DECLARE
-    media_limit CONSTANT INTEGER := 3;
-    current_count INTEGER;
-BEGIN
-    SELECT count(*) INTO current_count FROM "Media" WHERE "postId" = NEW."postId";
-
-    IF current_count >= media_limit THEN
-        RAISE EXCEPTION 'A post may have at most % media items (postId=%)', media_limit, NEW."postId"
-            USING ERRCODE='check_violation', HINT='Remove existing media or upload to a different post.';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION enforce_principal_single_role()
-RETURNS TRIGGER AS $$
-DECLARE
-    principal_target_id UUID;
-BEGIN
-    IF TG_TABLE_NAME = 'RegisteredUser' THEN
-        principal_target_id := NEW."principalId";
-        IF EXISTS (SELECT 1 FROM "Admin" WHERE "principalId" = principal_target_id) THEN
-            RAISE EXCEPTION 'Principal % cannot be added as RegisteredUser because they are already an Admin.', principal_target_id
-                USING ERRCODE='integrity_constraint_violation', HINT='A principal must have only one role (User or Admin).';
-        END IF;
-    ELSIF TG_TABLE_NAME = 'Admin' THEN
-        principal_target_id := NEW."principalId";
-        IF EXISTS (SELECT 1 FROM "RegisteredUser" WHERE "principalId" = principal_target_id) THEN
-            RAISE EXCEPTION 'Principal % cannot be added as Admin because they are already a RegisteredUser.', principal_target_id
-                 USING ERRCODE='integrity_constraint_violation', HINT='A principal must have only one role (User or Admin).';
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER "set_account_timestamp"  BEFORE UPDATE ON "Account" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER "set_post_timestamp"     BEFORE UPDATE ON "Post"    FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER "set_comment_timestamp"  BEFORE UPDATE ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER "update_post_comment_count_ins" AFTER INSERT ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_update_comment_count();
-CREATE TRIGGER "update_post_comment_count_del" AFTER DELETE ON "Comment" FOR EACH ROW EXECUTE FUNCTION trigger_update_comment_count();
-CREATE TRIGGER "update_vote_count_ins"  AFTER INSERT ON "Vote" FOR EACH ROW EXECUTE FUNCTION trigger_update_vote_count();
-CREATE TRIGGER "update_vote_count_del"  AFTER DELETE ON "Vote" FOR EACH ROW EXECUTE FUNCTION trigger_update_vote_count();
-CREATE TRIGGER "update_vote_count_upd"  AFTER UPDATE ON "Vote" FOR EACH ROW EXECUTE FUNCTION trigger_update_vote_count();
-CREATE TRIGGER "enforce_media_limit" BEFORE INSERT ON "Media" FOR EACH ROW EXECUTE FUNCTION check_media_limit();
-CREATE TRIGGER "enforce_single_role_user"  BEFORE INSERT ON "RegisteredUser" FOR EACH ROW EXECUTE FUNCTION enforce_principal_single_role();
-CREATE TRIGGER "enforce_single_role_admin" BEFORE INSERT ON "Admin"          FOR EACH ROW EXECUTE FUNCTION enforce_principal_single_role();
-
+-- STEP 7: Create Views
 CREATE OR REPLACE VIEW "UserProfile" AS
 SELECT
     ru."userId",
@@ -375,9 +391,14 @@ SELECT
     pr."displayName",
     pr."avatar",
     pr."banner",
+    pr."bio",
+    pr."location",
+    pr."gender",
     ru."karma",
     ru."isVerified",
-    ru."status"
+    ru."status",
+    a."created" AS "accountCreated",
+    ru."lastActive"
 FROM "RegisteredUser" ru
 JOIN "Principal"       p  ON p."principalId" = ru."principalId"
 JOIN "Account"         a  ON a."accountId"   = p."accountId"
@@ -400,7 +421,8 @@ SELECT
     up."avatar" AS "authorAvatar",
     up."karma" AS "authorKarma",
     up."isVerified" AS "authorIsVerified",
-    up."status" AS "authorStatus"
+    up."status" AS "authorStatus",
+    up."accountCreated" AS "authorAccountCreated"
 FROM "Comment" c
 LEFT JOIN "UserProfile" up ON c."authorUserId" = up."userId";
 
@@ -421,15 +443,16 @@ SELECT
     up."username"        AS "authorUsername",
     up."displayName"     AS "authorDisplayName",
     up."avatar"          AS "authorAvatar",
-    up."banner"          AS "authorBanner",
     up."karma"           AS "authorKarma",
     up."isVerified"      AS "authorIsVerified",
     up."status"          AS "authorStatus",
+    up."accountCreated"  AS "authorAccountCreated",
     s."name"             AS "subtableName",
     s."description"      AS "subtableDescription",
     s."icon"             AS "subtableIcon",
     s."banner"           AS "subtableBanner",
-    s."memberCount"      AS "subtableMemberCount"
+    s."memberCount"      AS "subtableMemberCount",
+    s."createdAt"        AS "subtableCreatedAt"
 FROM "Post" p
 LEFT JOIN "UserProfile" up ON p."authorUserId" = up."userId"
 LEFT JOIN "Subtable"    s  ON p."subtableId" = s."subtableId";
@@ -448,10 +471,45 @@ SELECT
     up."avatar" AS "voterAvatar",
     up."karma" AS "voterKarma",
     up."isVerified" AS "voterIsVerified",
-    up."status" AS "voterStatus"
+    up."status" AS "voterStatus",
+    up."accountCreated" AS "voterAccountCreated"
 FROM "Vote" v
 LEFT JOIN "UserProfile" up ON v."voterUserId" = up."userId";
 
+CREATE OR REPLACE VIEW "UserMessageDetails" AS
+SELECT
+    m."messageId",
+    m."parentMessageId", -- Added
+    m."body",
+    m."messageType",     -- Added
+    m."createdAt" AS "messageCreatedAt",
+    m."isRead",
+    m."senderDeleted",
+    m."recipientDeleted",
+    m."senderUserId",
+    sender_profile."principalId" AS "senderPrincipalId",
+    sender_profile."username" AS "senderUsername",
+    sender_profile."displayName" AS "senderDisplayName",
+    sender_profile."avatar" AS "senderAvatar",
+    sender_profile."karma" AS "senderKarma",
+    sender_profile."isVerified" AS "senderIsVerified",
+    sender_profile."status" AS "senderStatus",
+    sender_profile."accountCreated" AS "senderAccountCreated",
+    m."recipientUserId",
+    recipient_profile."principalId" AS "recipientPrincipalId",
+    recipient_profile."username" AS "recipientUsername",
+    recipient_profile."displayName" AS "recipientDisplayName",
+    recipient_profile."avatar" AS "recipientAvatar",
+    recipient_profile."karma" AS "recipientKarma",
+    recipient_profile."isVerified" AS "recipientIsVerified",
+    recipient_profile."status" AS "recipientStatus",
+    recipient_profile."accountCreated" AS "recipientAccountCreated"
+FROM "Message" m
+LEFT JOIN "UserProfile" sender_profile ON m."senderUserId" = sender_profile."userId"
+LEFT JOIN "UserProfile" recipient_profile ON m."recipientUserId" = recipient_profile."userId";
+
+
+-- STEP 8: Insert Sample Data
 INSERT INTO "Account" ("accountId","username","password","email") VALUES
   ('00000000-0000-0000-0000-000000000001','user1','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user1@example.com'),
   ('00000000-0000-0000-0000-000000000002','user2','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user2@example.com'),
@@ -492,11 +550,11 @@ INSERT INTO "Principal" ("principalId","accountId","profileId","role") VALUES
 ;
 
 INSERT INTO "RegisteredUser" ("userId","principalId","karma","isVerified","status","lastActive") VALUES
-  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021',   10, TRUE,  'active',    '2025-04-24 01:00:00'),
-  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022',   20, FALSE, 'suspended', '2025-04-23 15:30:00'),
-  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000023',    5, TRUE,  'active',    '2025-04-22 12:00:00'),
-  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000024',    0, FALSE, 'banned',    '2025-04-21 08:45:00'),
-  ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000025', 100, TRUE,  'active',    '2025-04-24 01:15:00')
+  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021',   0, TRUE,  'active',    '2025-05-05 03:38:11+07'), -- Karma starts at 0, trigger will update
+  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022',   0, FALSE, 'suspended', '2025-05-05 03:38:11+07'), -- Karma starts at 0
+  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000023',   0, TRUE,  'active',    '2025-05-05 03:38:11+07'), -- Karma starts at 0
+  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000024',   0, FALSE, 'banned',    '2025-05-05 03:38:11+07'), -- Karma starts at 0
+  ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000025',   0, TRUE,  'active',    '2025-05-05 03:38:11+07')  -- Karma starts at 0
 ;
 
 INSERT INTO "Admin" ("adminId","principalId","grantedAt") VALUES
@@ -523,43 +581,44 @@ INSERT INTO "Moderators" ("userId","subtableId") VALUES
   ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000045')
 ;
 
-INSERT INTO "Post" ("postId","subtableId","authorUserId","title","body") VALUES
-  ('00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','Welcome to AskAnything','Feel free to ask any questions here.'),
-  ('00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000032','Question about SQL','How do I write a JOIN query?'),
-  ('00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000033','Latest tech trends','Let’s talk about AI advancements.'),
-  ('00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000034','JavaScript vs TypeScript','Which one is better?'),
-  ('00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000043','00000000-0000-0000-0000-000000000035','Breaking news','Major event happened today.'),
-  ('00000000-0000-0000-0000-000000000056','00000000-0000-0000-0000-000000000043','00000000-0000-0000-0000-000000000031','News sources','Where do you get your news?'),
-  ('00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000044','00000000-0000-0000-0000-000000000032','Favorite anime','What’s your favorite series?'),
-  ('00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000044','00000000-0000-0000-0000-000000000033','Anime recommendations','Suggest some good anime.'),
-  ('00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000045','00000000-0000-0000-0000-000000000034','Best recipes','Share your recipe tips.'),
-  ('00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000045','00000000-0000-0000-0000-000000000035','Food photography','How to take food photos?')
+INSERT INTO "Post" ("postId","subtableId","authorUserId","title","body", "voteCount", "commentCount") VALUES -- Set initial counts to 0, triggers will update
+  ('00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','Welcome to AskAnything','Feel free to ask any questions here.', 0, 0),
+  ('00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000032','Question about SQL','How do I write a JOIN query?', 0, 0),
+  ('00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000033','Latest tech trends','Let’s talk about AI advancements.', 0, 0),
+  ('00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000034','JavaScript vs TypeScript','Which one is better?', 0, 0),
+  ('00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000043','00000000-0000-0000-0000-000000000035','Breaking news','Major event happened today.', 0, 0),
+  ('00000000-0000-0000-0000-000000000056','00000000-0000-0000-0000-000000000043','00000000-0000-0000-0000-000000000031','News sources','Where do you get your news?', 0, 0),
+  ('00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000044','00000000-0000-0000-0000-000000000032','Favorite anime','What’s your favorite series?', 0, 0),
+  ('00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000044','00000000-0000-0000-0000-000000000033','Anime recommendations','Suggest some good anime.', 0, 0),
+  ('00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000045','00000000-0000-0000-0000-000000000034','Best recipes','Share your recipe tips.', 0, 0),
+  ('00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000045','00000000-0000-0000-0000-000000000035','Food photography','How to take food photos?', 0, 0)
 ;
 
-INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","body") VALUES
-  ('00000000-0000-0000-0000-000000000061','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000032',NULL,'Thanks for the welcome!'),
-  ('00000000-0000-0000-0000-000000000062','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000033',NULL,'Glad to be here.'),
-  ('00000000-0000-0000-0000-000000000063','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000031',NULL,'Use INNER JOIN for matching rows.'),
-  ('00000000-0000-0000-0000-000000000064','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000034',NULL,'LEFT JOIN might help if some values are missing.'),
-  ('00000000-0000-0000-0000-000000000065','00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000035',NULL,'AI is amazing!'),
-  ('00000000-0000-0000-0000-000000000066','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000031',NULL,'TS gives you static types.'),
-  ('00000000-0000-0000-0000-000000000067','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000035',NULL,'JS is more flexible though.'),
-  ('00000000-0000-0000-0000-000000000068','00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000032',NULL,'What happened?'),
-  ('00000000-0000-0000-0000-000000000069','00000000-0000-0000-0000-000000000056','00000000-0000-0000-0000-000000000033',NULL,'I read BBC daily.'),
-  ('00000000-0000-0000-0000-000000000070','00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000034',NULL,'My favorite is Naruto.'),
-  ('00000000-0000-0000-0000-000000000071','00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000031',NULL,'Try Attack on Titan.'),
-  ('00000000-0000-0000-0000-000000000072','00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000032',NULL,'I love pasta recipes.'),
-  ('00000000-0000-0000-0000-000000000073','00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000033',NULL,'Use natural light for food shots.'),
-  ('00000000-0000-0000-0000-000000000074','00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000073','Great tip, thanks!'),
-  ('00000000-0000-0000-0000-000000000075','00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000071','Yep, that anime is awesome.'),
-  ('00000000-0000-0000-0000-000000000201','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000063','Good point. What about OUTER JOINs then?'),
-  ('00000000-0000-0000-0000-000000000202','00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000065','Totally agree! Scares me a little too, though.'),
-  ('00000000-0000-0000-0000-000000000203','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000067','Flexibility vs. safety, the eternal debate! I prefer the safety net TS provides for larger projects.'),
-  ('00000000-0000-0000-0000-000000000204','00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000070','Naruto is great! Have you watched Fullmetal Alchemist: Brotherhood?'),
-  ('00000000-0000-0000-0000-000000000205','00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000072','Me too! Especially a good lasagna. Takes time but worth it.')
+INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","body", "voteCount") VALUES -- Set initial counts to 0, triggers will update
+  ('00000000-0000-0000-0000-000000000061','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000032',NULL,'Thanks for the welcome!', 0),
+  ('00000000-0000-0000-0000-000000000062','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000033',NULL,'Glad to be here.', 0),
+  ('00000000-0000-0000-0000-000000000063','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000031',NULL,'Use INNER JOIN for matching rows.', 0),
+  ('00000000-0000-0000-0000-000000000064','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000034',NULL,'LEFT JOIN might help if some values are missing.', 0),
+  ('00000000-0000-0000-0000-000000000065','00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000035',NULL,'AI is amazing!', 0),
+  ('00000000-0000-0000-0000-000000000066','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000031',NULL,'TS gives you static types.', 0),
+  ('00000000-0000-0000-0000-000000000067','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000035',NULL,'JS is more flexible though.', 0),
+  ('00000000-0000-0000-0000-000000000068','00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000032',NULL,'What happened?', 0),
+  ('00000000-0000-0000-0000-000000000069','00000000-0000-0000-0000-000000000056','00000000-0000-0000-0000-000000000033',NULL,'I read BBC daily.', 0),
+  ('00000000-0000-0000-0000-000000000070','00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000034',NULL,'My favorite is Naruto.', 0),
+  ('00000000-0000-0000-0000-000000000071','00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000031',NULL,'Try Attack on Titan.', 0),
+  ('00000000-0000-0000-0000-000000000072','00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000032',NULL,'I love pasta recipes.', 0),
+  ('00000000-0000-0000-0000-000000000073','00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000033',NULL,'Use natural light for food shots.', 0),
+  ('00000000-0000-0000-0000-000000000074','00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000073','Great tip, thanks!', 0),
+  ('00000000-0000-0000-0000-000000000075','00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000071','Yep, that anime is awesome.', 0),
+  ('00000000-0000-0000-0000-000000000201','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000063','Good point. What about OUTER JOINs then?', 0),
+  ('00000000-0000-0000-0000-000000000202','00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000065','Totally agree! Scares me a little too, though.', 0),
+  ('00000000-0000-0000-0000-000000000203','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000067','Flexibility vs. safety, the eternal debate! I prefer the safety net TS provides for larger projects.', 0),
+  ('00000000-0000-0000-0000-000000000204','00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000070','Naruto is great! Have you watched Fullmetal Alchemist: Brotherhood?', 0),
+  ('00000000-0000-0000-0000-000000000205','00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000072','Me too! Especially a good lasagna. Takes time but worth it.', 0)
 ;
 
 INSERT INTO "Vote" ("voteId","voterUserId","postId","commentId","voteType") VALUES
+  -- Post Votes
   ('00000000-0000-0000-0000-000000000076','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000051',NULL, 'upvote'),
   ('00000000-0000-0000-0000-000000000077','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000051',NULL, 'upvote'),
   ('00000000-0000-0000-0000-000000000078','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000052',NULL, 'downvote'),
@@ -570,13 +629,19 @@ INSERT INTO "Vote" ("voteId","voterUserId","postId","commentId","voteType") VALU
   ('00000000-0000-0000-0000-000000000087','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000057',NULL, 'upvote'),
   ('00000000-0000-0000-0000-000000000088','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000058',NULL, 'downvote'),
   ('00000000-0000-0000-0000-000000000089','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000059',NULL, 'upvote'),
+  -- Comment Votes
+  ('00000000-0000-0000-0000-000000000090','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000061', 'upvote'),
+  ('00000000-0000-0000-0000-000000000091','00000000-0000-0000-0000-000000000033',NULL,'00000000-0000-0000-0000-000000000061', 'upvote'),
+  ('00000000-0000-0000-0000-000000000092','00000000-0000-0000-0000-000000000032',NULL,'00000000-0000-0000-0000-000000000063', 'upvote'),
+  ('00000000-0000-0000-0000-000000000093','00000000-0000-0000-0000-000000000035',NULL,'00000000-0000-0000-0000-000000000066', 'downvote'),
+  ('00000000-0000-0000-0000-000000000094','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000074', 'upvote'),
   ('00000000-0000-0000-0000-000000000095','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000071','downvote')
 ;
 
-INSERT INTO "Report" ("reportId","reporterPrincipalId","postId","commentId","reason") VALUES
-  ('00000000-0000-0000-0000-000000000096','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000053',NULL,'Spam content'),
-  ('00000000-0000-0000-0000-000000000097','00000000-0000-0000-0000-000000000024',NULL,'00000000-0000-0000-0000-000000000064','Offensive language'),
-  ('00000000-0000-0000-0000-000000000098','00000000-0000-0000-0000-000000000025',NULL,'00000000-0000-0000-0000-000000000074','Harassment')
+INSERT INTO "Report" ("reportId","reporterPrincipalId","postId","commentId","reason", "isHandled", "handlerPrincipalId", "handledAt") VALUES
+  ('00000000-0000-0000-0000-000000000096','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000053',NULL,'Spam content', TRUE, '00000000-0000-0000-0000-000000000026', '2025-05-04 10:00:00'),
+  ('00000000-0000-0000-0000-000000000097','00000000-0000-0000-0000-000000000024',NULL,'00000000-0000-0000-0000-000000000064','Offensive language', FALSE, NULL, NULL),
+  ('00000000-0000-0000-0000-000000000098','00000000-0000-0000-0000-000000000025',NULL,'00000000-0000-0000-0000-000000000074','Harassment', FALSE, NULL, NULL)
 ;
 
 INSERT INTO "SystemRule" ("ruleId","title","description","createdByAdminId") VALUES
@@ -595,42 +660,51 @@ INSERT INTO "SubtableRule" ("ruleId","subtableId","title","description","creator
   ('00000000-0000-0000-0000-000000000110','00000000-0000-0000-0000-000000000045','Recipe format','Follow the standard recipe format.','00000000-0000-0000-0000-000000000030')
 ;
 
-INSERT INTO "Notification" ("notificationId","recipientUserId","triggeringPrincipalId","type","sourceUrl","content") VALUES
-  ('00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000022','comment_reply','/posts/00000000-0000-0000-0000-000000000052#comment-00000000-0000-0000-0000-000000000064','Someone replied to your comment'),
-  ('00000000-0000-0000-0000-000000000112','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000023','post_reply','/posts/00000000-0000-0000-0000-000000000053#comment-00000000-0000-0000-0000-000000000065','New comment on your post'),
-  ('00000000-0000-0000-0000-000000000113','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000024','mention','/posts/00000000-0000-0000-0000-000000000054','You were mentioned in a post'),
-  ('00000000-0000-0000-0000-000000000114','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000025','vote_comment','/posts/00000000-0000-0000-0000-000000000051#comment-00000000-0000-0000-0000-000000000061','Your comment received a new vote'),
-  ('00000000-0000-0000-0000-000000000115','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000026','moderator_invite','/subtables/00000000-0000-0000-0000-000000000041','You have been invited as a moderator')
+INSERT INTO "Notification" ("notificationId","recipientUserId","triggeringPrincipalId","type","sourceUrl","content", "isRead") VALUES
+  ('00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000022','comment_reply','/comments/00000000-0000-0000-0000-000000000052#comment-00000000-0000-0000-0000-000000000064','Someone replied to your comment', FALSE),
+  ('00000000-0000-0000-0000-000000000112','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000023','post_reply','/comments/00000000-0000-0000-0000-000000000053#comment-00000000-0000-0000-0000-000000000065','New comment on your post', TRUE),
+  ('00000000-0000-0000-0000-000000000113','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000024','mention','/comments/00000000-0000-0000-0000-000000000054','You were mentioned in a post', FALSE),
+  ('00000000-0000-0000-0000-000000000115','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000026','moderator_invite','/s/AskAnything','You have been invited as a moderator', FALSE)
 ;
 
-INSERT INTO "Message" ("messageId","senderUserId","recipientUserId","subject","body") VALUES
-  ('00000000-0000-0000-0000-000000000116','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000032','Hello','Hi User 2, I have a question.'),
-  ('00000000-0000-0000-0000-000000000117','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000031','Re: Hello','Sure, how can I help?'),
-  ('00000000-0000-0000-0000-000000000118','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000034','Issue','I found a bug in the forum.'),
-  ('00000000-0000-0000-0000-000000000119',NULL,'00000000-0000-0000-0000-000000000031','Re: Issue','Thanks for reporting, we’ll look into it.'),
-  ('00000000-0000-0000-0000-000000000120','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000035','Question','Can I post images?'),
-  ('00000000-0000-0000-0000-000000000121',NULL,'00000000-0000-0000-0000-000000000032','Re: Question','Yes, you can upload media.'),
-  ('00000000-0000-0000-0000-000000000122','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000033','Greetings','Welcome to the community!'),
-  ('00000000-0000-0000-0000-000000000123',NULL,'00000000-0000-0000-0000-000000000034','Re: Greetings','Thank you! Happy to be here.'),
-  ('00000000-0000-0000-0000-000000000124',NULL,'00000000-0000-0000-0000-000000000035','Reminder','Don’t forget the meeting tomorrow.'),
-  ('00000000-0000-0000-0000-000000000125',NULL,'00000000-0000-0000-0000-000000000031','Re: Reminder','Got it, thanks.'),
-  ('00000000-0000-0000-0000-000000000126','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000032','Question','How do I change my password?'),
-  ('00000000-0000-0000-0000-000000000127','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000031','Re: Question','Go to account settings.'),
-  ('00000000-0000-0000-0000-000000000128','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000034','Feedback','Love the new UI!'),
-  ('00000000-0000-0000-0000-000000000129','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000031','Re: Feedback','Glad you like it.'),
-  ('00000000-0000-0000-0000-000000000130','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000035','Hello','Hi there!'),
-  ('00000000-0000-0000-0000-000000000131','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000031','Re: Hello','Hello back!'),
-  ('00000000-0000-0000-0000-000000000132','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000032','Alert','Your account has new privileges.'),
-  ('00000000-0000-0000-0000-000000000133','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000033','Re: Alert','Thanks for the update.'),
-  ('00000000-0000-0000-0000-000000000134','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000035','Question','Where can I find docs?'),
-  ('00000000-0000-0000-0000-000000000135','00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000034','Re: Question','See the help center.')
+INSERT INTO "Message" ("messageId", "parentMessageId", "senderUserId", "recipientUserId", "body", "messageType") VALUES
+  -- Thread 1 (116 -> 117)
+  ('00000000-0000-0000-0000-000000000116', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'Hi User 2, I have a question.', 'direct'),
+  ('00000000-0000-0000-0000-000000000117', '00000000-0000-0000-0000-000000000116', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000031', 'Sure, how can I help?', 'direct'),
+  -- Thread 2 (118 -> 119)
+  ('00000000-0000-0000-0000-000000000118', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000034', 'I found a bug in the forum.', 'direct'),
+  ('00000000-0000-0000-0000-000000000119', '00000000-0000-0000-0000-000000000118', NULL, '00000000-0000-0000-0000-000000000031', 'Thanks for reporting, we’ll look into it.', 'system'),
+  -- Thread 3 (120 -> 121)
+  ('00000000-0000-0000-0000-000000000120', NULL, '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000035', 'Can I post images?', 'direct'),
+  ('00000000-0000-0000-0000-000000000121', '00000000-0000-0000-0000-000000000120', NULL, '00000000-0000-0000-0000-000000000032', 'Yes, you can upload media.', 'system'),
+  -- Thread 4 (122 -> 123)
+  ('00000000-0000-0000-0000-000000000122', NULL, '00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000033', 'Welcome to the community!', 'direct'),
+  ('00000000-0000-0000-0000-000000000123', '00000000-0000-0000-0000-000000000122', NULL, '00000000-0000-0000-0000-000000000034', 'Thank you! Happy to be here.', 'system'),
+  -- Thread 5 (124 -> 125)
+  ('00000000-0000-0000-0000-000000000124', NULL, NULL, '00000000-0000-0000-0000-000000000035', 'Don’t forget the meeting tomorrow.', 'system'),
+  ('00000000-0000-0000-0000-000000000125', '00000000-0000-0000-0000-000000000124', NULL, '00000000-0000-0000-0000-000000000031', 'Got it, thanks.', 'system'),
+  -- Thread 6 (126 -> 127)
+  ('00000000-0000-0000-0000-000000000126', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'How do I change my password?', 'direct'),
+  ('00000000-0000-0000-0000-000000000127', '00000000-0000-0000-0000-000000000126', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000031', 'Go to account settings.', 'direct'),
+  -- Thread 7 (128 -> 129)
+  ('00000000-0000-0000-0000-000000000128', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000034', 'Love the new UI!', 'direct'),
+  ('00000000-0000-0000-0000-000000000129', '00000000-0000-0000-0000-000000000128', '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000031', 'Glad you like it.', 'direct'),
+  -- Thread 8 (130 -> 131)
+  ('00000000-0000-0000-0000-000000000130', NULL, '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000035', 'Hi there!', 'direct'),
+  ('00000000-0000-0000-0000-000000000131', '00000000-0000-0000-0000-000000000130', '00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000031', 'Hello back!', 'direct'),
+  -- Thread 9 (132 -> 133)
+  ('00000000-0000-0000-0000-000000000132', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'Your account has new privileges.', 'system'),
+  ('00000000-0000-0000-0000-000000000133', '00000000-0000-0000-0000-000000000132', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000033', 'Thanks for the update.', 'direct'),
+  -- Thread 10 (134 -> 135)
+  ('00000000-0000-0000-0000-000000000134', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000035', 'Where can I find docs?', 'direct'),
+  ('00000000-0000-0000-0000-000000000135', '00000000-0000-0000-0000-000000000134', '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000034', 'See the help center.', 'direct')
 ;
 
 INSERT INTO "Ban" ("banId","bannedAccountId","issuerPrincipalId","subtableId","reason","expiresAt") VALUES
-  ('00000000-0000-0000-0000-000000000136','00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000029',NULL,'Violation of terms','2025-05-01 00:00:00'),
-  ('00000000-0000-0000-0000-000000000137','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000044','Spamming','2025-04-25 12:00:00'),
+  ('00000000-0000-0000-0000-000000000136','00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000029',NULL,'Violation of terms','2025-06-01 00:00:00'),
+  ('00000000-0000-0000-0000-000000000137','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000044','Spamming','2025-05-25 12:00:00'),
   ('00000000-0000-0000-0000-000000000138','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000026',NULL,'Harassment',NULL),
-  ('00000000-0000-0000-0000-000000000139','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000027','00000000-0000-0000-0000-000000000042','Off-topic posts','2025-04-30 08:00:00'),
+  ('00000000-0000-0000-0000-000000000139','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000027','00000000-0000-0000-0000-000000000042','Off-topic posts','2025-05-30 08:00:00'),
   ('00000000-0000-0000-0000-000000000140','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000028',NULL,'Multiple accounts',NULL)
 ;
 
@@ -657,3 +731,5 @@ INSERT INTO "Media" ("mediaId","postId","uploaderPrincipalId","url","mediaType",
   ('00000000-0000-0000-0000-000000000154','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000024','https://cdn.example.com/media/4.mov','video','video/quicktime',20971520),
   ('00000000-0000-0000-0000-000000000155','00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000025','https://cdn.example.com/media/5.gif','image','image/gif',51200)
 ;
+
+-- ## End of Script ##
