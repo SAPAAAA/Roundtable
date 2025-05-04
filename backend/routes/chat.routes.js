@@ -7,6 +7,6 @@ const router = express.Router();
 router.get('/partners', isAuthenticated, ChatController.getConversationPartnersPreview);
 router.get('/:partnerUserId/messages', isAuthenticated, ChatController.getMessages);
 router.post('/messages', isAuthenticated, ChatController.sendMessage);
-router.post('/:partnerUserId/messages/read', isAuthenticated, ChatController.readMessages);
+router.post('/:partnerUserId/messages/read', isAuthenticated, ChatController.markMessagesAsRead);
 
 export default router;

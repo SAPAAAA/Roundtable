@@ -6,6 +6,7 @@ import RegisteredUserDAO from '#daos/registered-user.dao.js'; // For validating 
 import Message, {MessageTypeEnum} from '#models/message.model.js';
 import EventBus from '#core/event-bus.js';
 import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
+import {postgresInstance} from "#db/postgres.js";
 
 class ChatService {
     constructor(msgDAO, userMsgDetailsDAO, regUserDAO, eventBus) {
@@ -96,21 +97,24 @@ class ChatService {
         }
 
         try {
-            // 1. Create Message model instance (only essential fields for creation)
-            const newMessage = new Message(
-                null,
-                null,
-                senderUserId,
-                recipientUserId,
-                body,
-                MessageTypeEnum.DIRECT
-            );
+            const createdMessage = await postgresInstance.transaction(async (transaction) => {
+                // 1. Create Message model instance (only essential fields for creation)
+                const newMessage = new Message(
+                    null,
+                    null,
+                    senderUserId,
+                    recipientUserId,
+                    body,
+                    MessageTypeEnum.DIRECT
+                );
 
-            // 2. Save the message using the base MessageDAO
-            const createdMessage = await this.messageDAO.create(newMessage);
-            if (!createdMessage || !createdMessage.messageId) {
-                throw new InternalServerError('Failed to save message or retrieve its ID.');
-            }
+                // 2. Save the message using the base MessageDAO
+                const createdMessage = await this.messageDAO.create(newMessage, transaction);
+                if (!createdMessage || !createdMessage.messageId) {
+                    throw new InternalServerError('Failed to save message or retrieve its ID.');
+                }
+                return createdMessage;
+            });
 
             // 3. Fetch the *detailed* view of the newly created message
             const detailedCreatedMessage = await this.userMessageDetailsDAO.getByMessageId(createdMessage.messageId);
@@ -159,26 +163,22 @@ class ChatService {
         }
 
         try {
-            // 1. Find unread message IDs directly from the Message table
-            const unreadMessages = await this.messageDAO.getUnreadMessages(partnerUserId, requestingUserId);
+            return await postgresInstance.transaction(async (transaction) => {
+                // 1. Find unread message IDs directly from the Message table
+                const unreadMessages = await this.messageDAO.getUnreadMessages(partnerUserId, requestingUserId);
 
-            const messageIdsToUpdate = unreadMessages.map(msg => msg.messageId);
+                const messageIdsToUpdate = unreadMessages.map(msg => msg.messageId);
 
-            if (messageIdsToUpdate.length > 0) {
-                // 2. Call DAO method to update the status
-                const updatedCount = await this.messageDAO.markAsRead(messageIdsToUpdate, requestingUserId);
-                console.log(`[ChatService] Marked ${updatedCount} messages as read for user ${requestingUserId} from partner ${partnerUserId}.`);
-
-                // 3. Optional: Emit an event if the sender needs real-time notification of read status
-                // this.eventBus.emit('chat.messages.read', {
-                //    readerId: requestingUserId,
-                //    partnerId: partnerUserId,
-                //    messageIds: messageIdsToUpdate // Send IDs or just counts? Depends on frontend need.
-                // });
-            } else {
-                console.log(`[ChatService] No unread messages found for user ${requestingUserId} from partner ${partnerUserId}.`);
-            }
-
+                if (messageIdsToUpdate.length > 0) {
+                    // 2. Call DAO method to update the status
+                    const updatedCount = await this.messageDAO.markAsRead(messageIdsToUpdate, requestingUserId);
+                    console.log(`[ChatService] Marked ${updatedCount} messages as read for user ${requestingUserId} from partner ${partnerUserId}.`);
+                    return updatedCount;
+                } else {
+                    console.log(`[ChatService] No unread messages found for user ${requestingUserId} from partner ${partnerUserId}.`);
+                    return 0;
+                }
+            });
         } catch (error) {
             console.error(`[ChatService] Error marking messages as read for ${requestingUserId} from ${partnerUserId}:`, error);
             throw new InternalServerError('Could not mark messages as read.');

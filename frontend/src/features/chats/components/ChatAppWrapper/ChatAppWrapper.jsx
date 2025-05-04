@@ -46,13 +46,13 @@ export default function ChatAppWrapper(props) {
         isLoadingConversations,
         isLoadingMessages,
         sendMessage,
-        readMessages, // Make sure readMessages is destructured
+        readMessages,
     } = useChat();
 
     // Ref for the main wrapper div
     const wrapperRef = useRef(null);
 
-    // Effect to handle focus and call readMessages
+    // Effect to handle focus and call markMessagesAsRead
     useEffect(() => {
         const wrapperElement = wrapperRef.current;
 

@@ -173,7 +173,7 @@ class ChatController {
     /**
      * Read messages between the authenticated user and another user.
      */
-    readMessages = async (req, res, next) => {
+    markMessagesAsRead = async (req, res, next) => {
         const {userId} = req.session;
         const {partnerUserId} = req.params; // ID of the *other* user in the chat
 
