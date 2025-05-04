@@ -13,8 +13,6 @@ export const NotificationTypeEnum = Object.freeze(
         MODERATOR_INVITE: 'moderator_invite',
         SYSTEM_MESSAGE: 'system_message',
         REPORT_UPDATE: 'report_update',
-        VOTE_POST: 'vote_post',
-        VOTE_COMMENT: 'vote_comment'
     }
 );
 
