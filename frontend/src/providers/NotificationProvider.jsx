@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from "react";
 import NotificationContext from "#contexts/NotificationContext.jsx";
-import {useAuth} from "#hooks/useAuth.jsx";
+import useAuth from "#hooks/useAuth.jsx";
 import notificationService from "#services/notificationService.jsx";
 
 const NotificationProvider = ({children}) => {

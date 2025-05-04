@@ -2,7 +2,7 @@
 import {useEffect, useRef} from 'react'; // Import useRef
 import WebSocketSubject from '#subjects/WebsocketSubject.jsx';
 import NotificationObserver from '#observers/NotificationObserver.jsx';
-import {useAuth} from '#hooks/useAuth.jsx';
+import useAuth from '#hooks/useAuth.jsx';
 import useNotifications from '#hooks/useNotifications.jsx';
 
 /**

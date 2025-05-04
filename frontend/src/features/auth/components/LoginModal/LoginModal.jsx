@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 // Make sure the import is correct for your setup, often 'react-router-dom'
 import {useFetcher} from 'react-router'; // Or 'react-router' if that's your setup
-import {useAuth} from '#hooks/useAuth.jsx';
+import useAuth from '#hooks/useAuth.jsx';
 import useLoginForm from '#features/auth/hooks/login-hook.jsx';
 
 import Modal from "#shared/components/UIElement/Modal/Modal.jsx";

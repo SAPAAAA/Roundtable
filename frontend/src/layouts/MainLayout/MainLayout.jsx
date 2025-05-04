@@ -1,9 +1,10 @@
 // src/layouts/MainLayout/MainLayout.jsx
 import React, {useEffect, useState} from 'react'; // Make sure useEffect is imported
 import './MainLayout.css';
-import {useAuth} from "#hooks/useAuth.jsx";
+import useAuth from "#hooks/useAuth.jsx";
 import useWebSocketNotifications from "#hooks/useWebSocketNotifications.jsx";
 import ChatAppWrapper from "#features/chats/components/ChatAppWrapper/ChatAppWrapper";
+import useWebSocketChat from "#hooks/useWebSocketChat.jsx";
 
 // Lazy load components
 const Header = React.lazy(() => import("#shared/components/layout/Header/Header.jsx"));
@@ -29,12 +30,11 @@ export default function MainLayout() {
 
     // --- Activate WebSocket listener hook ---
     useWebSocketNotifications();
+    useWebSocketChat();
 
     // --- Handlers ---
     const toggleSidebar = () => setSidebarVisible(prev => !prev);
     const toggleChat = () => setIsChatboxOpen(prev => !prev);
-
-    console.log("Chatbox isOpen:", isChatboxOpen);
 
     // --- Modal Control ---
     const openLoginModal = () => {

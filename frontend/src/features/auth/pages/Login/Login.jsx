@@ -1,5 +1,5 @@
 import useLoginForm from '#features/auth/hooks/login-hook.jsx';
-import {useAuth} from '#hooks/useAuth.jsx';
+import useAuth from '#hooks/useAuth.jsx';
 import './Login.css';
 import Input from '#shared/components/UIElement/Input/Input';
 import Button from '#shared/components/UIElement/Button/Button';

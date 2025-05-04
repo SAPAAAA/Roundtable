@@ -7,7 +7,7 @@ import PostHeaderDetailed from "#features/posts/components/PostHeaderDetailed/Po
 import PostCore from "#features/posts/components/PostCore/PostCore";
 import WriteComment from "#features/posts/components/WriteComment/WriteComment.jsx";
 import Comment from "#features/posts/components/Comment/Comment.jsx";
-import {useAuth} from "#hooks/useAuth.jsx";
+import useAuth from "#hooks/useAuth.jsx";
 import "./PostDetailedView.css";
 
 export default function PostDetailedView() {

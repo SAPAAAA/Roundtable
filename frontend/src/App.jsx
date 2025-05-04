@@ -2,6 +2,7 @@ import React from 'react';
 import AppRouter from '#routes/index.jsx';
 import AuthProvider from "#providers/AuthProvider.jsx";
 import NotificationProvider from "#providers/NotificationProvider.jsx";
+import ChatProvider from "#providers/ChatProvider.jsx";
 
 // --- Main App Entry ---
 export default function App() {
@@ -11,7 +12,9 @@ export default function App() {
         <div className="App">
             <AuthProvider>
                 <NotificationProvider>
-                    <AppRouter/>
+                    <ChatProvider>
+                        <AppRouter/>
+                    </ChatProvider>
                 </NotificationProvider>
             </AuthProvider>
         </div>

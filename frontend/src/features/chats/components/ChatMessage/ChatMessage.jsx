@@ -10,17 +10,19 @@ import './ChatMessage.css';
  * @param {string} props.text - The content of the message.
  * @param {boolean} props.isSent - True if the message was sent by the current user, false otherwise.
  */
-export default function ChatMessage({sender, text, isSent}) {
+export default function ChatMessage(props) {
+    const {senderUserId, currentUserUserId, senderDisplayName, text, isSent} = props;
+
     const messageClass = isSent
-        ? 'chatbox-message sent align-self-end' // Bootstrap handles alignment
-        : 'chatbox-message received align-self-start'; // Bootstrap handles alignment
+        ? 'chatbox-message sent align-self-end'
+        : 'chatbox-message received align-self-start';
 
     return (
         <div className={messageClass}>
-            {!isSent && (
-                <span className="message-sender fw-bold">{sender}</span> // Bootstrap handles font-weight
+            {!isSent && senderDisplayName && ( // Show sender name if received and available
+                <span className="message-sender fw-bold">{senderDisplayName}</span>
             )}
-            <p className="message-text m-0">{text}</p> {/* Bootstrap handles margin */}
+            <p className="message-text m-0">{text}</p>
         </div>
     );
 }

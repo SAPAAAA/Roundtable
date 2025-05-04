@@ -1,8 +1,11 @@
 // src/features/chats/components/ChatAppWrapper/ChatAppWrapper.jsx
-import React, {useState} from 'react';
+import React, {useEffect, useRef} from 'react'; // Import useEffect
 import ChatSidebar from '#features/chats/components/ChatSidebar/ChatSidebar';
 import ChatBox from '#features/chats/components/ChatBox/ChatBox';
+import useChat from '#hooks/useChat.jsx'; // Import the chat hook
+import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner'; // For loading state
 import './ChatAppWrapper.css';
+import useAuth from "#hooks/useAuth.jsx";
 
 // --- Dummy Data ---
 const ALL_CHATS = [
@@ -30,60 +33,147 @@ const ALL_MESSAGES = {
 // --- End Dummy Data ---
 
 export default function ChatAppWrapper(props) {
-    const {isOpen = false, toggleChatVisibility} = props; // Default to false (hidden)
+    const {isOpen = false, toggleChatVisibility} = props;
+    const {user} = useAuth(); // Get current user info
 
-    const [selectedChatId, setSelectedChatId] = useState(ALL_CHATS[0]?.id || null);
+    // Use the chat hook to get state and actions
+    const {
+        conversationPartners,
+        messages,
+        activePartnerId,
+        setActivePartnerId,
+        fetchMessages,
+        isLoadingConversations,
+        isLoadingMessages,
+        sendMessage,
+        readMessages, // Make sure readMessages is destructured
+    } = useChat();
 
-    const selectedChatDetails = ALL_CHATS.find(chat => chat.id === selectedChatId);
-    const messagesForSelectedChat = ALL_MESSAGES[selectedChatId] || [];
+    // Ref for the main wrapper div
+    const wrapperRef = useRef(null);
 
-    const handleSelectChat = (chatId) => {
-        setSelectedChatId(chatId);
+    // Effect to handle focus and call readMessages
+    useEffect(() => {
+        const wrapperElement = wrapperRef.current;
+
+        const handleFocusIn = (event) => {
+            // Check if the wrapper exists, is open, has an active chat,
+            // and the focus event originated from within the wrapper
+            if (wrapperElement && isOpen && activePartnerId) {
+                console.log('Chat focused, marking messages as read for:', activePartnerId); // Optional: for debugging
+                readMessages(activePartnerId);
+            }
+        };
+
+        // Add event listener when the component mounts or dependencies change
+        if (wrapperElement) {
+            // Use capture phase false (bubble phase) is standard for 'focusin'
+            wrapperElement.addEventListener('focusin', handleFocusIn);
+        }
+
+
+        // Cleanup: remove event listener when component unmounts or dependencies change
+        return () => {
+            if (wrapperElement) {
+                wrapperElement.removeEventListener('focusin', handleFocusIn);
+            }
+        };
+        // Dependencies: Re-run effect if visibility, active chat, or read function changes
+    }, [isOpen, activePartnerId, readMessages]); // Add wrapperRef? No, ref object is stable.
+
+
+    const handleSelectChat = (partnerUserId) => {
+        console.log("Selected Chat Partner ID:", partnerUserId);
+        setActivePartnerId(partnerUserId);
+        if (partnerUserId) {
+            // Fetch messages if not already loaded (optional, depends on your logic)
+            if (!messages[partnerUserId] || messages[partnerUserId].length === 0) {
+                fetchMessages(partnerUserId);
+            }
+            // Mark as read immediately on selection as well
+            readMessages(partnerUserId);
+        }
     };
 
-    // This function now controls the visibility of the entire wrapper
+    const handleSendMessage = async (messageBody) => {
+        if (!activePartnerId || !messageBody.trim()) {
+            return;
+        }
+        try {
+            await sendMessage(activePartnerId, messageBody);
+        } catch (error) {
+            console.error("Failed to send message from wrapper:", error);
+            alert("Error sending message. Please try again.");
+        }
+    };
+
     const handleCloseChat = () => {
-        toggleChatVisibility(); // Call the function passed from MainLayout
+        toggleChatVisibility();
     };
 
-    // --- Bootstrap Classes for Overlay ---
+    const selectedPartner = conversationPartners.find(p => p.partnerId === activePartnerId);
+    const messagesForSelectedChat = messages[activePartnerId] || [];
+
     const wrapperClasses = `
         chat-app-wrapper
-        position-fixed               
-        bottom-0                     
-        end-0                        
-        m-3                          
-        z-index-fixed                
-        bg-light                     
-        border                       
-        rounded                      
-        shadow-sm                    
-        d-flex                       
-        flex-row                     
-        ${isOpen ? 'visible' : 'hidden'} 
-    `; // Use custom visible/hidden classes for transitions
+        position-fixed
+        bottom-0
+        end-0
+        m-3
+        z-index-fixed
+        bg-light
+        border
+        rounded
+        shadow-sm
+        d-flex
+        flex-row
+        ${isOpen ? 'visible' : 'hidden'}
+    `;
 
     return (
-        <div className={wrapperClasses}> {/* Apply combined classes */}
+        // Add the ref and tabindex to make the div focusable itself (optional but good practice)
+        <div className={wrapperClasses} ref={wrapperRef} tabIndex="-1">
             {/* Sidebar */}
-            <ChatSidebar
-                chats={ALL_CHATS}
-                selectedChatId={selectedChatId}
-                onSelectChat={handleSelectChat}
-            />
+            {isLoadingConversations ? (
+                <div className="chat-sidebar d-flex justify-content-center align-items-center">
+                    <div className="spinner-border spinner-border-sm" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            ) : (
+                <ChatSidebar
+                    chats={conversationPartners}
+                    selectedPartnerId={activePartnerId}
+                    onSelectChat={handleSelectChat}
+                />
+            )}
 
             {/* Chat Content Area */}
-            <div className="chat-content-area flex-grow-1 d-flex flex-column"> {/* Ensure flex layout */}
-                {selectedChatDetails ? (
-                    <ChatBox
-                        chatPartnerName={selectedChatDetails.partnerName}
-                        messages={messagesForSelectedChat}
-                        onClose={handleCloseChat} // Pass the close handler to ChatBox
-                        // No onClose needed here, handled by the wrapper's close button
-                    />
+            <div className="chat-content-area flex-grow-1 d-flex flex-column">
+                {activePartnerId ? (
+                    isLoadingMessages ? (
+                        <div className="d-flex justify-content-center align-items-center h-100">
+                            <LoadingSpinner size={40} message="Loading messages..."/>
+                        </div>
+                    ) : (
+                        <ChatBox
+                            chatPartnerName={selectedPartner?.partnerDisplayName || "Chat"}
+                            messages={messagesForSelectedChat}
+                            onSendMessage={handleSendMessage}
+                            onClose={handleCloseChat}
+                            currentUserUserId={user?.userId}
+                        />
+                    )
                 ) : (
-                    <div className="no-chat-selected p-3 text-center text-muted">
+                    <div
+                        className="no-chat-selected p-3 text-center text-muted d-flex justify-content-center align-items-center h-100 position-relative">
                         Select a chat to start messaging.
+                        <button
+                            type="button"
+                            className="btn-close position-absolute top-0 end-0 m-2"
+                            aria-label="Close Chat"
+                            onClick={handleCloseChat}
+                        ></button>
                     </div>
                 )}
             </div>

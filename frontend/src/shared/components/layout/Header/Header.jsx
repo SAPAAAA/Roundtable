@@ -5,15 +5,18 @@ import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 import Link from "#shared/components/Navigation/Link/Link";
 import Identifier from "#shared/components/UIElement/Identifier/Identifier";
-import {useAuth} from "#hooks/useAuth.jsx";
+import useAuth from "#hooks/useAuth.jsx";
 import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu';
 import {useNavigate} from "react-router";
 import useNotifications from "#hooks/useNotifications.jsx";
+import useChat from "#hooks/useChat.jsx";
 
 export default function Header(props) {
     const {toggleSidebar, toggleChat, openLoginModal} = props;
     const {user, logout, isLoading} = useAuth();
-    const {unreadCount} = useNotifications();
+    const {unreadCount: notificationUnreadCount} = useNotifications();
+    const {totalUnreadMessages: chatUnreadCount} = useChat();
+
 
     const navigate = useNavigate(); // Assuming useNavigate is imported from react-router-dom
 
@@ -135,29 +138,41 @@ export default function Header(props) {
                                         dataBsTrigger="hover focus"
                                         tooltipTitle="Chat"
                                         tooltipPlacement="bottom"
+                                        aria-label={`Chat ${chatUnreadCount > 0 ? `(${chatUnreadCount} unread)` : ''}`}
+                                        addClass="position-relative"
                                         onClick={toggleChat}
                                     >
                                         <Icon
                                             name="chat"
                                             size="20px"
                                         />
+                                        {chatUnreadCount > 0 && (
+                                            <span
+                                                className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
+                                            >
+                                                {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                                            </span>
+                                        )}
                                     </Button>
                                 </li>
                                 {/* Notifications Button with Badge */}
                                 <li className="nav-item"> {/* No longer needs position-relative here */}
                                     <Button
                                         contentType="icon"
+                                        dataBsToggle="tooltip"
+                                        dataBsTrigger="hover focus"
                                         tooltipTitle="Notifications"
+                                        tooltipPlacement="bottom"
                                         onClick={handleNotificationsClick}
-                                        aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+                                        aria-label={`Notifications ${notificationUnreadCount > 0 ? `(${notificationUnreadCount} unread)` : ''}`}
                                         addClass="position-relative" // Add relative positioning to the button
                                     >
                                         <Icon name="bell" size="20px"/>
-                                        {unreadCount > 0 && (
+                                        {notificationUnreadCount > 0 && (
                                             <span
                                                 className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
                                             >
-                                                {unreadCount > 99 ? '99+' : unreadCount}
+                                                {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                                             </span>
                                         )}
                                     </Button>
