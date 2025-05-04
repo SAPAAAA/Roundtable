@@ -58,6 +58,25 @@ class NotificationService {
             throw error; // Re-throw for context/component handling
         }
     }
+
+    async markAsRead(notificationId) {
+        const url = `/api/notifications/${encodeURIComponent(notificationId)}/read`;
+        try {
+            console.log(`[NotificationService] Marking notification ${notificationId} as read via: ${url}`);
+            const response = await sendApiRequest(url, {method: 'POST'});
+
+            if (response.success) {
+                console.log(`[NotificationService] Successfully marked notification ${notificationId} as read.`);
+                return response;
+            } else {
+                console.error(`[NotificationService] Failed to mark notification ${notificationId} as read:`, response.message);
+                throw new Error(response.message || "Failed to mark notification as read.");
+            }
+        } catch (error) {
+            console.error(`Error marking notification ${notificationId} as read:`, error);
+            throw error;
+        }
+    }
 }
 
 export default new NotificationService();

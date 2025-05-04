@@ -8,5 +8,6 @@ const router = express.Router();
 
 router.get('/', isAuthenticated, NotificationController.getUserNotifications);
 router.get('/count', isAuthenticated, NotificationController.getUnreadNotificationCount);
+router.post('/:notificationId/read', isAuthenticated, NotificationController.markNotificationAsRead);
 
 export default router;

@@ -5,7 +5,7 @@ import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
 import UserProfileDAO from "#daos/user-profile.dao.js";
 import {postgresInstance} from "#db/postgres.js";
 import EventBus from '#core/event-bus.js';
-import {BadRequestError, InternalServerError} from "#errors/AppError.js"; // Import the WebSocket manager
+import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Import the WebSocket manager
 
 class NotificationService {
 
@@ -117,6 +117,33 @@ class NotificationService {
         } catch (error) {
             console.error(`[NotificationService] Error fetching unread count for userId ${userId}:`, error);
             throw new InternalServerError('Failed to retrieve unread notification count.');
+        }
+    }
+
+    async markNotificationAsRead(userId, notificationId) {
+        if (!userId || !notificationId) {
+            throw new BadRequestError('User ID and Notification ID are required to mark as read.');
+        }
+        try {
+            // Use the DAO to update the notification
+            const updated = await postgresInstance.transaction(async (trx) => {
+                const notification = await NotificationDAO.getById(notificationId);
+                if (!notification) {
+                    throw new NotFoundError(`Notification with ID ${notificationId} not found.`);
+                }
+                if (notification.recipientUserId !== userId) {
+                    throw new ForbiddenError('You do not have permission to mark this notification as read.');
+                }
+                return NotificationDAO.markAsRead([notificationId], trx);
+            });
+            console.log(`[NotificationService] Marked notification ${notificationId} as read for userId ${userId}`);
+            return {success: true, message: 'Notification marked as read.'};
+        } catch (error) {
+            console.error(`[NotificationService] Error marking notification ${notificationId} as read for userId ${userId}:`, error);
+            if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+                throw error;
+            }
+            throw new InternalServerError('Failed to mark notification as read due to a server error.');
         }
     }
 }

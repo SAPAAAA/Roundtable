@@ -66,21 +66,24 @@ const NotificationProvider = ({children}) => {
         setUnreadCount(prevCount => prevCount + (shouldIncrementCount ? 1 : 0));
     }, [notifications]);
 
-    const markAsRead = useCallback((notificationId) => {
+    const markAsRead = useCallback(async (notificationId) => {
         let wasUnread = false;
         setNotifications(prev =>
             prev.map(n => {
                 if (n.notificationId === notificationId) {
-                    if (!n.isRead) wasUnread = true;
+                    if (!n.isRead) {
+                        wasUnread = true;
+                    }
                     return {...n, isRead: true};
                 }
                 return n;
             })
         );
+        const response = await notificationService.markAsRead(notificationId);
+
         if (wasUnread) {
-            setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+            setUnreadCount(prevCount => prevCount - 1);
         }
-        // TODO: Add API call to backend
     }, []);
 
     const clearNotifications = useCallback(() => {

@@ -39,7 +39,7 @@ export default function Link(props) {
     } = props;
 
     // Combine base class, conditional dropdown class, and custom classes
-    const combinedClasses = `${className ? className : ''} link text-decoration-none ${
+    const combinedClasses = `${className || ''} link text-decoration-none ${
         isDropdown ? 'dropdown-item' : ''
     }`.trim();
 

@@ -1,6 +1,6 @@
 import HTTP_STATUS from "#constants/httpStatus.js";
 import notificationService from "#services/notification.service.js";
-import {InternalServerError} from "#errors/AppError.js";
+import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
 class NotificationController {
     constructor(notificationService) {
@@ -65,7 +65,6 @@ class NotificationController {
 
         try {
             console.log(`[NotificationController] Fetching unread count for userId: ${userId}`);
-            // Call service layer to get the count
             const count = await this.notificationService.getUnreadCountForUser(userId);
 
             res.status(HTTP_STATUS.OK).json({
@@ -86,6 +85,46 @@ class NotificationController {
                 success: false,
                 message: error.message || 'Failed to fetch unread notification count.'
             });
+        }
+    }
+
+    markNotificationAsRead = async (req, res, next) => {
+        const {userId} = req.session;
+        const {notificationId} = req.params;
+
+        if (!userId) {
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+                success: false,
+                message: 'Authentication required.'
+            });
+        }
+        if (!notificationId) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                success: false,
+                message: 'Notification ID is required.'
+            });
+        }
+
+        try {
+            console.log(`[NotificationController] Marking notification ${notificationId} as read for userId: ${userId}`);
+            await this.notificationService.markNotificationAsRead(userId, notificationId);
+
+            res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Notification marked as read.',
+            });
+
+        } catch (error) {
+            console.error(`[NotificationController] Error marking notification ${notificationId} as read for userId ${userId}:`, error);
+            const statusCode = error instanceof NotFoundError
+                ? HTTP_STATUS.NOT_FOUND
+                : HTTP_STATUS.INTERNAL_SERVER_ERROR;
+
+            return res.status(statusCode).json({
+                success: false,
+                message: error.message || 'Failed to mark notification as read.'
+            });
+
         }
     }
 }

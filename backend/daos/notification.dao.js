@@ -198,24 +198,21 @@ class NotificationDAO {
 
     /**
      * Marks multiple notifications as read for a specific recipient.
-     * @param {string} recipientAccountId - The UUID of the recipient account.
      * @param {string[]} notificationIds - An array of notification IDs to mark as read.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<number>} The number of notifications updated.
      */
-    async markAsRead(recipientAccountId, notificationIds, trx = null) {
+    async markAsRead(notificationIds, trx = null) {
         if (!notificationIds || notificationIds.length === 0) {
             return 0; // Nothing to update
         }
         const queryBuilder = trx ?? postgresInstance;
         try {
             return await queryBuilder('Notification')
-                .where({recipientAccountId})
                 .whereIn('notificationId', notificationIds)
                 .andWhere({isRead: false}) // Only update if currently unread
                 .update({isRead: true});
         } catch (error) {
-            console.error(`Error marking notifications as read for recipient (${recipientAccountId}):`, error);
             throw error;
         }
     }

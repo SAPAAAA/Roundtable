@@ -2,10 +2,12 @@ import React from 'react';
 import './NotificationItem.css';
 import Icon from '#shared/components/UIElement/Icon/Icon'; // Assuming Icon component exists
 import {formatTimeAgo} from '#utils/time'; // Assuming time utility exists
-import Link from '#shared/components/Navigation/Link/Link'; // Use your Link component
+import Link from '#shared/components/Navigation/Link/Link';
+import {useNavigate} from "react-router"; // Use your Link component
 
 export default function NotificationItem(props) {
     const {notification, onClick} = props;
+    const navigate = useNavigate();
 
     // Function to determine icon based on notification.type
     const getNotificationIcon = (type) => {
@@ -13,9 +15,6 @@ export default function NotificationItem(props) {
             case 'comment_reply':
             case 'post_reply':
                 return 'comment';
-            case 'vote_post':
-            case 'vote_comment':
-                return 'upvote';
             case 'mention':
                 return 'person';
             case 'moderator_invite':
@@ -35,11 +34,12 @@ export default function NotificationItem(props) {
         // Use Link component for navigation, call onClick if provided
         <Link
             href={notificationLink}
-            className={`notification-item list-group-item list-group-item-action d-flex align-items-start ${!notification.isRead ? 'unread' : ''}`}
+            className={`notification-item list-group-item list-group-item-action d-flex align-items-start ${notification.isRead ? '' : 'unread'}`}
             onClick={(e) => {
                 if (onClick) {
                     e.preventDefault();
                     onClick();
+                    navigate(notificationLink);
                 }
             }}
         >
