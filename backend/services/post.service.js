@@ -4,6 +4,11 @@ import UserCommentDetailsDAO from "#daos/user-comment-details.dao.js";
 import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
 import PostDAO from '#daos/post.dao.js';
 import VoteDAO from '#daos/vote.dao.js';
+import RegisteredUserDao from "#daos/registered-user.dao.js";
+import SubtableDao from "#daos/subtable.dao.js";
+import SubscriptionDao from "#daos/subscription.dao.js";
+import Post from "#models/post.model.js";
+import {postgresInstance} from "#db/postgres.js"; // Assuming postgresInstance is correctly exported
 
 /**
  * Helper function for structuring comments and adding user vote status.
@@ -20,7 +25,7 @@ function structureComments(commentsRaw) {
     const commentMap = {}; // Stores comments by their ID for quick lookup
     const structuredComments = []; // Stores the final top-level comments
 
-    // --- Step 1: Initialize map, add 'replies' array ---
+    // --- Step 1: Initialize map, add 'replies' array, and copy ---
     commentsRaw.forEach(comment => {
         // Create a copy to avoid modifying the original objects directly
         const commentCopy = {...comment};
@@ -29,27 +34,54 @@ function structureComments(commentsRaw) {
     });
 
     // --- Step 2: Link comments to their parents ---
-    Object.values(commentMap).forEach(comment => {
-        const parentCommentId = comment.parentCommentId;
+    Object.values(commentMap).forEach(comment => { // Iterate over the copies in the map
+        const {parentCommentId, commentId} = comment; // Use the comment copy
 
         // Check if it's a reply (has a valid parentCommentId that exists in the map)
         if (parentCommentId !== null && parentCommentId !== undefined && commentMap[parentCommentId]) {
             // Find the parent in the map
             const parent = commentMap[parentCommentId];
-            // Add the current comment to the parent's 'replies' array
-            parent.replies.push(comment);
-        } else {
-            // Only add if it doesn't have a parentCommentId or its parent wasn't found in the map
-            if (parentCommentId === null || parentCommentId === undefined || !commentMap[parentCommentId]) {
-                structuredComments.push(comment);
-            }
+            // Add the current comment (copy) to the parent's 'replies' array
+            parent.replies.push(comment); // Push the comment copy
+        }
+        // Check if it's a top-level comment or an orphan (parent not found in this batch)
+        else if (parentCommentId === null || parentCommentId === undefined || !commentMap[parentCommentId]) {
+            // Add the comment copy to the top-level array
+            structuredComments.push(comment); // Push the comment copy
         }
     });
-
 
     return structuredComments;
 }
 class PostService {
+    /**
+     * Constructor for PostService.
+     * @param {object} postDao - Data Access Object for posts.
+     * @param {object} voteDao - Data Access Object for votes.
+     * @param {object} userPostDetailsDao - DAO for the user_post_details view/query.
+     * @param {object} userCommentDetailsDao - DAO for the user_comment_details view/query.
+     * @param {object} registeredUserDao - DAO for registered users.
+     * @param {object} subtableDao - DAO for subtables.
+     * @param {object} subscriptionDao - DAO for subscriptions.
+     */
+    constructor(
+        postDao,
+        voteDao,
+        userPostDetailsDao,
+        userCommentDetailsDao,
+        registeredUserDao,
+        subtableDao,
+        subscriptionDao
+    ) {
+        // Assign DAOs to instance properties
+        this.postDao = postDao;
+        this.voteDao = voteDao;
+        this.userPostDetailsDao = userPostDetailsDao;
+        this.userCommentDetailsDao = userCommentDetailsDao;
+        this.registeredUserDao = registeredUserDao;
+        this.subtableDao = subtableDao;
+        this.subscriptionDao = subscriptionDao;
+    }
 
     /**
      * Retrieves all necessary data for the detailed post view, including user vote status.
@@ -61,14 +93,15 @@ class PostService {
         console.log(`Fetching post details for postId: ${postId}, userId: ${userId}`);
 
         // 1. Get the Post details (includes author and subtable info via the view)
-        const postDetails = await UserPostDetailsDAO.getByPostId(postId);
+        // Use the DAO passed in the constructor
+        const postDetails = await this.userPostDetailsDao.getByPostId(postId);
         if (!postDetails) {
             const error = new Error('Post not found.');
             error.statusCode = HTTP_STATUS.NOT_FOUND;
             throw error;
         }
 
-        // 2. Check if post is removed (handle permissions later if needed)
+        // 2. Check if post is removed
         if (postDetails.isRemoved) {
             const error = new Error('Post has been removed.');
             error.statusCode = HTTP_STATUS.NOT_FOUND; // Or GONE (410)
@@ -76,7 +109,8 @@ class PostService {
         }
 
         // 3. Get Raw Comments
-        let commentsRaw = await UserCommentDetailsDAO.getByPostId(postId, {
+        // Use the DAO passed in the constructor
+        let commentsRaw = await this.userCommentDetailsDao.getByPostId(postId, {
             sortBy: 'createdAt', // Or 'voteCount' etc.
             order: 'asc',        // Or 'desc'
             includeRemoved: false // Typically hide removed comments
@@ -85,26 +119,38 @@ class PostService {
         // 4. Get user vote status on the post (if userId is provided)
         let postUserVote = null;
         if (userId) {
-            const vote = await VoteDAO.findByUserAndPost(userId, postId);
-            postUserVote = vote ? vote : null;
-            console.log(`User ${userId} vote status on post ${postId}: ${postUserVote}`);
+            // Use the DAO passed in the constructor
+            const vote = await this.voteDao.findByUserAndPost(userId, postId);
+            // Ensure vote object or null is assigned
+            postUserVote = vote ? {
+                voteType: vote.voteType,
+                createdAt: vote.createdAt,
+                updatedAt: vote.updatedAt
+            } : null;
+            console.log(`User ${userId} vote status on post ${postId}:`, postUserVote);
         }
 
-        // 5. Get user vote status on the comments
+        // 5. Get user vote status on the comments (if userId is provided)
         if (userId) {
             // Map through comments and fetch user vote status for each
             commentsRaw = await Promise.all(
                 commentsRaw.map(async (comment) => {
-                    const vote = await VoteDAO.findByUserAndComment(userId, comment.commentId);
+                    // Use the DAO passed in the constructor
+                    const vote = await this.voteDao.findByUserAndComment(userId, comment.commentId);
                     return {
                         ...comment,
-                        userVote: vote ? vote : null // Add userVote status to each comment
+                        // Ensure vote object or null is assigned
+                        userVote: vote ? {
+                            voteType: vote.voteType,
+                            createdAt: vote.createdAt,
+                            updatedAt: vote.updatedAt
+                        } : null
                     };
                 })
-            ); // Update commentsRaw with the new array
+            ); // Update commentsRaw with the new array including userVote
         }
 
-        // 6. Structure comments and add vote status
+        // 6. Structure comments
         const commentsStructured = structureComments(commentsRaw);
 
         // 7. Assemble the data package
@@ -121,29 +167,75 @@ class PostService {
             comments: commentsStructured,              // Include structured comments with vote status
         };
     }
-    async createPost(authorUserId,subtableId, title, body) {
-        //console.log(`[PostService.createPost] Creating post in subtable: ${subtableName}`);
 
-        console.log("Service",{authorUserId,subtableId, title, body});
+    /**
+     * Creates a new post.
+     * @param {string} authorUserId - The ID of the user creating the post.
+     * @param {object} postData - Data for the new post { subtableId, title, body }.
+     * @returns {Promise<Post>} The newly created post object.
+     */
+    async createPost(authorUserId, postData) {
+        const {subtableId, title, body} = postData;
+
         // 1. Validate input
-        if (!subtableId || !title || !body) {
-            const error = new Error('Invalid input data for creating a post.');
+        if (!authorUserId || !subtableId || !title || !body) {
+            const error = new Error('Invalid input data for creating a post. Missing required fields.');
             error.statusCode = HTTP_STATUS.BAD_REQUEST;
             throw error;
         }
-        
 
-        // 2. Create the post using the DAO
-        const newPost = await PostDAO.create({
-            authorUserId,
-            subtableId,
-            title,
-            body,
+        // Check if the user exists
+        // Use the DAO passed in the constructor
+        const userExists = await this.registeredUserDao.getById(authorUserId);
+        if (!userExists) {
+            const error = new Error('Author user does not exist.');
+            error.statusCode = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        // Check if the subtable exists
+        // Use the DAO passed in the constructor
+        const subtableExists = await this.subtableDao.getById(subtableId);
+        if (!subtableExists) {
+            const error = new Error('Subtable does not exist.');
+            error.statusCode = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        // Check if the user is a member of the subtable
+        // Use the DAO passed in the constructor
+        const subscription = await this.subscriptionDao.getByUserAndSubtable(authorUserId, subtableId);
+        if (!subscription) {
+            const error = new Error('User is not subscribed to this subtable.');
+            error.statusCode = HTTP_STATUS.FORBIDDEN; // Or BAD_REQUEST depending on rules
+            throw error;
+        }
+
+        // Create a Post model instance
+        const post = new Post(null, subtableId, authorUserId, title, body);
+
+        // 2. Create the post using the DAO within a transaction
+        return await postgresInstance.transaction(async (transaction) => {
+            try {
+                // Use the DAO passed in the constructor
+                const createdPost = await this.postDao.create(post, transaction);
+                console.log(`Post created successfully with ID: ${createdPost.postId}`);
+                return createdPost;
+            } catch (error) {
+                console.error('Error creating post in transaction:', error);
+                // Re-throw the error to ensure the transaction rolls back
+                throw error;
+            }
         });
-
-        // 3. Return the created post details
-        return newPost;
     }
 }
 
-export default new PostService();
+export default new PostService(
+    PostDAO,
+    VoteDAO,
+    UserPostDetailsDAO,
+    UserCommentDetailsDAO,
+    RegisteredUserDao,
+    SubtableDao,
+    SubscriptionDao
+);

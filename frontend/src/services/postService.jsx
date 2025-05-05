@@ -11,14 +11,18 @@ class PostService {
         const baseUrl = `/api/posts/${postId}`
 
         const response = await sendApiRequest(baseUrl, {method: 'GET'});
-        if (!response.success) throw new Error(`Failed to fetch comments for post ${postId}: ${response.status} ${response.statusText}`);
+        if (!response.success) {
+            throw new Error(`Failed to fetch comments for post ${postId}: ${response.status} ${response.statusText}`);
+        }
         return response;
     }
     async createPost(data) {
         console.log("PostService.createPost", data)
         const baseUrl = `/api/posts`
         const response = await sendApiRequest(baseUrl, {method: 'POST', body: data});
-        if (!response.success) throw new Error(`Failed to create post : ${response.status} ${response.statusText}`);
+        if (!response.success) {
+            throw new Error(`Failed to create post : ${response.status} ${response.statusText}`);
+        }
         return response;
 
     }

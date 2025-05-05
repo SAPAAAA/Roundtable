@@ -1,117 +1,168 @@
-// backend/services/notification.service.js (Conceptual)
+// backend/services/notification.service.js (Refactored)
+
+// --- Imports ---
 import NotificationDAO from '#daos/notification.dao.js';
-import Notification, {NotificationTypeEnum} from '#models/notification.model.js';
 import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
-import UserProfileDAO from "#daos/user-profile.dao.js";
+import UserProfileDAO from "#daos/user-profile.dao.js"; // Assuming this DAO exists and has getByUserId
+import Notification, {NotificationTypeEnum} from '#models/notification.model.js';
 import {postgresInstance} from "#db/postgres.js";
-import EventBus from '#core/event-bus.js';
-import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Import the WebSocket manager
+import EventBus from '#core/event-bus.js'; // Assuming EventBus is correctly set up
+import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
 class NotificationService {
+    /**
+     * Constructor for NotificationService.
+     * @param {object} notificationDao - Data Access Object for notifications.
+     * @param {object} userPostDetailsDao - DAO for user_post_details view/query.
+     * @param {object} userProfileDao - DAO for user profiles.
+     */
+    constructor(notificationDao, userPostDetailsDao, userProfileDao) {
+        // Store injected DAOs as instance properties
+        this.notificationDao = notificationDao;
+        this.userPostDetailsDao = userPostDetailsDao;
+        this.userProfileDao = userProfileDao;
+        // It's good practice to also inject dependencies like EventBus if possible,
+        // but keeping it as imported for now based on original code.
+        this.eventBus = EventBus;
+    }
+
+    // --- Original Method Bodies (using this.daoName) ---
 
     /**
      * Creates a DB notification and triggers a real-time WebSocket notification
      * when a comment is added.
-     * @param {Comment} createdComment - The newly created comment object from the DAO.
+     * @param {object} createdComment - The newly created comment object (assuming structure like { commentId, postId, parentCommentId }).
      * @param {string} commenterUserId - The ID of the user who made the comment.
+     * @returns {Promise<Notification|undefined>} The created notification object or undefined if no notification was sent.
      */
     async notifyNewComment(createdComment, commenterUserId) {
-        if (!createdComment || !commenterUserId) {
-            console.error('[NotificationService] Missing comment or commenter ID.');
+        if (!createdComment || !createdComment.commentId || !createdComment.postId || !commenterUserId) {
+            console.error('[NotificationService] Missing required comment data or commenter ID.');
+            // Consider throwing an error or returning a more specific value if this is unexpected
             return;
         }
 
         try {
-            // 1. Get the Post to find the owner
-            const post = await UserPostDetailsDAO.getByPostId(createdComment.postId);
-            if (!post || !post.author) {
+            // 1. Get the Post details to find the owner
+            // Use injected DAO
+            const post = await this.userPostDetailsDao.getByPostId(createdComment.postId);
+            if (!post || !post.author || !post.author.userId) { // Check specifically for author and userId
                 console.log(`[NotificationService] Post (${createdComment.postId}) not found or has no author. No notification sent.`);
                 return;
             }
 
-            const postOwner = post.author;
+            const postOwnerUserId = post.author.userId; // Get the owner's user ID
 
             // 2. Don't notify if the commenter is the post owner
-            if (commenterUserId === postOwner.userId) {
-                console.log(`[NotificationService] User ${commenterUserId} commented on their own post. No notification sent.`);
+            if (commenterUserId === postOwnerUserId) {
+                console.log(`[NotificationService] User ${commenterUserId} commented on their own post (${post.postId}). No notification sent.`);
                 return;
             }
 
-            // 3. Find the Principal ID of the commenter
-            const commenterPrincipal = await UserProfileDAO.getByUserId(commenterUserId); // Needs implementation in PrincipalDAO
-            if (!commenterPrincipal) {
-                console.warn(`[NotificationService] Could not find principal for commenter userId ${commenterUserId}`);
-                // Decide if you still want to send notification without triggeringPrincipalId
-                // return;
+            // 3. Find the Profile/Principal of the commenter (adjust based on your actual UserProfileDAO method)
+            // Use injected DAO
+            const commenterProfile = await this.userProfileDao.getByUserId(commenterUserId);
+            if (!commenterProfile) {
+                // Log a warning but proceed; triggeringPrincipalId can be null
+                console.warn(`[NotificationService] Could not find profile for commenter userId ${commenterUserId}. Notification will lack triggeringPrincipalId.`);
             }
-            const triggeringPrincipalId = commenterPrincipal ? commenterPrincipal.principalId : null;// Get accountId from principal
+            // Assuming principalId is directly on the profile or adjust as needed
+            const triggeringPrincipalId = commenterProfile ? commenterProfile.principalId : null;
 
-
-            // 4. Create the Notification DB Record
-            return await postgresInstance.transaction(async (trx) => {
-                const notificationType = createdComment.parentCommentId ? NotificationTypeEnum.COMMENT_REPLY : NotificationTypeEnum.POST_REPLY;
-                const sourceUrl = `/comments/${createdComment.postId}#comment-${createdComment.commentId}`;
-                const notificationContent = `New ${notificationType === NotificationTypeEnum.COMMENT_REPLY ? 'reply' : 'comment'} on your post "${post.title.substring(0, 30)}..."`;
+            // 4. Create the Notification DB Record within a transaction
+            const createdNotification = await postgresInstance.transaction(async (trx) => {
+                const notificationType = createdComment.parentCommentId
+                    ? NotificationTypeEnum.COMMENT_REPLY
+                    : NotificationTypeEnum.POST_REPLY;
+                // Construct a relative URL for frontend routing
+                const sourceUrl = `/posts/${createdComment.postId}#comment-${createdComment.commentId}`;
+                // Create concise notification content
+                const postTitleSnippet = post.title ? `"${post.title.substring(0, 30)}..."` : "your post";
+                const notificationContent = `New ${notificationType === NotificationTypeEnum.COMMENT_REPLY ? 'reply' : 'comment'} on ${postTitleSnippet}`;
 
                 const notification = new Notification(
-                    null,                       // notificationId
-                    postOwner.userId,               // recipientUserId (Directly use the post owner's userId)
-                    triggeringPrincipalId,          // triggeringPrincipalId
-                    notificationType,               // type
-                    sourceUrl,                      // sourceUrl
-                    notificationContent,            // content
-                    false,                      // isRead
-                    null                        // createdAt
+                    null,                       // notificationId (generated by DB)
+                    postOwnerUserId,            // recipientUserId
+                    triggeringPrincipalId,      // triggeringPrincipalId (can be null)
+                    notificationType,           // type
+                    sourceUrl,                  // sourceUrl
+                    notificationContent,        // content
+                    false,                      // isRead (default)
+                    null                        // createdAt (handled by DB/DAO)
                 );
 
-                const createdNotification = await NotificationDAO.create(notification, trx);
-                console.log(`[NotificationService] DB Notification created: ${createdNotification.notificationId}`);
-
-                // 5. Trigger the real-time WebSocket notification
-                EventBus.emitEvent('notification.comment.created', {
-                    userId: postOwner.userId,
-                    notification: createdNotification,
-                });
-
-                return createdNotification;
+                // Use injected DAO
+                const dbNotification = await this.notificationDao.create(notification, trx);
+                console.log(`[NotificationService] DB Notification created: ${dbNotification.notificationId} for user ${postOwnerUserId}`);
+                return dbNotification; // Return the created notification from the transaction
             });
+
+            // Ensure notification was actually created before emitting event
+            if (!createdNotification) {
+                throw new InternalServerError("Failed to create notification record in transaction.");
+            }
+
+            // 5. Trigger the real-time event (e.g., for WebSockets)
+            // Use injected EventBus if it were injected, otherwise use imported one
+            this.eventBus.emitEvent('notification.created', { // Generic event name
+                recipientUserId: postOwnerUserId,
+                notification: createdNotification, // Send the full notification object
+            });
+            console.log(`[NotificationService] Emitted 'notification.created' event for user ${postOwnerUserId}`);
+
+            return createdNotification; // Return the result
+
         } catch (error) {
             console.error(`[NotificationService] Error processing new comment notification for comment ${createdComment.commentId}:`, error);
-
+            // Don't re-throw here unless the caller needs to handle it; logging might be sufficient for background tasks
+            // If this is called directly from an API request, re-throwing might be appropriate:
+            // if (!(error instanceof AppError)) { // Avoid wrapping known errors
+            //     throw new InternalServerError("Failed to process comment notification.");
+            // }
+            // throw error;
+            return undefined; // Indicate failure
         }
     }
 
+    /**
+     * Retrieves notifications for a specific user with pagination/filtering options.
+     * @param {string} userId - The ID of the user whose notifications are being fetched.
+     * @param {object} [options={}] - Options for filtering and pagination (e.g., { limit, offset, isRead }).
+     * @returns {Promise<object>} An object containing the list of notifications and the total count.
+     */
     async getNotificationsForUser(userId, options = {}) {
         if (!userId) {
             throw new BadRequestError('User ID is required to fetch notifications.');
         }
         try {
-            // Fetch notifications using the DAO
-            const notifications = await NotificationDAO.getByRecipient(userId, options);
+            // Use injected DAO
+            const notifications = await this.notificationDao.getByRecipient(userId, options);
+            // Use injected DAO - ensure countByRecipient handles filters like isRead correctly
+            const totalCount = await this.notificationDao.countByRecipient(userId, {isRead: options.isRead});
 
-            // Get the total count for pagination
-            const totalCount = await NotificationDAO.countByRecipient(userId, {isRead: options.isRead}); // Pass filters if needed
-
-            console.log(`[NotificationService] Fetched ${notifications.length} notifications for userId ${userId}`);
-
+            console.log(`[NotificationService] Fetched ${notifications.length} notifications (total ${totalCount}) for userId ${userId}`);
             return {
                 notifications,
-                totalCount, // Include total count for pagination on the frontend
+                totalCount,
             };
         } catch (error) {
             console.error(`[NotificationService] Error fetching notifications for userId ${userId}:`, error);
-            // Throw a generic server error, controller will handle HTTP status
             throw new InternalServerError('Failed to retrieve notifications.');
         }
     }
 
+    /**
+     * Gets the count of unread notifications for a user.
+     * @param {string} userId - The ID of the user.
+     * @returns {Promise<number>} The count of unread notifications.
+     */
     async getUnreadCountForUser(userId) {
         if (!userId) {
             throw new BadRequestError('User ID is required to fetch unread count.');
         }
         try {
-            // Fetch count using the DAO, filtering for unread
-            const count = await NotificationDAO.countByRecipient(userId, {isRead: false});
+            // Use injected DAO, explicitly filtering for unread
+            const count = await this.notificationDao.countByRecipient(userId, {isRead: false});
             console.log(`[NotificationService] Unread count for userId ${userId}: ${count}`);
             return count;
         } catch (error) {
@@ -120,33 +171,100 @@ class NotificationService {
         }
     }
 
+    /**
+     * Marks a specific notification as read for a user.
+     * @param {string} userId - The ID of the user attempting to mark the notification.
+     * @param {string} notificationId - The ID of the notification to mark as read.
+     * @returns {Promise<object>} Success message object.
+     */
     async markNotificationAsRead(userId, notificationId) {
         if (!userId || !notificationId) {
             throw new BadRequestError('User ID and Notification ID are required to mark as read.');
         }
         try {
-            // Use the DAO to update the notification
-            const updated = await postgresInstance.transaction(async (trx) => {
-                const notification = await NotificationDAO.getById(notificationId);
+            // Perform check and update within a transaction for consistency
+            const result = await postgresInstance.transaction(async (trx) => {
+                // 1. Fetch notification to check ownership and existence
+                // Use injected DAO
+                const notification = await this.notificationDao.getById(notificationId, trx); // Pass trx
                 if (!notification) {
                     throw new NotFoundError(`Notification with ID ${notificationId} not found.`);
                 }
+                // 2. Check ownership
                 if (notification.recipientUserId !== userId) {
                     throw new ForbiddenError('You do not have permission to mark this notification as read.');
                 }
-                return NotificationDAO.markAsRead([notificationId], trx);
+                // 3. Mark as read if not already read
+                if (notification.isRead) {
+                    console.log(`[NotificationService] Notification ${notificationId} already marked as read.`);
+                    return {alreadyRead: true}; // Indicate it was already read
+                }
+                // Use injected DAO
+                const updatedCount = await this.notificationDao.markAsRead([notificationId], trx); // Pass trx, assumes returns count
+
+                if (updatedCount === 0) {
+                    // Should not happen if getById succeeded, but good practice
+                    throw new InternalServerError(`Failed to mark notification ${notificationId} as read.`);
+                }
+                return {success: true}; // Indicate successful update
             });
+
+            if (result.alreadyRead) {
+                return {success: true, message: 'Notification was already marked as read.'};
+            }
+
             console.log(`[NotificationService] Marked notification ${notificationId} as read for userId ${userId}`);
+            // Emit event after successful transaction commit
+            this.eventBus.emitEvent('notification.read', {
+                recipientUserId: userId,
+                notificationId: notificationId,
+            });
             return {success: true, message: 'Notification marked as read.'};
+
         } catch (error) {
             console.error(`[NotificationService] Error marking notification ${notificationId} as read for userId ${userId}:`, error);
-            if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+            // Re-throw known AppErrors
+            if (error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError) {
                 throw error;
             }
-            throw new InternalServerError('Failed to mark notification as read due to a server error.');
+            // Wrap unknown errors
+            throw new InternalServerError('Failed to mark notification as read.');
+        }
+    }
+
+    /**
+     * Marks all unread notifications as read for a user.
+     * @param {string} userId - The ID of the user whose notifications are being marked.
+     * @returns {Promise<object>} Object indicating the number of notifications marked as read.
+     */
+    async markAllNotificationsAsRead(userId) {
+        if (!userId) {
+            throw new BadRequestError('User ID is required to mark all notifications as read.');
+        }
+        try {
+            // Use injected DAO
+            // Assumes markAllAsRead returns the count of updated rows
+            const updatedCount = await this.notificationDao.markAllAsRead(userId);
+
+            console.log(`[NotificationService] Marked ${updatedCount} notifications as read for userId ${userId}`);
+            if (updatedCount > 0) {
+                // Emit a single event indicating multiple reads
+                this.eventBus.emitEvent('notifications.read.all', {
+                    recipientUserId: userId,
+                    count: updatedCount,
+                });
+            }
+
+            return {success: true, count: updatedCount, message: `${updatedCount} notifications marked as read.`};
+        } catch (error) {
+            console.error(`[NotificationService] Error marking all notifications as read for userId ${userId}:`, error);
+            throw new InternalServerError('Failed to mark all notifications as read.');
         }
     }
 }
 
-
-export default new NotificationService();
+export default new NotificationService(
+    NotificationDAO,
+    UserPostDetailsDAO,
+    UserProfileDAO
+);

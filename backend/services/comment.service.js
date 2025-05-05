@@ -1,65 +1,152 @@
-import CommentDAO from "#daos/comment.dao.js";
+// services/comment.service.js
+
+// --- Imports ---
+import CommentDAO from "#daos/comment.dao.js"; // Import the DAO to be injected
 import Comment from "#models/comment.model.js";
 import {postgresInstance} from "#db/postgres.js";
-import {BadRequestError} from "#errors/AppError.js";
+import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Import necessary error types
+import EventBus from '#core/event-bus.js'; // Import EventBus if needed for notifications
+
 
 class CommentService {
+    /**
+     * Constructor for CommentService.
+     * @param {object} commentDao - Data Access Object for comments.
+     */
+    constructor(commentDao) {
+        this.commentDao = commentDao;
+        this.eventBus = EventBus;
+    }
+
+    /**
+     * Creates a top-level comment on a post.
+     * @param {string} postId - The ID of the post being commented on.
+     * @param {string} userId - The ID of the user creating the comment.
+     * @param {string} body - The content of the comment.
+     * @returns {Promise<Comment>} The newly created comment object.
+     * @throws {BadRequestError} If required fields are missing.
+     * @throws {InternalServerError} For unexpected database errors.
+     */
     async createComment(postId, userId, body) {
-        if (!postId || !body) {
-            console.error("Post ID and body are required to create a comment.");
-            throw new Error("Post ID and body are required to create a comment.");
+        // Input validation
+        if (!postId || !userId || !body) {
+            throw new BadRequestError("Post ID, User ID, and comment body are required.");
         }
 
-        if (!userId) {
-            console.error("User ID is required to create a comment.");
-            throw new Error("User ID is required to create a comment.");
-        }
-
-        console.log("Creating comment with Post ID:", postId, "User ID:", userId, "Body:", body);
+        console.log(`[CommentService] Attempting to create comment: postId=${postId}, userId=${userId}`);
 
         try {
-            return await postgresInstance.transaction(async (trx) => {
+            const createdComment = await postgresInstance.transaction(async (trx) => {
+                // Create a Comment model instance
+                // parentCommentId is null for top-level comments
                 const comment = new Comment(null, postId, userId, null, body);
-                console.log("Creating comment:", comment);
-                return await CommentDAO.create(comment, trx);
+                console.log("[CommentService] Creating comment model:", comment);
+                // Use the injected DAO instance
+                const newComment = await this.commentDao.create(comment, trx);
+                if (!newComment) {
+                    // This shouldn't happen in a transaction if DAO is correct, but good failsafe
+                    throw new InternalServerError("Failed to create comment record in transaction.");
+                }
+                return newComment;
             });
+
+            console.log(`[CommentService] Comment created successfully: commentId=${createdComment.commentId}`);
+
+            // Trigger notification event after successful transaction commit
+            this.eventBus.emitEvent('comment.created', {
+                comment: createdComment,
+                commenterUserId: userId,
+            });
+            console.log(`[CommentService] Emitted 'comment.created' event for commentId=${createdComment.commentId}`);
+
+            // Return the created comment
+            return createdComment;
+
         } catch (error) {
-            console.error("Error creating comment:", error);
-            throw error;
+            console.error("[CommentService] Error creating comment:", error);
+            // Re-throw known errors, wrap unknown ones
+            if (error instanceof BadRequestError || error instanceof NotFoundError) {
+                throw error;
+            }
+            throw new InternalServerError("An error occurred while creating the comment.");
         }
     }
 
-    async createReply(commentId, userId, body) {
-        if (!commentId || !body) {
-            console.error("Comment ID and body are required to create a reply.");
-            throw new Error("Comment ID and body are required to create a reply.");
+    /**
+     * Creates a reply to an existing comment.
+     * @param {string} parentCommentId - The ID of the comment being replied to.
+     * @param {string} userId - The ID of the user creating the reply.
+     * @param {string} body - The content of the reply.
+     * @returns {Promise<Comment>} The newly created reply (comment) object.
+     * @throws {BadRequestError} If required fields are missing.
+     * @throws {NotFoundError} If the parent comment doesn't exist.
+     * @throws {InternalServerError} For unexpected database errors.
+     */
+    async createReply(parentCommentId, userId, body) {
+        // Input validation
+        if (!parentCommentId || !userId || !body) {
+            throw new BadRequestError("Parent Comment ID, User ID, and reply body are required.");
         }
 
-        if (!userId) {
-            console.error("User ID is required to create a reply.");
-            throw new Error("User ID is required to create a reply.");
-        }
-
-        console.log("Creating reply with Comment ID:", commentId, "User ID:", userId, "Body:", body);
-
-        // Check if the commentId is valid
-        const parentComment = await CommentDAO.getById(commentId);
-        if (!parentComment) {
-            console.error("Parent comment not found.");
-            throw new BadRequestError("Parent comment not found.");
-        }
+        console.log(`[CommentService] Attempting to create reply: parentCommentId=${parentCommentId}, userId=${userId}`);
 
         try {
-            return await postgresInstance.transaction(async (trx) => {
-                const reply = new Comment(null, parentComment.postId, userId, commentId, body);
-                console.log("Creating reply:", reply);
-                return await CommentDAO.create(reply, trx);
+            // Check if the parent comment exists *before* starting the transaction
+            // Use the injected DAO instance
+            const parentComment = await this.commentDao.getById(parentCommentId);
+            if (!parentComment) {
+                throw new NotFoundError(`Parent comment with ID ${parentCommentId} not found.`);
+            }
+            // Ensure parent comment has a postId (should always be true if data is consistent)
+            if (!parentComment.postId) {
+                console.error(`[CommentService] Parent comment ${parentCommentId} is missing postId.`);
+                throw new InternalServerError("Parent comment data is inconsistent.");
+            }
+
+
+            const createdReply = await postgresInstance.transaction(async (trx) => {
+                // Create a Comment model instance for the reply
+                // postId is inherited from the parent comment
+                const reply = new Comment(null, parentComment.postId, userId, parentCommentId, body);
+                console.log("[CommentService] Creating reply model:", reply);
+                // Use the injected DAO instance
+                const newReply = await this.commentDao.create(reply, trx);
+                if (!newReply) {
+                    throw new InternalServerError("Failed to create reply record in transaction.");
+                }
+                return newReply;
             });
+
+            console.log(`[CommentService] Reply created successfully: commentId=${createdReply.commentId}`);
+
+            // Trigger notification event after successful transaction commit
+            // The event listener (e.g., in NotificationService) handles notifying the parent comment author AND the original post author if different
+            this.eventBus.emitEvent('comment.replied', { // Use a distinct event for replies if needed
+                reply: createdReply,
+                parentComment: parentComment, // Include parent comment info
+                replierUserId: userId,
+            });
+            // Or use the same 'comment.created' event if the listener handles both cases
+            // this.eventBus.emitEvent('comment.created', {
+            //     comment: createdReply,
+            //     commenterUserId: userId,
+            // });
+
+            console.log(`[CommentService] Emitted 'comment.replied' (or 'comment.created') event for replyId=${createdReply.commentId}`);
+
+
+            // Return the created reply
+            return createdReply;
+
         } catch (error) {
-            console.error("Error creating reply:", error);
-            throw error;
+            console.error("[CommentService] Error creating reply:", error);
+            // Re-throw known errors, wrap unknown ones
+            if (error instanceof BadRequestError || error instanceof NotFoundError) {
+                throw error;
+            }
+            throw new InternalServerError("An error occurred while creating the reply.");
         }
     }
 }
 
-export default new CommentService();
+export default new CommentService(CommentDAO);

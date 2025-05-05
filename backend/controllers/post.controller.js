@@ -9,7 +9,7 @@ import HTTP_STATUS from '#constants/httpStatus.js';
 class PostController {
     constructor(postService, voteService) {
         this.postService = postService;
-        this.voteService = voteService; // Assuming voteService is defined and injected
+        this.voteService = voteService;
     }
 
     /**
@@ -19,7 +19,7 @@ class PostController {
     getPostDetails = async (req, res, next) => {
         try {
             const {postId} = req.params;
-            const userId = req.session.userId;
+            const {userId} = req.session;
 
             // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
             const viewData = await this.postService.getPostDetails(postId, userId);
@@ -64,15 +64,11 @@ class PostController {
     }
     createPost = async (req, res, next) => {
         try {
-            const {subtableId,title, body} = req.body;
+            const {subtableId, title, body} = req.body;
             const {userId} = req.session;
-            console.log("xin chào",{userId,subtableId,title, body});
-            const authorUserId = userId; // Assuming userId is available in the session
-
-            //console.log(`[PostController.createPost] Creating post in subtable: ${subtableName}`);
 
             // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
-            const newPost = await this.postService.createPost(authorUserId,subtableId, title, body);
+            const newPost = await this.postService.createPost(userId, {subtableId, title, body});
 
             // --- Success Response ---
             return res.status(HTTP_STATUS.CREATED).json({

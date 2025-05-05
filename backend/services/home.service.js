@@ -1,9 +1,12 @@
-import userPostDetailsDao from '#daos/user-post-details.dao.js';
+import UserPostDetailsDao from '#daos/user-post-details.dao.js';
 
 class HomeService {
+    constructor(userPostDetailsDao) {
+        this.userPostDetailsDao = userPostDetailsDao;
+    }
     async getHomePosts(options = {}) {
         try {
-            return await userPostDetailsDao.getHomePosts(options);
+            return await this.userPostDetailsDao.getHomePosts(options);
         } catch (error) {
             console.error('(service)Error getting home posts:', error);
             throw error;
@@ -11,4 +14,4 @@ class HomeService {
     }
 }
 
-export default new HomeService();
+export default new HomeService(UserPostDetailsDao);

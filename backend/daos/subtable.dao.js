@@ -134,7 +134,8 @@ class SubtableDAO {
             throw error;
         }
     }
-    // async getSubtables(subtableName, userId) {
+
+    // async getSubscribedSubtables(subtableName, userId) {
     //     try {
     //         const subtables = await postgresInstance('Subtable')
     //             .join('UserPostDetails', 'Subtable.subtableId', '=', 'UserPostDetails.subtableId')
@@ -148,17 +149,18 @@ class SubtableDAO {
     //         throw error;
     //     }
     // }
-    async getSubtables() {
+    async getSubscribedSubtables(userId) {
         try {
-            const subtables = await postgresInstance('Subtable')
-            return subtables.map(row => Subtable.fromDbRow(row)); // Convert to Subtable instances
+            const subscribedSubtables = await postgresInstance('Subtable')
+                .join('Subscription', 'Subtable.subtableId', '=', 'Subscription.subtableId')
+                .where('Subscription.userId', userId)
+                .select('Subtable.*');
+            return subscribedSubtables.map(row => Subtable.fromDbRow(row)); // Convert to Subtable instances
         } catch (error) {
-            console.error(`Error fetching subtables for ${subtableName}:`, error);
+            console.error(`Error fetching subscribed subtables for user ${userId}:`, error);
             throw error;
         }
     }
-
-    // Potential future methods: listAll, searchByName, etc.
 }
 
 export default new SubtableDAO();

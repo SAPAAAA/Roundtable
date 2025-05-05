@@ -1,46 +1,104 @@
 import HTTP_STATUS from '#constants/httpStatus.js';
 import subtableService from '#services/subtable.service.js';
+import {BadRequestError, NotFoundError} from "#errors/AppError.js";
 
 class SubtableController {
     constructor(subtableService) {
         this.subtableService = subtableService;
     }
-    getSubtableDetails = async (req, res, next) => {
-        try{
-            console.log("kien")
-            const {subtableName} = req.params;
-            //const userId = req.session.userId;
-            console.log("subtableName",subtableName)
-            //console.log("userId",userId)
 
-            const viewData = await this.subtableService.getSubtableDetails(subtableName);
-            console.log("viewData",viewData)
-            return res.status(HTTP_STATUS.OK).json({
-                success: true,
-                data: viewData // Send the data returned by the service
-            })
-        }catch (error) {
-            console.error(`[SubtableController.getSubtableDetails] Error fetching details for subtableId ${req.params?.subtableId}:`, error.message);
-            next(error);
-        }
-
-    }
-    getSubtables = async (req, res, next) => {
+    getSubtablePosts = async (req, res, next) => {
         try {
-            //const {subtableName} = req.params;
-            //console.log("subtableNamekkk",subtableName)
-            //const userId = req.session.userId;
-            const viewData = await this.subtableService.getSubtables();
+            const {subtableName} = req.params;
+
+            const viewData = await this.subtableService.getSubtablePosts(subtableName);
             console.log("viewData",viewData)
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
                 data: viewData // Send the data returned by the service
             })
         } catch (error) {
-            console.error(`[SubtableController.getSubtables] Error fetching details for subtableId ${req.params?.subtableId}:`, error.message);
-            next(error);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                })
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                })
+            } else {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: error.message
+                })
+            }
+        }
+    };
+
+    getSubtableDetails = async (req, res, next) => {
+        try {
+            const {subtableName} = req.params;
+            const viewData = await this.subtableService.getSubtableDetails(subtableName);
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: viewData
+            })
+        } catch (error) {
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                })
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                })
+            } else {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: error.message
+                })
+            }
+        }
+    };
+    getSubscribedSubtables = async (req, res, next) => {
+        try {
+            const {userId} = req.session;
+            const viewData = await this.subtableService.getSubscribedSubtables(userId);
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: viewData
+            })
+        } catch (error) {
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                })
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                })
+            } else {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: error.message
+                })
+            }
         }
     }
+
+
+
+
+
     // createSubtable = async (req, res) => {
         
     //     try {
