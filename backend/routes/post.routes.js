@@ -8,5 +8,6 @@ const router = express.Router();
 router.get('/:postId', PostController.getPostDetails);
 router.post('/:postId/comments', isAuthenticated, CommentController.addComment);
 router.post('/:postId/vote', isAuthenticated, PostController.castVote);
+router.post('/', isAuthenticated, PostController.createPost);
 
 export default router;
