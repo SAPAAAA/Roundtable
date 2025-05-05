@@ -54,5 +54,18 @@ class SubtableService {
             data: deletedSubtable
         };
     }
+    async getSubtables() {
+        //console.log(`Fetching subtables for subtableName: ${subtableName}`);
+
+        // Fetch subtables using the DAO
+        const subtables = await SubtableDAO.getSubtables();
+
+        // --- Success Response ---
+        return {
+            success: true,
+            data: subtables
+        };
+    }
+
 }
 export default new SubtableService();
