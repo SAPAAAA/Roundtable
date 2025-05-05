@@ -40,7 +40,7 @@ class SubtableDAO {
      * @returns {Promise<Subtable>} The newly created Subtable instance with DB-generated values.
      */
     async create(subtable, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         // Exclude fields managed by the database automatically (like defaults or sequences)
         // name is required, description, creatorPrincipalId, iconUrl, bannerUrl are nullable
         const {subtableId, createdAt, memberCount, ...insertData} = subtable;

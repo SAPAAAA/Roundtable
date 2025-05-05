@@ -10,12 +10,12 @@ class Subtable {
      * @param {string} name - The unique name of the subtable (e.g., 'VietnamDevs'). Required.
      * @param {string | null} [description=null] - A description of the subtable.
      * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
-     * @param {string | null} [creatorPrincipalId=null] - The UUID of the Principal who created the subtable.
+     * @param {string | null} [creatorUserId=null] - The UUID of the RegisteredUser who created the subtable. << CHANGED
      * @param {string | null} [icon=null] - URL for the subtable's icon image.
      * @param {string | null} [banner=null] - URL for the subtable's banner image.
      * @param {number} [memberCount=1] - The number of members (defaults to 1 in DB on creation).
      */
-    constructor(subtableId, name, description = null, createdAt = null, creatorPrincipalId = null, icon = null, banner = null, memberCount = 1) {
+    constructor(subtableId, name, description = null, createdAt = null, creatorUserId = null, icon = null, banner = null, memberCount = 1) { // << CHANGED parameter name
         /** @type {string | null} */
         this.subtableId = subtableId;
 
@@ -26,10 +26,10 @@ class Subtable {
         this.description = description;
 
         /** @type {Date | null} */
-        this.createdAt = createdAt;
+        this.createdAt = createdAt instanceof Date ? createdAt : (createdAt ? new Date(createdAt) : null); // Ensure Date object
 
         /** @type {string | null} */
-        this.creatorPrincipalId = creatorPrincipalId;
+        this.creatorUserId = creatorUserId; // << CHANGED property name
 
         /** @type {string | null} */
         this.icon = icon;
@@ -38,25 +38,32 @@ class Subtable {
         this.banner = banner;
 
         /** @type {number} */
-        this.memberCount = memberCount; // Reflects DB default
+        this.memberCount = Number(memberCount) || 1; // Ensure number, default 1
     }
 
     /**
      * Converts a database row object into a Subtable instance.
-     * @param {Object} row - The database row object.
+     * Assumes the database row keys match the constructor parameter names (or are mapped accordingly).
+     * Specifically, expects `creatorUserId` from the database row now.
+     * @param {Object} row - The database row object (e.g., from node-postgres query result).
      * @returns {Subtable | null} A Subtable instance or null if no row provided.
      */
     static fromDbRow(row) {
         if (!row) return null;
+
+        // Ensure correct mapping from DB column name (e.g., 'creatorUserId' or 'creator_user_id')
+        // If your DB driver returns snake_case, map it here:
+        const creatorUserIdFromRow = row.creatorUserId || row.creator_user_id;
+
         return new Subtable(
-            row.subtableId,
+            row.subtableId || row.subtable_id, // Allow for snake_case from DB
             row.name,
             row.description,
-            row.createdAt ? new Date(row.createdAt) : null, // Ensure it's a Date object
-            row.creatorPrincipalId,
+            row.createdAt || row.created_at, // Allow for snake_case
+            creatorUserIdFromRow,           // << CHANGED property access
             row.icon,
             row.banner,
-            row.memberCount
+            row.memberCount || row.member_count  // Allow for snake_case
         );
     }
 }

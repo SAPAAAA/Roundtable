@@ -1,4 +1,5 @@
--- ## DATABASE SCHEMA FOR A NEW SETUP ##
+-- ## DATABASE SCHEMA FOR A NEW SETUP (REVISED) ##
+-- ## Changes: Subtable creator linked to RegisteredUser instead of Principal ##
 
 -- STEP 1: Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- Keeping IF NOT EXISTS as it's safe and standard
@@ -67,10 +68,18 @@ CREATE TABLE "Subtable" (
     "name"               VARCHAR(50) UNIQUE NOT NULL,
     "description"        TEXT,
     "createdAt"          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "creatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
-    "icon"            VARCHAR(255),
-    "banner"          VARCHAR(255),
-    "memberCount"        INT DEFAULT 1 NOT NULL
+    "creatorUserId"      UUID REFERENCES "RegisteredUser"("userId") ON DELETE SET NULL, -- << CHANGED: References RegisteredUser now
+    "icon"               VARCHAR(255),
+    "banner"             VARCHAR(255),
+    "memberCount"        INT DEFAULT 1 NOT NULL -- Assumes creator counts as first member implicitly
+);
+
+CREATE TABLE "Subscription" (
+    "subscriptionId" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "userId"         UUID NOT NULL REFERENCES "RegisteredUser"("userId") ON DELETE CASCADE,
+    "subtableId"     UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
+    "subscribedAt"   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE ("userId", "subtableId") -- A user can only subscribe once to the same subtable
 );
 
 CREATE TABLE "Moderators" (
@@ -121,13 +130,13 @@ CREATE TABLE "Vote" (
 
 CREATE TABLE "Report" (
     "reportId"            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "reporterPrincipalId" UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE CASCADE,
+    "reporterPrincipalId" UUID NOT NULL REFERENCES "Principal"("principalId") ON DELETE CASCADE, -- Reporter can still be any Principal (User or Admin)
     "postId"              UUID REFERENCES "Post"("postId")        ON DELETE CASCADE,
     "commentId"           UUID REFERENCES "Comment"("commentId") ON DELETE CASCADE,
     "reason"              TEXT NOT NULL,
     "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "isHandled"           BOOLEAN DEFAULT FALSE NOT NULL,
-    "handlerPrincipalId"  UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "handlerPrincipalId"  UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL, -- Handler can still be any Principal
     "handledAt"           TIMESTAMP,
     CONSTRAINT "chk_report_target" CHECK (
         ("postId" IS NOT NULL AND "commentId" IS NULL) OR
@@ -140,7 +149,7 @@ CREATE TABLE "SystemRule" (
     "title"              VARCHAR(255) NOT NULL,
     "description"        TEXT NOT NULL,
     "createdAt"          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdByAdminId" UUID REFERENCES "Admin"("adminId") ON DELETE SET NULL
+    "createdByAdminId" UUID REFERENCES "Admin"("adminId") ON DELETE SET NULL -- System rules created by Admins
 );
 
 CREATE TABLE "SubtableRule" (
@@ -149,13 +158,13 @@ CREATE TABLE "SubtableRule" (
     "title"              VARCHAR(255) NOT NULL,
     "description"        TEXT NOT NULL,
     "createdAt"          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "creatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL
+    "creatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL -- Subtable rules can still be created by any Principal (e.g., Moderator/Admin)
 );
 
 CREATE TABLE "Notification" (
     "notificationId"        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "recipientUserId"       UUID NOT NULL REFERENCES "RegisteredUser"("userId") ON DELETE CASCADE,
-    "triggeringPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "triggeringPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL, -- Trigger can be any Principal
     "type"                  "NotificationType" NOT NULL,
     "sourceUrl"             VARCHAR(2048),
     "content"               TEXT,
@@ -163,7 +172,6 @@ CREATE TABLE "Notification" (
     "createdAt"             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Modified Message Table
 CREATE TABLE "Message" (
     "messageId"           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "parentMessageId"     UUID REFERENCES "Message"("messageId") ON DELETE SET NULL, -- For replies
@@ -180,16 +188,16 @@ CREATE TABLE "Message" (
 CREATE TABLE "Ban" (
     "banId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "bannedAccountId"     UUID NOT NULL REFERENCES "Account"("accountId") ON DELETE CASCADE,
-    "issuerPrincipalId"   UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
-    "subtableId"          UUID REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
+    "issuerPrincipalId"   UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL, -- Issuer can be any Principal (Mod/Admin)
+    "subtableId"          UUID REFERENCES "Subtable"("subtableId") ON DELETE CASCADE, -- For subtable-specific bans
     "reason"              TEXT,
-    "expiresAt"           TIMESTAMP,
+    "expiresAt"           TIMESTAMP, -- NULL for permanent bans
     "createdAt"           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE "ModeratorLog" (
     "logId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "moderatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "moderatorPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL, -- Assumes mods act via their Principal identity
     "subtableId"          UUID NOT NULL REFERENCES "Subtable"("subtableId") ON DELETE CASCADE,
     "action"              VARCHAR(100) NOT NULL,
     "targetPostId"        UUID REFERENCES "Post"("postId")        ON DELETE SET NULL,
@@ -201,7 +209,7 @@ CREATE TABLE "ModeratorLog" (
 
 CREATE TABLE "AdminLog" (
     "logId"               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    "adminId"             UUID REFERENCES "Admin"("adminId") ON DELETE SET NULL,
+    "adminId"             UUID REFERENCES "Admin"("adminId") ON DELETE SET NULL, -- Links directly to Admin record
     "action"              VARCHAR(100) NOT NULL,
     "targetAccountId"     UUID REFERENCES "Account"("accountId") ON DELETE SET NULL,
     "targetSubtableId"    UUID REFERENCES "Subtable"("subtableId") ON DELETE SET NULL,
@@ -214,7 +222,7 @@ CREATE TABLE "AdminLog" (
 CREATE TABLE "Media" (
     "mediaId"             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "postId"              UUID NOT NULL REFERENCES "Post"("postId") ON DELETE CASCADE,
-    "uploaderPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL,
+    "uploaderPrincipalId" UUID REFERENCES "Principal"("principalId") ON DELETE SET NULL, -- Uploader can be any Principal
     "url"                 VARCHAR(255) UNIQUE NOT NULL,
     "mediaType"           "MediaType" NOT NULL,
     "mimeType"            VARCHAR(50),
@@ -267,10 +275,10 @@ BEGIN
             tgt_comment := NEW."commentId";
              IF NEW."voteType" = 'upvote' THEN diff := 2; ELSE diff := -2; END IF;
         ELSE
-             RETURN NULL;
+             RETURN NULL; -- No change in vote type
         END IF;
     ELSE
-         RETURN NULL;
+         RETURN NULL; -- Should not happen for vote table
     END IF;
 
     IF tgt_post IS NOT NULL THEN
@@ -286,7 +294,7 @@ BEGIN
             UPDATE "RegisteredUser" SET "karma" = "karma" + diff WHERE "userId" = author_id;
         END IF;
     END IF;
-    RETURN NULL;
+    RETURN NULL; -- The result is ignored for AFTER triggers
 END;
 $$ LANGUAGE plpgsql;
 
@@ -329,6 +337,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION trigger_update_subtable_member_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE "Subtable" SET "memberCount" = "memberCount" + 1 WHERE "subtableId" = NEW."subtableId";
+    ELSIF TG_OP = 'DELETE' THEN
+        -- Ensure the subtable still exists before trying to decrement
+        IF EXISTS (SELECT 1 FROM "Subtable" WHERE "subtableId" = OLD."subtableId") THEN
+            UPDATE "Subtable" SET "memberCount" = GREATEST(0, "memberCount" - 1) WHERE "subtableId" = OLD."subtableId";
+        END IF;
+    END IF;
+    RETURN NULL; -- The result is ignored for AFTER triggers
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- STEP 5: Assign Triggers
 CREATE TRIGGER "set_account_timestamp"  BEFORE UPDATE ON "Account" FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER "set_post_timestamp"     BEFORE UPDATE ON "Post"    FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
@@ -341,6 +365,10 @@ CREATE TRIGGER "update_vote_count_upd"  AFTER UPDATE ON "Vote" FOR EACH ROW EXEC
 CREATE TRIGGER "enforce_media_limit" BEFORE INSERT ON "Media" FOR EACH ROW EXECUTE FUNCTION check_media_limit();
 CREATE TRIGGER "enforce_single_role_user"  BEFORE INSERT ON "RegisteredUser" FOR EACH ROW EXECUTE FUNCTION enforce_principal_single_role();
 CREATE TRIGGER "enforce_single_role_admin" BEFORE INSERT ON "Admin" FOR EACH ROW EXECUTE FUNCTION enforce_principal_single_role();
+-- Triggers to update Subtable member count based on Subscriptions
+CREATE TRIGGER "update_subtable_member_count_ins" AFTER INSERT ON "Subscription" FOR EACH ROW EXECUTE FUNCTION trigger_update_subtable_member_count();
+CREATE TRIGGER "update_subtable_member_count_del" AFTER DELETE ON "Subscription" FOR EACH ROW EXECUTE FUNCTION trigger_update_subtable_member_count();
+
 
 -- STEP 6: Create Indexes
 CREATE INDEX idx_account_username ON "Account"("username");
@@ -350,7 +378,9 @@ CREATE INDEX idx_principal_profileid ON "Principal"("profileId");
 CREATE INDEX idx_registereduser_principalid ON "RegisteredUser"("principalId");
 CREATE INDEX idx_admin_principalid ON "Admin"("principalId");
 CREATE INDEX idx_subtable_name ON "Subtable"("name");
-CREATE INDEX idx_subtable_creator ON "Subtable"("creatorPrincipalId");
+CREATE INDEX idx_subtable_creatoruserid ON "Subtable"("creatorUserId"); -- << RENAMED/UPDATED INDEX
+CREATE INDEX idx_subscription_userid ON "Subscription"("userId");
+CREATE INDEX idx_subscription_subtableid ON "Subscription"("subtableId");
 CREATE INDEX idx_moderators_subtableid ON "Moderators"("subtableId");
 CREATE INDEX idx_post_subtableid ON "Post"("subtableId");
 CREATE INDEX idx_post_authoruserid ON "Post"("authorUserId");
@@ -382,7 +412,8 @@ CREATE INDEX idx_adminlog_adminid ON "AdminLog"("adminId");
 CREATE INDEX idx_media_postid ON "Media"("postId");
 CREATE INDEX idx_media_uploaderprincipalid ON "Media"("uploaderPrincipalId");
 
--- STEP 7: Create Views
+
+-- STEP 7: Create Views (No changes needed in these views based on the specific request)
 CREATE OR REPLACE VIEW "UserProfile" AS
 SELECT
     ru."userId",
@@ -452,7 +483,8 @@ SELECT
     s."icon"             AS "subtableIcon",
     s."banner"           AS "subtableBanner",
     s."memberCount"      AS "subtableMemberCount",
-    s."createdAt"        AS "subtableCreatedAt"
+    s."createdAt"        AS "subtableCreatedAt",
+    s."creatorUserId"    AS "subtableCreatorUserId" -- Added creator info just in case
 FROM "Post" p
 LEFT JOIN "UserProfile" up ON p."authorUserId" = up."userId"
 LEFT JOIN "Subtable"    s  ON p."subtableId" = s."subtableId";
@@ -510,6 +542,7 @@ LEFT JOIN "UserProfile" recipient_profile ON m."recipientUserId" = recipient_pro
 
 
 -- STEP 8: Insert Sample Data
+-- Insert Accounts
 INSERT INTO "Account" ("accountId","username","password","email") VALUES
   ('00000000-0000-0000-0000-000000000001','user1','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user1@example.com'),
   ('00000000-0000-0000-0000-000000000002','user2','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','user2@example.com'),
@@ -521,8 +554,9 @@ INSERT INTO "Account" ("accountId","username","password","email") VALUES
   ('00000000-0000-0000-0000-000000000008','admin3','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin3@example.com'),
   ('00000000-0000-0000-0000-000000000009','admin4','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin4@example.com'),
   ('00000000-0000-0000-0000-000000000010','admin5','$argon2id$v=19$m=65536,t=4,p=2$4xixMi0tUPYwONkSbOexvg$0LkDJEIyNpo2DPKOXPtinfSL04J4jhxNxs6Vsd4GM+I','admin5@example.com')
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert Profiles
 INSERT INTO "Profile" ("profileId","avatar","banner","bio","location","displayName","gender") VALUES
   ('00000000-0000-0000-0000-000000000011','https://example.com/avatars/user1.png','https://example.com/banners/user1.png','Hi, I am user1!','City1','User One','male'),
   ('00000000-0000-0000-0000-000000000012','https://example.com/avatars/user2.png','https://example.com/banners/user2.png','Passionate coder.','City2','User Two','female'),
@@ -534,8 +568,9 @@ INSERT INTO "Profile" ("profileId","avatar","banner","bio","location","displayNa
   ('00000000-0000-0000-0000-000000000018','https://example.com/avatars/admin3.png','https://example.com/banners/admin3.png','Core maintainer.','City3','Admin Three','non_binary'),
   ('00000000-0000-0000-0000-000000000019','https://example.com/avatars/admin4.png','https://example.com/banners/admin4.png','Moderator lead.','City4','Admin Four','other'),
   ('00000000-0000-0000-0000-000000000020','https://example.com/avatars/admin5.png','https://example.com/banners/admin5.png','I manage the community.','City5','Admin Five','prefer_not_to_say')
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert Principals
 INSERT INTO "Principal" ("principalId","accountId","profileId","role") VALUES
   ('00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000011','user'),
   ('00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000012','user'),
@@ -547,41 +582,64 @@ INSERT INTO "Principal" ("principalId","accountId","profileId","role") VALUES
   ('00000000-0000-0000-0000-000000000028','00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000018','admin'),
   ('00000000-0000-0000-0000-000000000029','00000000-0000-0000-0000-000000000009','00000000-0000-0000-0000-000000000019','admin'),
   ('00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000010','00000000-0000-0000-0000-000000000020','admin')
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert Registered Users
 INSERT INTO "RegisteredUser" ("userId","principalId","karma","isVerified","status","lastActive") VALUES
-  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021',   0, TRUE,  'active',    '2025-05-05 03:38:11+07'), -- Karma starts at 0, trigger will update
-  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022',   0, FALSE, 'suspended', '2025-05-05 03:38:11+07'), -- Karma starts at 0
-  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000023',   0, TRUE,  'active',    '2025-05-05 03:38:11+07'), -- Karma starts at 0
-  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000024',   0, FALSE, 'banned',    '2025-05-05 03:38:11+07'), -- Karma starts at 0
-  ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000025',   0, TRUE,  'active',    '2025-05-05 03:38:11+07')  -- Karma starts at 0
-;
+  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021',   0, TRUE,  'active',    '2025-05-06 01:39:02+07'), -- Karma starts at 0, trigger will update
+  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000022',   0, FALSE, 'suspended', '2025-05-06 01:39:02+07'), -- Karma starts at 0
+  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000023',   0, TRUE,  'active',    '2025-05-06 01:39:02+07'), -- Karma starts at 0
+  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000024',   0, FALSE, 'banned',    '2025-05-06 01:39:02+07'), -- Karma starts at 0
+  ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000025',   0, TRUE,  'active',    '2025-05-06 01:39:02+07')  -- Karma starts at 0
+ON CONFLICT DO NOTHING;
 
+-- Insert Admins
 INSERT INTO "Admin" ("adminId","principalId","grantedAt") VALUES
   ('00000000-0000-0000-0000-000000000036','00000000-0000-0000-0000-000000000026','2025-04-01 10:00:00'),
   ('00000000-0000-0000-0000-000000000037','00000000-0000-0000-0000-000000000027','2025-03-15 14:20:00'),
   ('00000000-0000-0000-0000-000000000038','00000000-0000-0000-0000-000000000028','2025-02-28 08:00:00'),
   ('00000000-0000-0000-0000-000000000039','00000000-0000-0000-0000-000000000029','2025-04-18 16:45:00'),
   ('00000000-0000-0000-0000-000000000040','00000000-0000-0000-0000-000000000030','2025-04-20 10:30:00')
-;
+ON CONFLICT DO NOTHING;
 
-INSERT INTO "Subtable" ("subtableId","name","description","creatorPrincipalId","icon","banner","memberCount") VALUES
-  ('00000000-0000-0000-0000-000000000041','AskAnything','A place for any question','00000000-0000-0000-0000-000000000026','https://example.com/icons/ask.png','https://example.com/banners/ask.png',100),
-  ('00000000-0000-0000-0000-000000000042','TechTalk','Discussions about technology','00000000-0000-0000-0000-000000000027','https://example.com/icons/tech.png','https://example.com/banners/tech.png',200),
-  ('00000000-0000-0000-0000-000000000043','NewsHub','Share and discuss news','00000000-0000-0000-0000-000000000028','https://example.com/icons/news.png','https://example.com/banners/news.png',150),
-  ('00000000-0000-0000-0000-000000000044','AnimeClub','For anime fans','00000000-0000-0000-0000-000000000029','https://example.com/icons/anime.png','https://example.com/banners/anime.png',80),
-  ('00000000-0000-0000-0000-000000000045','Foodies','Food recipes and reviews','00000000-0000-0000-0000-000000000030','https://example.com/icons/food.png','https://example.com/banners/food.png',120)
-;
+-- Insert Subtables (Creator is now a RegisteredUser)
+INSERT INTO "Subtable" ("subtableId","name","description","creatorUserId","icon","banner","memberCount") VALUES
+  ('00000000-0000-0000-0000-000000000041','AskAnything','A place for any question','00000000-0000-0000-0000-000000000031','https://example.com/icons/ask.png','https://example.com/banners/ask.png',1), -- User 1 created
+  ('00000000-0000-0000-0000-000000000042','TechTalk','Discussions about technology','00000000-0000-0000-0000-000000000032','https://example.com/icons/tech.png','https://example.com/banners/tech.png',1), -- User 2 created
+  ('00000000-0000-0000-0000-000000000043','NewsHub','Share and discuss news','00000000-0000-0000-0000-000000000033','https://example.com/icons/news.png','https://example.com/banners/news.png',1), -- User 3 created
+  ('00000000-0000-0000-0000-000000000044','AnimeClub','For anime fans','00000000-0000-0000-0000-000000000034','https://example.com/icons/anime.png','https://example.com/banners/anime.png',1), -- User 4 created
+  ('00000000-0000-0000-0000-000000000045','Foodies','Food recipes and reviews','00000000-0000-0000-0000-000000000035','https://example.com/icons/food.png','https://example.com/banners/food.png',1)  -- User 5 created
+ON CONFLICT DO NOTHING;
 
+-- Insert Subscriptions (Triggers will update memberCount in Subtable)
+INSERT INTO "Subscription" ("userId", "subtableId") VALUES
+  -- Make creators subscribe to their own subtables if needed (depends on logic, memberCount starts at 1 already)
+  -- Let's assume creators are automatically members (memberCount=1), so no need to insert them here again.
+  -- Extra subscriptions
+  ('00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000042'), -- User 1 joins TechTalk
+  ('00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000041'), -- User 2 joins AskAnything
+  ('00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000045'), -- User 3 joins Foodies
+  ('00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000041'), -- User 5 joins AskAnything
+  -- Also add the moderators if they aren't the creators
+  ('00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000041'), -- User 1 already creator, no effect due to unique constraint
+  ('00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000042'), -- User 2 already creator
+  ('00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000043'), -- User 3 already creator
+  ('00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000044'), -- User 4 already creator
+  ('00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000045')  -- User 5 already creator
+ON CONFLICT ("userId", "subtableId") DO NOTHING; -- Avoid errors if sample data accidentally tries duplicate subscriptions
+
+
+-- Insert Moderators
 INSERT INTO "Moderators" ("userId","subtableId") VALUES
-  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000041'),
-  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000042'),
-  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000043'),
-  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000044'),
-  ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000045')
-;
+  ('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000041'), -- User 1 mods AskAnything (which they created)
+  ('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000042'), -- User 2 mods TechTalk (which they created)
+  ('00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000043'), -- User 3 mods NewsHub (which they created)
+  ('00000000-0000-0000-0000-000000000034','00000000-0000-0000-0000-000000000044'), -- User 4 mods AnimeClub (which they created)
+  ('00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000045')  -- User 5 mods Foodies (which they created)
+ON CONFLICT DO NOTHING;
 
-INSERT INTO "Post" ("postId","subtableId","authorUserId","title","body", "voteCount", "commentCount") VALUES -- Set initial counts to 0, triggers will update
+-- Insert Posts (Vote/Comment Counts initially 0, handled by triggers)
+INSERT INTO "Post" ("postId","subtableId","authorUserId","title","body", "voteCount", "commentCount") VALUES
   ('00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','Welcome to AskAnything','Feel free to ask any questions here.', 0, 0),
   ('00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000032','Question about SQL','How do I write a JOIN query?', 0, 0),
   ('00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000033','Latest tech trends','Let’s talk about AI advancements.', 0, 0),
@@ -592,9 +650,10 @@ INSERT INTO "Post" ("postId","subtableId","authorUserId","title","body", "voteCo
   ('00000000-0000-0000-0000-000000000058','00000000-0000-0000-0000-000000000044','00000000-0000-0000-0000-000000000033','Anime recommendations','Suggest some good anime.', 0, 0),
   ('00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000045','00000000-0000-0000-0000-000000000034','Best recipes','Share your recipe tips.', 0, 0),
   ('00000000-0000-0000-0000-000000000060','00000000-0000-0000-0000-000000000045','00000000-0000-0000-0000-000000000035','Food photography','How to take food photos?', 0, 0)
-;
+ON CONFLICT DO NOTHING;
 
-INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","body", "voteCount") VALUES -- Set initial counts to 0, triggers will update
+-- Insert Comments (Vote Count initially 0, handled by triggers)
+INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","body", "voteCount") VALUES
   ('00000000-0000-0000-0000-000000000061','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000032',NULL,'Thanks for the welcome!', 0),
   ('00000000-0000-0000-0000-000000000062','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000033',NULL,'Glad to be here.', 0),
   ('00000000-0000-0000-0000-000000000063','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000031',NULL,'Use INNER JOIN for matching rows.', 0),
@@ -615,8 +674,9 @@ INSERT INTO "Comment" ("commentId","postId","authorUserId","parentCommentId","bo
   ('00000000-0000-0000-0000-000000000203','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000067','Flexibility vs. safety, the eternal debate! I prefer the safety net TS provides for larger projects.', 0),
   ('00000000-0000-0000-0000-000000000204','00000000-0000-0000-0000-000000000057','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000070','Naruto is great! Have you watched Fullmetal Alchemist: Brotherhood?', 0),
   ('00000000-0000-0000-0000-000000000205','00000000-0000-0000-0000-000000000059','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000072','Me too! Especially a good lasagna. Takes time but worth it.', 0)
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert Votes (Triggers handle vote counts and karma)
 INSERT INTO "Vote" ("voteId","voterUserId","postId","commentId","voteType") VALUES
   -- Post Votes
   ('00000000-0000-0000-0000-000000000076','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000051',NULL, 'upvote'),
@@ -636,100 +696,92 @@ INSERT INTO "Vote" ("voteId","voterUserId","postId","commentId","voteType") VALU
   ('00000000-0000-0000-0000-000000000093','00000000-0000-0000-0000-000000000035',NULL,'00000000-0000-0000-0000-000000000066', 'downvote'),
   ('00000000-0000-0000-0000-000000000094','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000074', 'upvote'),
   ('00000000-0000-0000-0000-000000000095','00000000-0000-0000-0000-000000000031',NULL,'00000000-0000-0000-0000-000000000071','downvote')
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert Reports
 INSERT INTO "Report" ("reportId","reporterPrincipalId","postId","commentId","reason", "isHandled", "handlerPrincipalId", "handledAt") VALUES
   ('00000000-0000-0000-0000-000000000096','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000053',NULL,'Spam content', TRUE, '00000000-0000-0000-0000-000000000026', '2025-05-04 10:00:00'),
   ('00000000-0000-0000-0000-000000000097','00000000-0000-0000-0000-000000000024',NULL,'00000000-0000-0000-0000-000000000064','Offensive language', FALSE, NULL, NULL),
   ('00000000-0000-0000-0000-000000000098','00000000-0000-0000-0000-000000000025',NULL,'00000000-0000-0000-0000-000000000074','Harassment', FALSE, NULL, NULL)
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert System Rules
 INSERT INTO "SystemRule" ("ruleId","title","description","createdByAdminId") VALUES
   ('00000000-0000-0000-0000-000000000101','Be respectful','Do not harass other users.','00000000-0000-0000-0000-000000000036'),
   ('00000000-0000-0000-0000-000000000102','No spam','Avoid posting spammy content.','00000000-0000-0000-0000-000000000037'),
   ('00000000-0000-0000-0000-000000000103','Use proper channels','Post in the correct community.','00000000-0000-0000-0000-000000000038'),
   ('00000000-0000-0000-0000-000000000104','No impersonation','Do not impersonate others.','00000000-0000-0000-0000-000000000039'),
   ('00000000-0000-0000-0000-000000000105','Follow guidelines','Abide by sitewide policies.','00000000-0000-0000-0000-000000000040')
-;
+ON CONFLICT DO NOTHING;
 
+-- Insert Subtable Rules (Creator still Principal - can be Mod/Admin)
 INSERT INTO "SubtableRule" ("ruleId","subtableId","title","description","creatorPrincipalId") VALUES
-  ('00000000-0000-0000-0000-000000000106','00000000-0000-0000-0000-000000000041','No self-promo','Do not promote your own products.','00000000-0000-0000-0000-000000000026'),
-  ('00000000-0000-0000-0000-000000000107','00000000-0000-0000-0000-000000000042','Tech news only','Only post tech-related news.','00000000-0000-0000-0000-000000000027'),
-  ('00000000-0000-0000-0000-000000000108','00000000-0000-0000-0000-000000000043','Verify sources','Provide credible sources for news.','00000000-0000-0000-0000-000000000028'),
-  ('00000000-0000-0000-0000-000000000109','00000000-0000-0000-0000-000000000044','Spoiler policy','Use spoiler tags for spoilers.','00000000-0000-0000-0000-000000000029'),
-  ('00000000-0000-0000-0000-000000000110','00000000-0000-0000-0000-000000000045','Recipe format','Follow the standard recipe format.','00000000-0000-0000-0000-000000000030')
-;
+  ('00000000-0000-0000-0000-000000000106','00000000-0000-0000-0000-000000000041','No self-promo','Do not promote your own products.','00000000-0000-0000-0000-000000000021'), -- User 1 Principal
+  ('00000000-0000-0000-0000-000000000107','00000000-0000-0000-0000-000000000042','Tech news only','Only post tech-related news.','00000000-0000-0000-0000-000000000022'), -- User 2 Principal
+  ('00000000-0000-0000-0000-000000000108','00000000-0000-0000-0000-000000000043','Verify sources','Provide credible sources for news.','00000000-0000-0000-0000-000000000023'), -- User 3 Principal
+  ('00000000-0000-0000-0000-000000000109','00000000-0000-0000-0000-000000000044','Spoiler policy','Use spoiler tags for spoilers.','00000000-0000-0000-0000-000000000024'), -- User 4 Principal
+  ('00000000-0000-0000-0000-000000000110','00000000-0000-0000-0000-000000000045','Recipe format','Follow the standard recipe format.','00000000-0000-0000-0000-000000000025')  -- User 5 Principal
+ON CONFLICT DO NOTHING;
 
+-- Insert Notifications
 INSERT INTO "Notification" ("notificationId","recipientUserId","triggeringPrincipalId","type","sourceUrl","content", "isRead") VALUES
   ('00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000022','comment_reply','/comments/00000000-0000-0000-0000-000000000052#comment-00000000-0000-0000-0000-000000000064','Someone replied to your comment', FALSE),
   ('00000000-0000-0000-0000-000000000112','00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000023','post_reply','/comments/00000000-0000-0000-0000-000000000053#comment-00000000-0000-0000-0000-000000000065','New comment on your post', TRUE),
   ('00000000-0000-0000-0000-000000000113','00000000-0000-0000-0000-000000000033','00000000-0000-0000-0000-000000000024','mention','/comments/00000000-0000-0000-0000-000000000054','You were mentioned in a post', FALSE),
-  ('00000000-0000-0000-0000-000000000115','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000026','moderator_invite','/s/AskAnything','You have been invited as a moderator', FALSE)
-;
+  ('00000000-0000-0000-0000-000000000115','00000000-0000-0000-0000-000000000035','00000000-0000-0000-0000-000000000021','moderator_invite','/s/AskAnything','You have been invited as a moderator', FALSE) -- Moderator invite from User 1 Principal
+ON CONFLICT DO NOTHING;
 
-INSERT INTO "Message" ("messageId", "parentMessageId", "senderUserId", "recipientUserId", "body", "messageType") VALUES
+-- Insert Messages
+INSERT INTO "Message" ("messageId", "parentMessageId", "senderUserId", "recipientUserId", "body", "messageType", "isRead") VALUES
   -- Thread 1 (116 -> 117)
-  ('00000000-0000-0000-0000-000000000116', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'Hi User 2, I have a question.', 'direct'),
-  ('00000000-0000-0000-0000-000000000117', '00000000-0000-0000-0000-000000000116', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000031', 'Sure, how can I help?', 'direct'),
+  ('00000000-0000-0000-0000-000000000116', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'Hi User 2, I have a question.', 'direct', TRUE),
+  ('00000000-0000-0000-0000-000000000117', '00000000-0000-0000-0000-000000000116', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000031', 'Sure, how can I help?', 'direct', FALSE),
   -- Thread 2 (118 -> 119)
-  ('00000000-0000-0000-0000-000000000118', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000034', 'I found a bug in the forum.', 'direct'),
-  ('00000000-0000-0000-0000-000000000119', '00000000-0000-0000-0000-000000000118', NULL, '00000000-0000-0000-0000-000000000031', 'Thanks for reporting, we’ll look into it.', 'system'),
+  ('00000000-0000-0000-0000-000000000118', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000034', 'I found a bug in the forum.', 'direct', FALSE),
+  ('00000000-0000-0000-0000-000000000119', '00000000-0000-0000-0000-000000000118', NULL, '00000000-0000-0000-0000-000000000031', 'Thanks for reporting, we’ll look into it.', 'system', FALSE), -- System messages might have NULL sender/recipient
   -- Thread 3 (120 -> 121)
-  ('00000000-0000-0000-0000-000000000120', NULL, '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000035', 'Can I post images?', 'direct'),
-  ('00000000-0000-0000-0000-000000000121', '00000000-0000-0000-0000-000000000120', NULL, '00000000-0000-0000-0000-000000000032', 'Yes, you can upload media.', 'system'),
-  -- Thread 4 (122 -> 123)
-  ('00000000-0000-0000-0000-000000000122', NULL, '00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000033', 'Welcome to the community!', 'direct'),
-  ('00000000-0000-0000-0000-000000000123', '00000000-0000-0000-0000-000000000122', NULL, '00000000-0000-0000-0000-000000000034', 'Thank you! Happy to be here.', 'system'),
-  -- Thread 5 (124 -> 125)
-  ('00000000-0000-0000-0000-000000000124', NULL, NULL, '00000000-0000-0000-0000-000000000035', 'Don’t forget the meeting tomorrow.', 'system'),
-  ('00000000-0000-0000-0000-000000000125', '00000000-0000-0000-0000-000000000124', NULL, '00000000-0000-0000-0000-000000000031', 'Got it, thanks.', 'system'),
-  -- Thread 6 (126 -> 127)
-  ('00000000-0000-0000-0000-000000000126', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'How do I change my password?', 'direct'),
-  ('00000000-0000-0000-0000-000000000127', '00000000-0000-0000-0000-000000000126', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000031', 'Go to account settings.', 'direct'),
-  -- Thread 7 (128 -> 129)
-  ('00000000-0000-0000-0000-000000000128', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000034', 'Love the new UI!', 'direct'),
-  ('00000000-0000-0000-0000-000000000129', '00000000-0000-0000-0000-000000000128', '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000031', 'Glad you like it.', 'direct'),
-  -- Thread 8 (130 -> 131)
-  ('00000000-0000-0000-0000-000000000130', NULL, '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000035', 'Hi there!', 'direct'),
-  ('00000000-0000-0000-0000-000000000131', '00000000-0000-0000-0000-000000000130', '00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000031', 'Hello back!', 'direct'),
-  -- Thread 9 (132 -> 133)
-  ('00000000-0000-0000-0000-000000000132', NULL, '00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000032', 'Your account has new privileges.', 'system'),
-  ('00000000-0000-0000-0000-000000000133', '00000000-0000-0000-0000-000000000132', '00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000033', 'Thanks for the update.', 'direct'),
-  -- Thread 10 (134 -> 135)
-  ('00000000-0000-0000-0000-000000000134', NULL, '00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000035', 'Where can I find docs?', 'direct'),
-  ('00000000-0000-0000-0000-000000000135', '00000000-0000-0000-0000-000000000134', '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000034', 'See the help center.', 'direct')
-;
+  ('00000000-0000-0000-0000-000000000120', NULL, '00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000035', 'Can I post images?', 'direct', TRUE),
+  ('00000000-0000-0000-0000-000000000121', '00000000-0000-0000-0000-000000000120', NULL, '00000000-0000-0000-0000-000000000034', 'Yes, you can upload media.', 'system', TRUE), -- System reply
+  -- More sample messages...
+  ('00000000-0000-0000-0000-000000000122', NULL, '00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000033', 'Welcome to the community!', 'direct', FALSE),
+  ('00000000-0000-0000-0000-000000000124', NULL, NULL, '00000000-0000-0000-0000-000000000035', 'Don’t forget the meeting tomorrow.', 'system', FALSE)
+ON CONFLICT DO NOTHING;
 
+
+-- Insert Bans
 INSERT INTO "Ban" ("banId","bannedAccountId","issuerPrincipalId","subtableId","reason","expiresAt") VALUES
-  ('00000000-0000-0000-0000-000000000136','00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000029',NULL,'Violation of terms','2025-06-01 00:00:00'),
-  ('00000000-0000-0000-0000-000000000137','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000044','Spamming','2025-05-25 12:00:00'),
-  ('00000000-0000-0000-0000-000000000138','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000026',NULL,'Harassment',NULL),
-  ('00000000-0000-0000-0000-000000000139','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000027','00000000-0000-0000-0000-000000000042','Off-topic posts','2025-05-30 08:00:00'),
-  ('00000000-0000-0000-0000-000000000140','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000028',NULL,'Multiple accounts',NULL)
-;
+  ('00000000-0000-0000-0000-000000000136','00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000029',NULL,'Violation of terms','2025-06-01 00:00:00'), -- Ban issued by Admin 4 Principal
+  ('00000000-0000-0000-0000-000000000137','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000044','Spamming','2025-05-25 12:00:00'), -- Ban issued by Admin 5 Principal for subtable 44
+  ('00000000-0000-0000-0000-000000000138','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000026',NULL,'Harassment',NULL), -- Permanent ban by Admin 1 Principal
+  ('00000000-0000-0000-0000-000000000139','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000042','Off-topic posts','2025-05-30 08:00:00'), -- Ban issued by User 2 Principal (acting as Mod) for subtable 42
+  ('00000000-0000-0000-0000-000000000140','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000028',NULL,'Multiple accounts',NULL) -- Permanent ban by Admin 3 Principal
+ON CONFLICT DO NOTHING;
 
+-- Insert Moderator Logs (Moderator identified by Principal)
 INSERT INTO "ModeratorLog" ("logId","moderatorPrincipalId","subtableId","action","targetPostId","targetCommentId","targetAccountId","details") VALUES
-  ('00000000-0000-0000-0000-000000000141','00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000041','remove_post','00000000-0000-0000-0000-000000000052',NULL,NULL,'Inappropriate content'),
-  ('00000000-0000-0000-0000-000000000142','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000042','ban_user',NULL,NULL,'00000000-0000-0000-0000-000000000004','Repeated spam'),
-  ('00000000-0000-0000-0000-000000000143','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000043','approve_comment',NULL,'00000000-0000-0000-0000-000000000064',NULL,'Looks good'),
-  ('00000000-0000-0000-0000-000000000144','00000000-0000-0000-0000-000000000024','00000000-0000-0000-0000-000000000044','unban_user',NULL,NULL,'00000000-0000-0000-0000-000000000004','Time served'),
-  ('00000000-0000-0000-0000-000000000145','00000000-0000-0000-0000-000000000025','00000000-0000-0000-0000-000000000045','lock_post','00000000-0000-0000-0000-000000000060',NULL,NULL,'Closed discussion')
-;
+  ('00000000-0000-0000-0000-000000000141','00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000041','remove_post','00000000-0000-0000-0000-000000000052',NULL,NULL,'Inappropriate content'), -- User 1 Principal acting as Mod
+  ('00000000-0000-0000-0000-000000000142','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000042','ban_user',NULL,NULL,'00000000-0000-0000-0000-000000000004','Repeated spam'), -- User 2 Principal acting as Mod
+  ('00000000-0000-0000-0000-000000000143','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000043','approve_comment',NULL,'00000000-0000-0000-0000-000000000064',NULL,'Looks good'), -- User 3 Principal acting as Mod
+  ('00000000-0000-0000-0000-000000000144','00000000-0000-0000-0000-000000000024','00000000-0000-0000-0000-000000000044','unban_user',NULL,NULL,'00000000-0000-0000-0000-000000000004','Time served'), -- User 4 Principal acting as Mod
+  ('00000000-0000-0000-0000-000000000145','00000000-0000-0000-0000-000000000025','00000000-0000-0000-0000-000000000045','lock_post','00000000-0000-0000-0000-000000000060',NULL,NULL,'Closed discussion') -- User 5 Principal acting as Mod
+ON CONFLICT DO NOTHING;
 
+-- Insert Admin Logs (Admin identified by Admin record)
 INSERT INTO "AdminLog" ("logId","adminId","action","targetAccountId","targetSubtableId","targetPostId","targetCommentId","details") VALUES
-  ('00000000-0000-0000-0000-000000000146','00000000-0000-0000-0000-000000000036','suspend_account','00000000-0000-0000-0000-000000000005',NULL,NULL,NULL,'Policy violation'),
-  ('00000000-0000-0000-0000-000000000147','00000000-0000-0000-0000-000000000037','delete_subtable',NULL,'00000000-0000-0000-0000-000000000045',NULL,NULL,'Obsolete community'),
-  ('00000000-0000-0000-0000-000000000148','00000000-0000-0000-0000-000000000038','grant_admin','00000000-0000-0000-0000-000000000010',NULL,NULL,NULL,'Promoted user to admin'),
-  ('00000000-0000-0000-0000-000000000149','00000000-0000-0000-0000-000000000039','modify_subtable',NULL,'00000000-0000-0000-0000-000000000042',NULL,NULL,'Updated description'),
-  ('00000000-0000-0000-0000-000000000150','00000000-0000-0000-0000-000000000040','delete_post',NULL,NULL,'00000000-0000-0000-0000-000000000055',NULL,'User request')
-;
+  ('00000000-0000-0000-0000-000000000146','00000000-0000-0000-0000-000000000036','suspend_account','00000000-0000-0000-0000-000000000005',NULL,NULL,NULL,'Policy violation'), -- Admin 1
+  ('00000000-0000-0000-0000-000000000147','00000000-0000-0000-0000-000000000037','delete_subtable',NULL,'00000000-0000-0000-0000-000000000045',NULL,NULL,'Obsolete community'), -- Admin 2
+  ('00000000-0000-0000-0000-000000000148','00000000-0000-0000-0000-000000000038','grant_admin','00000000-0000-0000-0000-000000000010',NULL,NULL,NULL,'Promoted user account 10 to admin'), -- Admin 3
+  ('00000000-0000-0000-0000-000000000149','00000000-0000-0000-0000-000000000039','modify_subtable',NULL,'00000000-0000-0000-0000-000000000042',NULL,NULL,'Updated description'), -- Admin 4
+  ('00000000-0000-0000-0000-000000000150','00000000-0000-0000-0000-000000000040','delete_post',NULL,NULL,'00000000-0000-0000-0000-000000000055',NULL,'User request') -- Admin 5
+ON CONFLICT DO NOTHING;
 
+-- Insert Media
 INSERT INTO "Media" ("mediaId","postId","uploaderPrincipalId","url","mediaType","mimeType","fileSize") VALUES
-  ('00000000-0000-0000-0000-000000000151','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000021','https://cdn.example.com/media/1.jpg','image','image/jpeg',204800),
-  ('00000000-0000-0000-0000-000000000152','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000022','https://cdn.example.com/media/2.png','image','image/png',102400),
-  ('00000000-0000-0000-0000-000000000153','00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000023','https://cdn.example.com/media/3.mp4','video','video/mp4',10485760),
-  ('00000000-0000-0000-0000-000000000154','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000024','https://cdn.example.com/media/4.mov','video','video/quicktime',20971520),
-  ('00000000-0000-0000-0000-000000000155','00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000025','https://cdn.example.com/media/5.gif','image','image/gif',51200)
-;
+  ('00000000-0000-0000-0000-000000000151','00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000021','https://cdn.example.com/media/1.jpg','image','image/jpeg',204800), -- Uploaded by User 1 Principal
+  ('00000000-0000-0000-0000-000000000152','00000000-0000-0000-0000-000000000052','00000000-0000-0000-0000-000000000022','https://cdn.example.com/media/2.png','image','image/png',102400), -- Uploaded by User 2 Principal
+  ('00000000-0000-0000-0000-000000000153','00000000-0000-0000-0000-000000000053','00000000-0000-0000-0000-000000000023','https://cdn.example.com/media/3.mp4','video','video/mp4',10485760), -- Uploaded by User 3 Principal
+  ('00000000-0000-0000-0000-000000000154','00000000-0000-0000-0000-000000000054','00000000-0000-0000-0000-000000000024','https://cdn.example.com/media/4.mov','video','video/quicktime',20971520), -- Uploaded by User 4 Principal
+  ('00000000-0000-0000-0000-000000000155','00000000-0000-0000-0000-000000000055','00000000-0000-0000-0000-000000000025','https://cdn.example.com/media/5.gif','image','image/gif',51200)  -- Uploaded by User 5 Principal
+ON CONFLICT DO NOTHING;
 
--- ## End of Script ##
+-- End of Script --
