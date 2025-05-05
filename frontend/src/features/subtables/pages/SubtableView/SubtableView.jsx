@@ -5,6 +5,7 @@ import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import {useParams} from 'react-router'
 import subtableService from "#services/subtableService";
+import { Link } from 'react-router';
 import {useEffect, useState} from 'react'
 
 export default function SubtableView() {
@@ -15,7 +16,7 @@ export default function SubtableView() {
 
     // console.log(subtable.banner)
     // console.log(posts)
-   const {
+    const {
         subtableName 
     } = useParams()
     //console.log(subtableName)
@@ -71,12 +72,23 @@ export default function SubtableView() {
 
                         <div className='resizeButton d-flex justify-content-between align-items-center'>
                             <Button addClass="designButtonCreatePost">
-                                <Icon
-                                    name="plus"
-                                    size="11px"
-                                    addClass="me-1"
-                                />
-                                Tạo bài đăng
+                                {/* <a href={`/s/${subtableName}/submit`} className="text-decoration-none text-black d-flex justify-content-center align-items-center">
+                                    <Icon
+                                        name="plus"
+                                        size="11px"
+                                        addClass="me-1"
+                                    />
+                                    Tạo bài đăng
+                                </a> */}
+                                <Link to={`/s/${subtableName}/submit`} className="text-decoration-none text-black d-flex justify-content-center align-items-center">
+                                    <Icon
+                                        name="plus"
+                                        size="11px"
+                                        addClass="me-1"
+                                    />
+                                    Tạo bài đăng
+                                </Link>
+                                
                             </Button>
                             <Button
                                 addClass="text-white designButtonJoin"

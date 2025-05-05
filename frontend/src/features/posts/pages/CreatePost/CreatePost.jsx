@@ -1,13 +1,19 @@
-import React, {useRef, useState} from "react";
+import React, {useRef, useState,useEffect} from "react";
 // import TextEdit from "../../../../shared/components/TextEditter/TextEdit";
 import TextEdit from "#shared/components/UIElement/TextEditor/TextEditor";
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
+import subtableService from "#services/subtableService";
+import postService from "#services/postService";
+import useAuth from "../../../../hooks/useAuth";
+import {useParams} from 'react-router'
+
 import './CreatePost.css'
 
-export default function CreatePost(props) {
+export default function CreatePost() {
     const [subtable, setSubtable] = useState(false)
+    const {user} = useAuth()
     document.addEventListener("mousedown", function (event) {
         let excludedElement = document.getElementById("Subtable"); // Thay thế bằng ID phần tử bạn muốn loại trừ
         if (excludedElement && !excludedElement.contains(event.target)) {
@@ -18,8 +24,12 @@ export default function CreatePost(props) {
 
     //const [selectSutableID,setSelectSubtableID] = useState(null)
     const [selectSutableName, setSelectSubtableName] = useState(null)
+    const [selectSutableID, setSelectSubtableID] = useState(null)
     const [selectSutableSrc, setSelectSubtableSrc] = useState(null)
+    const [selectSubtableFirstName, setSelectSubtableFirstName] = useState(null)
+    const [selectSubtableFirstSrc, setSelectSubtableFirstSrc] = useState(null)
     const [selectSutable, setSelectSubtable] = useState(false);
+    const [Subtables, setSubtables] = useState([])
 
     const editorRef = useRef();
 
@@ -36,17 +46,45 @@ export default function CreatePost(props) {
         return sub
     }
 
-    const filteredSubtables = props.subtable.filter((sub) => {
-        const list = subString(subtableInputValue); // Hàm tạo danh sách các chuỗi con
-        return list.some((element) =>
-            sub.namespace.toLowerCase().includes(element.toLowerCase())
-        );
-    });
+    
+    const {
+        subtableName 
+    } = useParams()
+    useEffect(() => {
+            const fetchSubtables = async () => {
+                try {
+                    
+                    const subtables = await subtableService.getSubtables(subtableName);
+                    setSubtables(subtables.data)
+                    setSelectSubtableFirstName(subtables.data[0].name)
+                    setSelectSubtableFirstSrc(subtables.data[0].icon)
+                    setSelectSubtableName(subtables.data[0].name)
+                    setSelectSubtableSrc(subtables.data[0].icon)
+                    setSelectSubtableID(subtables.data[0].subtableId)
+                    console.log("subtableresponsedata",subtables.data)
+                    //console.log("subtablefilter",)
 
-    // Loại bỏ trùng theo namespace (nếu cần)
-    const uniqueSubtables = Array.from(
-        new Map(filteredSubtables.map(item => [item.namespace, item])).values()
-    );
+                    
+                    
+                } catch (error) {
+                    console.error("Error fetching subtable details:", error);
+                }
+            };
+            fetchSubtables();
+            
+        },[]) 
+        const filteredSubtables = Subtables.filter((sub) => {
+            const list = subString(subtableInputValue); // Hàm tạo danh sách các chuỗi con
+            return list.some((element) =>
+                sub.name.toLowerCase().includes(element.toLowerCase())
+            );
+        });
+        // Loại bỏ trùng theo namespace (nếu cần)
+        const uniqueSubtables = Array.from(
+            new Map(filteredSubtables.map(item => [item.name, item])).values()
+        );
+
+    
     const deleteValue = () => {
         setSubtableInputValue("")
     }
@@ -54,19 +92,21 @@ export default function CreatePost(props) {
     //console.log("Giá trị của subtable", filteredSubtables)
 
     const [title, setTitle] = useState("");
-    const [link, setLink] = useState("");
     const handleSubmit = (e) => {
+        console.log("submit")
         e.preventDefault();
         const content = editorRef.current.getContent();
         const newPost = {
-            username: selectSutableName,
-            src: selectSutableSrc,
+            subtableId: selectSutableID ,
             title: title,
-            link: link,
-            content: content,
+            body: content,
         }
-        localStorage.setItem("post", JSON.stringify(newPost));
+        console.log("newPost", newPost)
+        postService.createPost(newPost)
+        //localStorage.setItem("post", JSON.stringify(newPost));
     }
+
+
     return (
         <>
             <form method="post" onSubmit={handleSubmit}>
@@ -98,12 +138,12 @@ export default function CreatePost(props) {
                                 <>
                                     <Avatar
                                         addClass
-                                        src={"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80"}
-                                        alt={`u/KitDevAn`}
+                                        src={selectSubtableFirstSrc}
+                                        alt={`u/${selectSubtableFirstName}`}
                                         width={20}
                                         height={20}/>
                                     <div className="ms-2  me-2">
-                                        u/KitDevAn
+                                        u/{selectSubtableFirstName}
                                     </div>
 
                                     <Icon
@@ -138,31 +178,32 @@ export default function CreatePost(props) {
                                 {
                                     //console.log(props.subtable)
                                     //filteredSubtables.subtable
-                                    (uniqueSubtables.length > 0 ? uniqueSubtables : props.subtable).map((subtable, index) => (
+                                    (uniqueSubtables.length > 0 ? uniqueSubtables : Subtables).map((subtable, index) => (
                                         <li classname="dropdown-item" key={index}>
                                             <Button
                                                 addClass="dissapear-background"
                                                 onClick={() => {
                                                     // selectSutableID(1)
-                                                    setSelectSubtableName(subtable.namespace)
-                                                    setSelectSubtableSrc(subtable.avatar.src)
+                                                    setSelectSubtableName(subtable.name)
+                                                    setSelectSubtableSrc(subtable.icon)
+                                                    setSelectSubtableID(subtable.subtableId)
                                                     setSelectSubtable(true)
                                                     setSubtable(false)
                                                 }}
                                             >
                                                 <div className="d-flex align-items-center ms-2">
                                                     <Avatar
-                                                        src={subtable.avatar.src}
+                                                        src={subtable.icon}
                                                         //alt={`r/${props.comment.alt}`}
                                                         width={30}
                                                         height={30}
                                                     />
                                                     <div className="d-flex flex-column ms-2">
                                                         <div className="fs-7 text-start">
-                                                            {subtable.namespace}
+                                                            {subtable.name}
                                                         </div>
                                                         <div className="me-3">
-                                                            <span className="text-muted fs-7">{subtable.members} thành viên</span>
+                                                            <span className="text-muted fs-7">{subtable.memberCount}thành viên</span>
                                                             &nbsp;•
                                                             <span className="text-muted fs-7">Đã đăng ký</span>
 
@@ -208,24 +249,9 @@ export default function CreatePost(props) {
                             onChange={(e) => setTitle(e.target.value)}
                             required/>
                     </div>
-
-                    <div className="ms-3 me-3">
-                        <label for="title" class="form-label d-block fs-6">
-                            Liên kết
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Liên kết*"
-                            class="form-control d-inline mb-3 rounded-input rounded-pill"
-                            id="link"
-                            aria-describedby="basic-addon3"
-                            name="link"
-                            value={link}
-                            onChange={(e) => setLink(e.target.value)}
-                            required/>
-                    </div>
                     <TextEdit ref={editorRef}/>
                     <div className="card-footer d-flex justify-content-end">
+                        {/* <button type="submit">Đăng</button> */}
                         <Button
                             addClass="custom"
                             type="submit"
@@ -238,5 +264,6 @@ export default function CreatePost(props) {
             </form>
         </>
     )
+   
 
 }
