@@ -613,14 +613,11 @@ ON CONFLICT DO NOTHING;
 
 -- Insert Subscriptions (Triggers will update memberCount in Subtable)
 INSERT INTO "Subscription" ("userId", "subtableId") VALUES
-  -- Make creators subscribe to their own subtables if needed (depends on logic, memberCount starts at 1 already)
-  -- Let's assume creators are automatically members (memberCount=1), so no need to insert them here again.
-  -- Extra subscriptions
+
   ('00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000042'), -- User 1 joins TechTalk
   ('00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000041'), -- User 2 joins AskAnything
   ('00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000045'), -- User 3 joins Foodies
   ('00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000041'), -- User 5 joins AskAnything
-  -- Also add the moderators if they aren't the creators
   ('00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000041'), -- User 1 already creator, no effect due to unique constraint
   ('00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000042'), -- User 2 already creator
   ('00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000043'), -- User 3 already creator
