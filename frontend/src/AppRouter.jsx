@@ -10,6 +10,7 @@ const PostDetail = lazy(() => import('@features/posts/pages/PostDetail/PostDetai
 const ErrorPageNotFound = lazy(() => import('@pages/ErrorPageNotFound/ErrorPageNotFound'));
 const Error404 = lazy(() => import('@pages/Error404/Error404'));
 const ProfileContainer = lazy(() => import('@features/users/components/ProfileContainer/ProfileContainer'));
+const DetailProfile = lazy(() => import('@features/users/pages/views/DetailProfile'));
 
 const post =
     {
@@ -346,8 +347,7 @@ const router = createBrowserRouter([
             {
                 path: "Profile",
                 element:
-                <div>
-                    <ProfileContainer
+                <DetailProfile
                         imgUrl="https://picsum.photos/200"
                         name="nen-goi-la-Hoang"
                         bannerImgUrl="https://picsum.photos/300/100?grayscale"
@@ -363,7 +363,6 @@ const router = createBrowserRouter([
                         downvotedPosts = {downvotedPosts}
                         downvotedComments = {downvotedComments}
                     /> 
-                </div>
                 
             }
         ],

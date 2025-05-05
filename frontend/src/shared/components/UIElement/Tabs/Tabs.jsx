@@ -1,5 +1,5 @@
 import React,{useState} from "react";
-import './myprofile.css';
+import './Tabs.css';
 import TabButton from "../TabButton/TabButton";
 function Tabs({onTabChange}){
     const [activeTab, setActiveTab] = useState("Overview")
