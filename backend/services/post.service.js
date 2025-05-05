@@ -2,6 +2,7 @@
 import HTTP_STATUS from '#constants/httpStatus.js';
 import UserCommentDetailsDAO from "#daos/user-comment-details.dao.js";
 import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
+import PostDAO from '#daos/post.dao.js';
 import VoteDAO from '#daos/vote.dao.js';
 
 /**
@@ -119,6 +120,29 @@ class PostService {
             author: author ? {...author} : null,     // Include author details
             comments: commentsStructured,              // Include structured comments with vote status
         };
+    }
+    async createPost(authorUserId,subtableId, title, body) {
+        //console.log(`[PostService.createPost] Creating post in subtable: ${subtableName}`);
+
+        console.log("Service",{authorUserId,subtableId, title, body});
+        // 1. Validate input
+        if (!subtableId || !title || !body) {
+            const error = new Error('Invalid input data for creating a post.');
+            error.statusCode = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+        
+
+        // 2. Create the post using the DAO
+        const newPost = await PostDAO.create({
+            authorUserId,
+            subtableId,
+            title,
+            body,
+        });
+
+        // 3. Return the created post details
+        return newPost;
     }
 }
 
