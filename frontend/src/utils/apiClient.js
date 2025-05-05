@@ -23,9 +23,11 @@ export async function sendApiRequest(url, options = {}) {
             },
             credentials: 'include',
         });
+        console.log("post", body);
 
         // Try to parse JSON body even for errors, as it might contain details
         const responseData = await response.json();
+        console.log("responseData", responseData);
 
         if (!response.ok) {
             // Create a custom error object including status and response data

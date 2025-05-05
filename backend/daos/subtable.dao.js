@@ -134,6 +134,29 @@ class SubtableDAO {
             throw error;
         }
     }
+    // async getSubtables(subtableName, userId) {
+    //     try {
+    //         const subtables = await postgresInstance('Subtable')
+    //             .join('UserPostDetails', 'Subtable.subtableId', '=', 'UserPostDetails.subtableId')
+    //             .where('Subtable.name', subtableName)
+    //             .andWhere('UserPostDetails.userId', userId)
+    //             .select('Subtable.*', 'UserPostDetails.*'); // Adjust as needed
+
+    //         return subtables.map(row => Subtable.fromDbRow(row)); // Convert to Subtable instances
+    //     } catch (error) {
+    //         console.error(`Error fetching subtables for ${subtableName}:`, error);
+    //         throw error;
+    //     }
+    // }
+    async getSubtables() {
+        try {
+            const subtables = await postgresInstance('Subtable')
+            return subtables.map(row => Subtable.fromDbRow(row)); // Convert to Subtable instances
+        } catch (error) {
+            console.error(`Error fetching subtables for ${subtableName}:`, error);
+            throw error;
+        }
+    }
 
     // Potential future methods: listAll, searchByName, etc.
 }

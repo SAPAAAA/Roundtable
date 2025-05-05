@@ -62,6 +62,30 @@ class PostController {
             next(error);
         }
     }
+    createPost = async (req, res, next) => {
+        try {
+            const {subtableId,title, body} = req.body;
+            const {userId} = req.session;
+            console.log("xin chào",{userId,subtableId,title, body});
+            const authorUserId = userId; // Assuming userId is available in the session
+
+            //console.log(`[PostController.createPost] Creating post in subtable: ${subtableName}`);
+
+            // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
+            const newPost = await this.postService.createPost(authorUserId,subtableId, title, body);
+
+            // --- Success Response ---
+            return res.status(HTTP_STATUS.CREATED).json({
+                success: true,
+                data: newPost // Send the newly created post data
+            });
+
+        } catch (error) {
+            // --- Error Handling ---
+            //console.error(`[PostController.createPost] Error creating post in subtable ${req.params?.subtableName}:`, error.message);
+            next(error);
+        }
+    };
 }
 
 // Export an instance, injecting the service dependency

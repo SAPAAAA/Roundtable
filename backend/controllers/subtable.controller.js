@@ -25,6 +25,22 @@ class SubtableController {
         }
 
     }
+    getSubtables = async (req, res, next) => {
+        try {
+            //const {subtableName} = req.params;
+            //console.log("subtableNamekkk",subtableName)
+            //const userId = req.session.userId;
+            const viewData = await this.subtableService.getSubtables();
+            console.log("viewData",viewData)
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: viewData // Send the data returned by the service
+            })
+        } catch (error) {
+            console.error(`[SubtableController.getSubtables] Error fetching details for subtableId ${req.params?.subtableId}:`, error.message);
+            next(error);
+        }
+    }
     // createSubtable = async (req, res) => {
         
     //     try {
