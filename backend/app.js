@@ -41,8 +41,9 @@ const frontendPort = process.env.FRONTEND_PORT;
 const allowedOrigins = [
     `http://localhost:${frontendPort}`,
     `http://${internalIp}:${frontendPort}` // <-- Add this line (assuming frontend runs on 3000)
-    // Add other potential origins if needed, e.g., if frontend runs on a different port when accessed via IP
 ];
+
+console.log('Allowed Origins:', allowedOrigins);
 
 const corsOptions = {
     origin: function (origin, callback) {

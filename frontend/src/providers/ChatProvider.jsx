@@ -77,7 +77,7 @@ const ChatProvider = ({children}) => {
         } finally {
             setIsLoadingMessages(false);
         }
-    }, [user?.userId]);
+    }, [user]);
 
     const readMessages = useCallback(async (partnerUserId) => {
         if (!partnerUserId || !user?.userId) {
@@ -98,7 +98,7 @@ const ChatProvider = ({children}) => {
             )
         );
         if (unreadCountForThisPartner > 0) {
-            setTotalUnreadMessages(prevTotal => Math.max(0, prevTotal - unreadCountForThisPartner));
+            setTotalUnreadMessages(prevTotal => prevTotal - unreadCountForThisPartner);
         }
 
         if (unreadCountForThisPartner === 0 && partnerToUpdate) {
@@ -115,7 +115,7 @@ const ChatProvider = ({children}) => {
             setConversationPartners(originalPartners);
             setTotalUnreadMessages(originalTotalUnread);
         }
-    }, [user?.userId, conversationPartners, totalUnreadMessages]);
+    }, [user, conversationPartners, totalUnreadMessages]);
 
     const addMessage = useCallback((newMessage) => {
         console.log("[ChatProvider] addMessage called with:", newMessage);
@@ -243,7 +243,7 @@ const ChatProvider = ({children}) => {
             setError(err.message || "Failed to send message.");
             return null;
         }
-    }, [addMessage, user?.userId]);
+    }, [addMessage, user]);
 
     const handleSetActivePartnerId = useCallback((partnerUserId) => {
         console.log("[ChatProvider] Setting active partner ID:", partnerUserId);
