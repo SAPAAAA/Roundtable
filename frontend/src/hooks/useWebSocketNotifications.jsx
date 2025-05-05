@@ -17,14 +17,16 @@ function useWebSocketNotifications() {
     const observerRef = useRef(null);
 
     // --- Initialize the observer instance ---
-    if (!observerRef.current && addNotification) {
-        // Create the Concrete Observer, passing the context action
-        observerRef.current = new NotificationObserver(addNotification);
-    } else if (!addNotification && observerRef.current) {
-        // If context somehow becomes unavailable, clear the ref
-        console.warn("[useWebSocketNotifications] addNotification callback became unavailable. Clearing observer ref.");
-        observerRef.current = null;
-    }
+    useEffect(() => {
+        if (!observerRef.current && addNotification) {
+            // Create the Concrete Observer, passing the context action
+            observerRef.current = new NotificationObserver(addNotification);
+        } else if (!addNotification && observerRef.current) {
+            // If context somehow becomes unavailable, clear the ref
+            console.warn("[useWebSocketNotifications] addNotification callback became unavailable. Clearing observer ref.");
+            observerRef.current = null;
+        }
+    }, []);
 
     // --- Effect to manage connection and subscription lifecycle ---
     useEffect(() => {

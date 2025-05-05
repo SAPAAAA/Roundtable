@@ -81,44 +81,76 @@ const ChatProvider = ({children}) => {
 
     const readMessages = useCallback(async (partnerUserId) => {
         if (!partnerUserId || !user?.userId) {
+            console.warn(`[ChatProvider] readMessages: Called without partnerUserId (${partnerUserId}) or user (${user?.userId}).`);
             return;
         }
 
-        const originalPartners = [...conversationPartners];
-        const originalTotalUnread = totalUnreadMessages;
-
-        const partnerToUpdate = conversationPartners.find(
-            (partner) => partner.partnerId === partnerUserId
-        );
-        const unreadCountForThisPartner = partnerToUpdate?.unreadCount || 0;
-
-        setConversationPartners(prevPartners =>
-            prevPartners.map(partner =>
-                partner.partnerId === partnerUserId ? {...partner, unreadCount: 0} : partner
-            )
-        );
-        if (unreadCountForThisPartner > 0) {
-            setTotalUnreadMessages(prevTotal => prevTotal - unreadCountForThisPartner);
+        // Find the partner and check their current unread count *before* any updates
+        const partnerIndex = conversationPartners.findIndex(p => p.partnerId === partnerUserId);
+        if (partnerIndex === -1) {
+            console.warn(`[ChatProvider] readMessages: Partner ${partnerUserId} not found in state.`);
+            return; // Partner doesn't exist in our list
         }
+        const partnerToUpdate = conversationPartners[partnerIndex];
+        const unreadCountForThisPartner = partnerToUpdate.unreadCount || 0;
 
-        if (unreadCountForThisPartner === 0 && partnerToUpdate) {
-            console.log(`No unread messages locally for ${partnerUserId}, skipping API call.`);
+        // Only proceed if there were actually unread messages for this partner
+        if (unreadCountForThisPartner <= 0) {
+            console.log(`[ChatProvider] readMessages: No unread messages for partner ${partnerUserId}, skipping update.`);
+            // Ensure local state is 0 if it wasn't already (e.g., if backend updated first)
+            if (partnerToUpdate.unreadCount !== 0) {
+                setConversationPartners(prevPartners =>
+                    prevPartners.map(p =>
+                        p.partnerId === partnerUserId ? {...p, unreadCount: 0} : p
+                    )
+                );
+            }
             return;
         }
 
+        // **Optimistic UI Update for Partner List ONLY**
+        const originalPartners = [...conversationPartners]; // Keep for potential revert
+
+        // Create the next state for partners *before* setting it
+        const nextPartnersState = originalPartners.map(partner =>
+            partner.partnerId === partnerUserId ? {...partner, unreadCount: 0} : partner
+        );
+
+        // Update the partner list state
+        setConversationPartners(nextPartnersState);
+        console.log(`[ChatProvider] readMessages: Optimistically set partner ${partnerUserId}'s unreadCount to 0.`);
+
+        // **API Call**
         try {
-            await chatService.markMessagesAsRead(partnerUserId);
-            console.log(`Successfully marked messages as read for ${partnerUserId} via API.`);
+            const success = await chatService.markMessagesAsRead(partnerUserId);
+            if (success) {
+                console.log(`[ChatProvider] readMessages: API call successful for partner ${partnerUserId}.`);
+
+                // --- Recalculate Total Unread AFTER successful API call ---
+                const newTotalUnread = nextPartnersState.reduce((acc, partner) => {
+                    // console.log(`[ChatProvider] Recalculating: Partner ${partner.partnerId}, Unread: ${partner.unreadCount || 0}`); // Optional detailed log
+                    return acc + (partner.unreadCount || 0);
+                }, 0);
+
+                console.log(`[ChatProvider] readMessages: Recalculated total unread based on updated partners list. New Total: ${newTotalUnread}`);
+                setTotalUnreadMessages(newTotalUnread); // Set the recalculated total
+
+            } else {
+                // API call failed, but didn't throw an error (e.g., returned { success: false })
+                throw new Error(`API failed to mark messages as read for partner ${partnerUserId}.`);
+            }
         } catch (err) {
-            console.error("Error marking messages as read via API:", err);
+            // API call failed (threw an error or we threw one above)
+            console.error(`[ChatProvider] readMessages: API Error for partner ${partnerUserId}:`, err);
             setError("Failed to update read status on the server.");
+
+            // **Revert Optimistic Partner Update**
+            console.log(`[ChatProvider] readMessages: Reverting optimistic partner update for partner ${partnerUserId}.`);
             setConversationPartners(originalPartners);
-            setTotalUnreadMessages(originalTotalUnread);
         }
-    }, [user, conversationPartners, totalUnreadMessages]);
+    }, [conversationPartners, user]);
 
     const addMessage = useCallback((newMessage) => {
-        console.log("[ChatProvider] addMessage called with:", newMessage);
         if (!newMessage?.messageId || !newMessage?.senderProfile?.userId || !newMessage?.recipientProfile?.userId || !user?.userId) {
             console.warn("[ChatProvider] addMessage: Attempted to add invalid message or user not logged in:", newMessage);
             return;

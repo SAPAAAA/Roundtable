@@ -60,7 +60,7 @@ class ChatService {
 
         try {
             // Fetch detailed messages using the view DAO, passing requestingUserId for filtering
-            return await this.userMessageDetailsDAO.getMessagesBetweenUsers(
+            return await this.userMessageDetailsDAO.getLatestMessagesBetweenUsers(
                 requestingUserId,
                 partnerUserId,
                 {...options, requestingUserId} // Ensure requestingUserId is passed for filtering deleted messages

@@ -49,14 +49,13 @@ class UserMessageDetailsDAO {
      * @param {GetMessagesOptions} [options={}] - Options for pagination and filtering.
      * @returns {Promise<UserMessageDetails[]>} - A promise resolving to an array of UserMessageDetails instances.
      */
-    async getMessagesBetweenUsers(userId1, userId2, options = {}) {
+    async getLatestMessagesBetweenUsers(userId1, userId2, options = {}) {
         if (!userId1 || !userId2) {
-            console.error('[UserMessageDetailsDAO] getMessagesBetweenUsers requires two user IDs.');
+            console.error('[UserMessageDetailsDAO] getLatestMessagesBetweenUsers requires two user IDs.');
             return [];
         }
 
-        const {limit = 100, offset = 0, order = 'asc'} = options;
-        const validOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toLowerCase() : 'desc';
+        const {limit = 100, offset = 0} = options;
 
         try {
             let query = postgresInstance('UserMessageDetails')
@@ -65,10 +64,9 @@ class UserMessageDetailsDAO {
                         .orWhere({senderUserId: userId2, recipientUserId: userId1});
                 })
                 // Basic filtering: exclude messages deleted by *both* users
-                // More complex filtering might be needed based on requesting user
                 .andWhere({senderDeleted: false})
                 .andWhere({recipientDeleted: false})
-                .orderBy('messageCreatedAt', validOrder)
+                .orderBy('messageCreatedAt', 'desc') // Fetch latest messages first
                 .limit(limit)
                 .offset(offset);
 
@@ -77,10 +75,15 @@ class UserMessageDetailsDAO {
             if (!viewRows || viewRows.length === 0) {
                 return [];
             }
-            return viewRows.map(row => UserMessageDetails.fromDbRow(row)).filter(details => details !== null);
+
+            // Reverse the order to return messages in ascending order
+            return viewRows
+                .map(row => UserMessageDetails.fromDbRow(row))
+                .filter(details => details !== null)
+                .reverse();
 
         } catch (error) {
-            console.error(`Error fetching UserMessageDetails between users (${userId1}, ${userId2}):`, error);
+            console.error(`Error fetching latest UserMessageDetails between users (${userId1}, ${userId2}):`, error);
             throw error;
         }
     }
