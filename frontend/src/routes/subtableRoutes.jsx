@@ -1,4 +1,5 @@
 import React, {lazy} from 'react';
+import CreatePost from '../features/posts/pages/CreatePost/CreatePost';
 
 const SubtableView =  lazy(() => import('#features/subtables/pages/SubtableView/SubtableView'));
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
@@ -54,6 +55,10 @@ function subtableRoutes()
             {
                 path: "/s/:subtableName",
                 element: <SubtableView/>
+            },
+            {
+                path:"/s/:subtableName/submit",
+                element:<CreatePost/>
             }
         ]
         
