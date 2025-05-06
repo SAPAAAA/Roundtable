@@ -1,27 +1,22 @@
-// Add/Update imports
-import React, {useEffect, useState} from 'react'; // Add useEffect
+import React, {useCallback, useEffect} from 'react'; // Added useCallback
 import {usePasswordStrength, useRegisterFormState} from '#features/auth/hooks/register-hook.jsx';
 import './Register.css';
 import Input from '#shared/components/UIElement/Input/Input';
 import Button from '#shared/components/UIElement/Button/Button';
 import Icon from '#shared/components/UIElement/Icon/Icon';
 import Form from '#shared/components/UIElement/Form/Form';
-// Import hooks from react-router-dom
 import {useActionData, useNavigate, useNavigation} from 'react-router';
 
 function Register() {
     // --- Hooks ---
     const navigate = useNavigate();
-    const actionData = useActionData(); // Hook to get data returned by the action endpoint
-    const navigation = useNavigation(); // Hook to get form submission state
-
-    // --- State ---
-    const [localApiError, setLocalApiError] = useState(null); // For API errors from actionData
+    const actionData = useActionData();
+    const navigation = useNavigation();
 
     // --- Loading State ---
-    const isSubmitting = navigation.state === 'submitting'; // Use navigation state for loading indicator
+    const isSubmitting = navigation.state === 'submitting';
 
-
+    // --- Custom Form Hook & State ---
     const {
         username, setUsername,
         email, setEmail,
@@ -29,20 +24,45 @@ function Register() {
         confirmPassword, setConfirmPassword,
         agreeTerms, setAgreeTerms,
         formErrors, setFormErrors
-    } = useRegisterFormState(true, localApiError);
+    } = useRegisterFormState(true, null);
 
     const {passwordStrength, checkPasswordStrength} = usePasswordStrength();
 
-    // --- Handle Change ---
+    // --- Validation Function (Helper) ---
+    // useCallback helps stabilize this function if passed as prop, good practice
+    const validateField = useCallback((name, value, currentPassword) => {
+        let error = null;
+        switch (name) {
+            case 'username':
+                if (!value.trim()) error = 'Vui lòng nhập tên đăng nhập';
+                break;
+            case 'email':
+                if (!value.trim()) error = 'Vui lòng nhập email';
+                else if (!/\S+@\S+\.\S+/.test(value)) error = 'Email không hợp lệ';
+                break;
+            case 'password':
+                if (!value) error = 'Vui lòng nhập mật khẩu';
+                else if (value.length < 6) error = 'Mật khẩu phải có ít nhất 6 ký tự';
+                break;
+            case 'confirmPassword':
+                if (value !== currentPassword) error = 'Mật khẩu xác nhận không khớp';
+                break;
+            case 'agreeTerms':
+                if (!value) error = 'Bạn phải đồng ý với điều khoản dịch vụ';
+                break;
+            default:
+                break;
+        }
+        return error;
+    }, []); // No dependencies needed if it only uses args
+
+    // --- Handle Change with Immediate Validation ---
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
         const newValue = type === 'checkbox' ? checked : value;
 
-        // Clear local API error display when user types in any field
-        if (localApiError) {
-            setLocalApiError(null);
-        }
-
+        // 1. Update the specific field's state
+        let currentPassword = password; // Capture password before potential update
         switch (name) {
             case 'username':
                 setUsername(newValue);
@@ -53,6 +73,7 @@ function Register() {
             case 'password':
                 setPassword(newValue);
                 checkPasswordStrength(newValue);
+                currentPassword = newValue; // Update currentPassword for validation below
                 break;
             case 'confirmPassword':
                 setConfirmPassword(newValue);
@@ -64,82 +85,98 @@ function Register() {
                 break;
         }
 
-        // Clear specific field validation error on change
-        if (formErrors[name]) {
-            setFormErrors(prevErrors => ({...prevErrors, [name]: null}));
+        // 2. Validate the changed field immediately
+        const error = validateField(name, newValue, currentPassword);
+        setFormErrors(prevErrors => ({
+            ...prevErrors,
+            [name]: error, // Set or clear the error for this field
+            general: null // Clear general API error on any change
+        }));
+
+        // 3. If password changed, re-validate confirmPassword
+        if (name === 'password') {
+            const confirmPasswordError = validateField('confirmPassword', confirmPassword, newValue);
+            setFormErrors(prevErrors => ({
+                ...prevErrors,
+                confirmPassword: confirmPasswordError
+            }));
         }
-        // Clear general validation error on change (if you use it)
-        if (formErrors.general) {
-            setFormErrors(prevErrors => ({...prevErrors, general: null}));
+        // 4. If confirmPassword changed, re-validate it against the current password
+        if (name === 'confirmPassword') {
+            const confirmPasswordError = validateField('confirmPassword', newValue, password);
+            setFormErrors(prevErrors => ({
+                // Keep existing errors, only update confirmPassword's error
+                ...prevErrors,
+                confirmPassword: confirmPasswordError
+            }));
         }
     };
 
-    // --- Validate Form ---
+
+    // --- Full Form Validation (used on submit) ---
     const validateForm = () => {
         const newErrors = {};
-        if (!username.trim()) newErrors.username = 'Vui lòng nhập tên đăng nhập';
-        if (!email.trim()) newErrors.email = 'Vui lòng nhập email';
-        else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
-        if (!password) newErrors.password = 'Vui lòng nhập mật khẩu';
-        else if (password.length < 6) newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-        if (password !== confirmPassword) newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-        if (!agreeTerms) newErrors.agreeTerms = 'Bạn phải đồng ý với điều khoản dịch vụ';
+        // Call individual field validations
+        newErrors.username = validateField('username', username);
+        newErrors.email = validateField('email', email);
+        newErrors.password = validateField('password', password);
+        newErrors.confirmPassword = validateField('confirmPassword', confirmPassword, password);
+        newErrors.agreeTerms = validateField('agreeTerms', agreeTerms);
 
-        setFormErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        // Filter out null/undefined errors
+        const filteredErrors = Object.entries(newErrors)
+            .filter(([_, value]) => value !== null)
+            .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});
+
+        setFormErrors(filteredErrors);
+        return Object.keys(filteredErrors).length === 0;
     };
 
-    // --- Handle Submit ---
+    // --- Handle Submit (No changes needed, relies on validateForm) ---
     const handleSubmit = (event) => {
-        // Clear previous errors before validation
-        setFormErrors({});
-        setLocalApiError(null);
+        setFormErrors({}); // Clear previous submit errors
 
-        // Validate form before letting React Router submit
         if (!validateForm()) {
-            // If validation fails, STOP React Router's submission process
             event.preventDefault();
             console.log("Client validation failed. Preventing submission.");
-            return; // Exit
+            return;
         }
         console.log("Client validation passed. Allowing React Router submission...");
     };
 
-    // --- Effect to Handle API Response via actionData ---
+    // --- Effect to Handle API Response (No changes from previous step) ---
     useEffect(() => {
         if (actionData) {
             console.log("Action data received:", actionData);
-            // Check the structure of the response from your API endpoint
-            if (actionData.success === false) {
-                // API returned a failure message
-                setLocalApiError(actionData.message || 'Đăng ký không thành công.');
-            } else if (actionData.success === true) {
-                // Registration successful!
-                console.log('Registration successful (via actionData):', actionData.user);
-                // Clear the form fields
+            if (actionData.success === true) {
+                console.log('Registration successful (via actionData):', actionData.data);
                 setUsername('');
                 setEmail('');
                 setPassword('');
                 setConfirmPassword('');
                 setAgreeTerms(false);
-                setFormErrors({}); // Clear any validation errors
-                setLocalApiError(null); // Clear API error state
-
-                // Redirect to login page after successful registration
-                // Optional: Show a success message briefly before redirecting
+                setFormErrors({});
                 navigate('/verify-email', {
                     replace: true,
-                    state: {
-                        prefilledEmail: actionData.data.email
-                    }
+                    state: {prefilledEmail: actionData.data?.email}
                 });
+            } else if (actionData.success === false) {
+                console.log("Registration failed:", actionData.message);
+                // API error will be displayed via apiErrorMessage variable below
+            } else if (actionData.error) {
+                console.log("Registration action returned error object:", actionData.error.message);
+                // API error will be displayed via apiErrorMessage variable below
             } else {
-                // Handle cases where actionData might not have the expected structure
                 console.warn("Received unexpected actionData:", actionData);
-                setLocalApiError("Phản hồi từ máy chủ không hợp lệ.");
             }
         }
-    }, [actionData, navigate, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]); // Add setters to dependency array if needed by your ESLint rules
+    }, [actionData, navigate, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors]);
+
+    // --- Define error message variable directly from actionData ---
+    const apiErrorMessage = actionData?.success === false
+        ? actionData.message
+        : actionData?.error?.message || null;
+
 
     // --- Render ---
     return (
@@ -150,19 +187,20 @@ function Register() {
                     <p>Vui lòng điền thông tin để tạo tài khoản mới</p>
                 </div>
 
-                {/* Display API error first if it exists */}
-                {/*{localApiError && <div className="alert alert-danger mb-3">{localApiError}</div>}*/}
+                {/* Display API error */}
+                {apiErrorMessage && <div className="alert alert-danger mb-3">{apiErrorMessage}</div>}
 
+                {/* Display general client-side validation error (e.g., if submit fails validation) */}
+                {/* This might be less common now with immediate validation */}
                 {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
 
-                {/* === Form with method and action === */}
                 <Form
                     id="register-form"
                     onSubmit={handleSubmit}
                     method="post"
                     action="/register"
                     mainClass="register-form"
-                    // noValidate // Optional: disable browser's built-in validation UI
+                    noValidate // Disable browser's native validation UI
                 >
                     {/* === Username === */}
                     <div className="form-group">
@@ -172,6 +210,7 @@ function Register() {
                             isInvalid={!!formErrors.username} feedback={formErrors.username}
                             addon={<Icon name="user" size="16"/>}
                             disabled={isSubmitting}
+                            // Removed 'required' to rely solely on custom validation feedback
                         />
                     </div>
                     {/* === Email === */}
@@ -193,9 +232,8 @@ function Register() {
                             addon={<Icon name="lock" size="16"/>}
                             disabled={isSubmitting}
                         />
-                        {password && (
+                        {password && ( // Only show strength if password has value
                             <div className="password-strength">
-                                {/* ... strength indicator ... */}
                                 <div className="strength-bar">
                                     <div
                                         className={`strength-level strength-${passwordStrength.score}`}
@@ -223,6 +261,7 @@ function Register() {
                             <input
                                 type="checkbox" id="registerAgreeTerms" name="agreeTerms"
                                 checked={agreeTerms} onChange={handleChange}
+                                // Use isInvalid class for visual feedback if needed
                                 className={formErrors.agreeTerms ? 'is-invalid' : ''}
                                 disabled={isSubmitting}
                             />
@@ -237,6 +276,7 @@ function Register() {
                                 </a>
                             </label>
                         </div>
+                        {/* Display checkbox error message */}
                         {formErrors.agreeTerms &&
                             <div className="invalid-feedback d-block">{formErrors.agreeTerms}</div>}
                     </div>
@@ -246,7 +286,6 @@ function Register() {
                         mainClass="register-button w-100"
                         disabled={isSubmitting}
                     >
-                        {/* Use isSubmitting state for button text */}
                         {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
                     </Button>
                 </Form>
@@ -254,8 +293,7 @@ function Register() {
                 {/* --- Footer (Login Link) --- */}
                 <div className="register-footer mt-3">
                     <div className="d-flex justify-content-center align-items-center">
-                        <span
-                            className="footer-text">
+                        <span className="footer-text">
                             Đã có tài khoản?
                         </span>
                         <Button
@@ -263,9 +301,8 @@ function Register() {
                             type="button"
                             mainClass="login-link"
                             addClass="p-0"
-                            onClick={() => {
-                                navigate('/login');
-                            }}
+                            onClick={() => navigate('/login')}
+                            disabled={isSubmitting} // Disable during form submission
                         >
                             Đăng nhập
                         </Button>

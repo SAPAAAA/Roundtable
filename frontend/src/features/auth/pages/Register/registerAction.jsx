@@ -11,10 +11,7 @@ export default async function registerAction({request}) {
     // Basic validation
     if (!data.email || !data.password || !data.username) { // Add other required fields
         const errorData = {message: 'Missing required registration fields.'};
-        throw new Response(JSON.stringify(errorData), {
-            status: 400, // Bad Request
-            headers: {'Content-Type': 'application/json'}
-        });
+        return {error: errorData};
     }
 
     try {
@@ -32,10 +29,6 @@ export default async function registerAction({request}) {
         const errorData = error.data || {message: error.message || 'Registration failed due to an unexpected error.'};
         const status = error.status || 500;
 
-        // Throw a Response object, which React Router can handle via errorElement
-        throw new Response(JSON.stringify(errorData), {
-            status: status,
-            headers: {'Content-Type': 'application/json'}
-        });
+        return {error: errorData, status};
     }
 }
