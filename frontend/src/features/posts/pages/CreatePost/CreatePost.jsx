@@ -48,8 +48,10 @@ export default function CreatePost() {
             if (initialSub && (!selectedSubtable || selectedSubtable.subtableId !== initialSub.subtableId)) {
                 setSelectedSubtable(initialSub);
             }
+        } else {
+            // The user has subscribed any subtables
+            setSelectedSubtable(null);
         }
-        // Dependencies: Rerun if the list or the URL param changes, or selectedSubtable changes
     }, [availableSubtables, subtableName, selectedSubtable]);
 
     // Effect to handle closing the subtable dropdown when clicking outside
@@ -166,7 +168,7 @@ export default function CreatePost() {
                             </>
                         ) : (
                             // Placeholder text if no subtable is selected yet
-                            <span>{subtableName ? `Loading s/${subtableName}...` : 'Choose a community'}</span>
+                            <span>{subtableName && availableSubtables.length > 0 ? `Loading s/${subtableName}...` : 'Choose a community'}</span>
                         )}
                         <Icon name="down" size="10px"/> {/* Dropdown arrow icon */}
                     </Button>
