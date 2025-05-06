@@ -53,23 +53,14 @@ class NotificationService {
             // 2. Determine recipient and notification type
             let recipientUserId = null;
             let notificationType = null;
-            let parentCommentAuthorUserId = null;
 
             if (createdComment.parentCommentId) {
                 // It's a reply, notify the parent comment author (if different from replier)
                 notificationType = NotificationTypeEnum.COMMENT_REPLY;
-                // Need to fetch parent comment to get its authorId (this requires CommentDAO)
-                // ** NOTE: CommentDAO needs to be injected or fetched differently **
-                // For now, we'll skip fetching parent comment author to avoid adding another dependency here
-                // In a real scenario, you'd fetch the parent comment and get its authorUserId.
-                // If parentCommentAuthorUserId === commenterUserId, don't notify parent author.
-                // We still notify the *post* author below if they aren't the replier.
                 recipientUserId = postOwnerUserId; // Default to notifying post owner for replies too for now
 
                 // TODO: Fetch parent comment -> get parentCommentAuthorUserId
-                if (parentCommentAuthorUserId && parentCommentAuthorUserId !== commenterUserId) {
-                    recipientUserId = parentCommentAuthorUserId; // Prioritize parent comment author
-                } else if (postOwnerUserId !== commenterUserId) {
+                if (postOwnerUserId !== commenterUserId) {
                     recipientUserId = postOwnerUserId; // Fallback to post owner
                 } else {
                     recipientUserId = null; // Don't notify anyone
