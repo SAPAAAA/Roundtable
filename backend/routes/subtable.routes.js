@@ -1,9 +1,10 @@
 import express from 'express';
 import SubtableController from "#controllers/subtable.controller.js";
+import {isAuthenticated} from "#middlewares/auth.mdw.js";
 
 const router = express.Router();
 
-router.get('/subscribed', SubtableController.getSubscribedSubtables);
+router.get('/subscribed', isAuthenticated, SubtableController.getSubscribedSubtables);
 router.get('/:subtableName', SubtableController.getSubtableDetails);
 router.get('/:subtableName/posts', SubtableController.getSubtablePosts);
 

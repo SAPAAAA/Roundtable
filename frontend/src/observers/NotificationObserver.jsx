@@ -24,7 +24,7 @@ class NotificationObserver {
      */
     update(data) {
         // --- Logic to handle specific notification types ---
-        if (data?.type === 'NEW_COMMENT_NOTIFICATION' && data.notification) {
+        if (data?.type === 'NEW_NOTIFICATION' && data.notification) {
             this.addNotification(data.notification);
         }
         // --- Add more handlers ---

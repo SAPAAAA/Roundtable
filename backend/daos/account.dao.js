@@ -1,83 +1,61 @@
+// backend/daos/account.dao.js
 import {postgresInstance} from '#db/postgres.js';
-import Account from '#models/account.model.js';
+import Account from '#models/account.model.js'; // Ensure Account model has fromDbRow
 
 class AccountDAO {
     constructor() {
         this.tableName = 'Account';
-
-        if (AccountDAO.instance) {
-            return AccountDAO.instance;
-        }
-        AccountDAO.instance = this;
     }
-    async getById(accountId) {
+
+    async getById(accountId, trx = null) { // Allow transaction to be passed
+        const queryBuilder = trx || postgresInstance;
         try {
-            // .first() returns the object directly or undefined
-            const accountRow = await postgresInstance(this.tableName).where({accountId}).first();
-            if (!accountRow) {
-                // Explicitly return null or undefined when not found
-                return null;
-            }
-            // Pass the found object (if it exists) to fromDbRow
-            return Account.fromDbRow(accountRow);
+            const accountRow = await queryBuilder(this.tableName).where({accountId}).first();
+            return accountRow ? Account.fromDbRow(accountRow) : null;
         } catch (error) {
-            console.error('Error finding account by ID:', error);
-            // Re-throw the original error for better debugging upstream
-            throw error;
-            // Or wrap it: throw new Error(`PostgresDB error finding account by ID: ${error.message}`);
+            console.error(`[AccountDAO] Error finding account by ID ${accountId}:`, error);
+            throw error; // Let service layer handle this (e.g., as InternalServerError)
         }
     }
 
-    async getByUsername(username) {
+    async getByUsername(username, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         try {
-            // .first() returns the object directly or undefined
-            const accountRow = await postgresInstance(this.tableName).where({username}).first();
-            if (!accountRow) {
-                return null;
-            }
-            return Account.fromDbRow(accountRow);
+            const accountRow = await queryBuilder(this.tableName).where({username}).first();
+            return accountRow ? Account.fromDbRow(accountRow) : null;
         } catch (error) {
-            console.error('Error finding account by username:', error);
-            // Re-throw the original error
+            console.error(`[AccountDAO] Error finding account by username ${username}:`, error);
             throw error;
         }
     }
 
-    async getByEmail(email) {
+    async getByEmail(email, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         try {
-            // .first() returns the object directly or undefined
-            const accountRow = await postgresInstance(this.tableName).where({email}).first();
-            if (!accountRow) {
-                return null;
-            }
-            return Account.fromDbRow(accountRow);
+            const accountRow = await queryBuilder(this.tableName).where({email}).first();
+            return accountRow ? Account.fromDbRow(accountRow) : null;
         } catch (error) {
-            console.error('Error finding account by email:', error);
-            // Re-throw the original error
+            console.error(`[AccountDAO] Error finding account by email ${email}:`, error);
             throw error;
         }
     }
 
-    async create(account, trx) {
-        const queryBuilder = trx ? trx : postgresInstance;
-
+    async create(account, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        // Ensure model instances are plain objects for Knex or destructure them
         const {accountId, created, updatedAt, ...insertData} = account;
         try {
-
-            // Pass the cleaned 'insertData' object to Knex insert
             const insertedRows = await queryBuilder(this.tableName).insert(insertData).returning('*');
-
-            // Check if we got an array and it's not empty
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                console.error('Account creation failed or did not return expected data.', insertedRows);
-                throw new Error('PostgresDB error during account creation: No data returned.');
+                // This case should ideally be caught by DB constraints or Knex errors earlier
+                throw new Error('Account creation failed: No data returned from insert operation.');
             }
-            // Use the first element of the array
             return Account.fromDbRow(insertedRows[0]);
         } catch (error) {
-            console.error('Error creating account:', error);
-            // Re-throw original error
-            throw error;
+            console.error('[AccountDAO] Error creating account:', error);
+            // Check for specific DB errors like unique constraint violation if needed
+            // e.g., if (error.code === '23505' && error.constraint === 'account_username_key') { ... }
+            throw error; // Re-throw for service layer
         }
     }
 }

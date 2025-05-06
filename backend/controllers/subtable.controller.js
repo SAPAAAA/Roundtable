@@ -1,174 +1,142 @@
+// backend/controllers/subtable.controller.js
 import HTTP_STATUS from '#constants/httpStatus.js';
 import subtableService from '#services/subtable.service.js';
-import {BadRequestError, NotFoundError} from "#errors/AppError.js";
+import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Include potential errors from service
 
 class SubtableController {
-    constructor(subtableService) {
-        this.subtableService = subtableService;
+    /**
+     * @param {SubtableService} injectedSubtableService
+     */
+    constructor(injectedSubtableService) {
+        this.subtableService = injectedSubtableService;
     }
 
-    getSubtablePosts = async (req, res, next) => {
+    /**
+     * Handles GET /s/:subtableName/posts
+     * Retrieves posts for a specific subtable.
+     * @param {import('express').Request} req - Express request object.
+     * @param {import('express').Response} res - Express response object.
+     */
+    getSubtablePosts = async (req, res) => {
         try {
             const {subtableName} = req.params;
+            // Delegate fetching and logic to the service
+            const posts = await this.subtableService.getSubtablePosts(subtableName);
 
-            const viewData = await this.subtableService.getSubtablePosts(subtableName);
-            console.log("viewData",viewData)
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: viewData // Send the data returned by the service
-            })
+                message: `Posts for subtable '${subtableName}' fetched successfully.`, // Optional success message
+                data: posts // Send the data returned by the service
+            });
         } catch (error) {
+            console.error(`[SubtableController:getSubtablePosts] Error for ${req.params?.subtableName}:`, error.message);
             if (error instanceof NotFoundError) {
-                return res.status(HTTP_STATUS.NOT_FOUND).json({
-                    success: false,
-                    message: error.message
-                })
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
             if (error instanceof BadRequestError) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                    success: false,
-                    message: error.message
-                })
-            } else {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message
-                })
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            // Fallback for truly unexpected errors
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while fetching subtable posts."
+            });
         }
     };
 
-    getSubtableDetails = async (req, res, next) => {
+    /**
+     * Handles GET /s/:subtableName
+     * Retrieves details for a specific subtable.
+     * @param {import('express').Request} req - Express request object.
+     * @param {import('express').Response} res - Express response object.
+     */
+    getSubtableDetails = async (req, res) => {
         try {
             const {subtableName} = req.params;
-            const viewData = await this.subtableService.getSubtableDetails(subtableName);
+            const subtableDetails = await this.subtableService.getSubtableDetails(subtableName);
+
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: viewData
-            })
+                message: `Details for subtable '${subtableName}' fetched successfully.`,
+                data: subtableDetails
+            });
         } catch (error) {
+            console.error(`[SubtableController:getSubtableDetails] Error for ${req.params?.subtableName}:`, error.message);
             if (error instanceof NotFoundError) {
-                return res.status(HTTP_STATUS.NOT_FOUND).json({
-                    success: false,
-                    message: error.message
-                })
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
             if (error instanceof BadRequestError) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                    success: false,
-                    message: error.message
-                })
-            } else {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message
-                })
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while fetching subtable details."
+            });
         }
     };
-    getSubscribedSubtables = async (req, res, next) => {
+
+    /**
+     * Handles GET /s/subscribed
+     * Retrieves subtables the authenticated user is subscribed to.
+     * @param {import('express').Request} req - Express request object.
+     * @param {import('express').Response} res - Express response object.
+     */
+    getSubscribedSubtables = async (req, res) => {
         try {
-            const {userId} = req.session;
-            const viewData = await this.subtableService.getSubscribedSubtables(userId);
+            const {userId} = req.session; // Assumes isAuthenticated middleware runs first
+
+            const subscribedSubtables = await this.subtableService.getSubscribedSubtables(userId);
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: viewData
-            })
+                message: 'Subscribed subtables fetched successfully.',
+                data: subscribedSubtables
+            });
         } catch (error) {
-            if (error instanceof NotFoundError) {
-                return res.status(HTTP_STATUS.NOT_FOUND).json({
-                    success: false,
-                    message: error.message
-                })
+            console.error(`[SubtableController:getSubscribedSubtables] Error for userId ${req.session?.userId}:`, error.message);
+            if (error instanceof NotFoundError) { // User not found, though unlikely if session is valid
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
-            if (error instanceof BadRequestError) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                    success: false,
-                    message: error.message
-                })
-            } else {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message
-                })
+            if (error instanceof BadRequestError) { // Should not happen if userId is from session
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while fetching subscribed subtables."
+            });
         }
     }
 
 
-
-
-
+    /**
+     * Handles POST /s
+     * Creates a new subtable.
+     * @param {import('express').Request} req - Express request object.
+     * @param {import('express').Response} res - Express response object.
+     */
     // createSubtable = async (req, res) => {
-        
     //     try {
-    //         const { data } = req.body;
-    //         const subtable = new Subtable(data);
-    //         const userId = req.session.userId;
-
-    //         // console.log("Subtable Data:", req.body);
-    //         // console.log("Table ID:", tableId);
-    //         // console.log("User ID:", userId);
-
-    //         const newSubtable = await this.subtableService.createSubtable(subtable, userId);
-    //         if (!newSubtable) {
-    //             return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Failed to create subtable' });
-    //         }
-    //         res.status(HTTP_STATUS.CREATED).json({
-    //             message: 'Subtable created successfully',
-    //             data: {
-    //                 subtable: { ...newSubtable },
-    //             },
-    //             success: true,
-    //         });
+    //         const { name, description, icon, banner } = req.body;
+    //         const { userId } = req.session; // Creator is the logged-in user
+    //         if (!userId) { /* Handle unauthorized */ }
+    //         const newSubtable = await this.subtableService.createSubtable(userId, { name, description, icon, banner });
+    //         return res.status(HTTP_STATUS.CREATED).json({ /* ... */ });
     //     } catch (error) {
-    //         res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Failed to create subtable' });
-    //         console.error("Error creating subtable:", error);
+    //         // Handle BadRequestError, ConflictError, NotFoundError (for user), InternalServerError
+    //         // Log and send appropriate response
     //     }
     // }
-    // updateSubtable = async (req, res) => {
-            
-    //         try {
-    //             const { subtableName } = req.params;
-    //             const { updateData } = req.body;
-    //             const updatedSubtable = await this.subtableService.updateSubtable(subtableName, updateData);
-    //             if (!updatedSubtable) {
-    //                 return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Failed to update subtable' });
-    //             }
-    //             res.status(HTTP_STATUS.OK).json({
-    //                 message: 'Subtable updated successfully',
-    //                 data: {
-    //                     subtable: { ...updatedSubtable },
-    //                 },
-    //                 success: true,
-    //             });
-    //         } catch (error) {
-    //             res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Failed to update subtable' });
-    //             console.error("Error updating subtable:", error);
-    //         }
-    // }
-    // deleteSubtable = async (req, res) => {
-            
-    //         try {
-    //             const { subtableName } = req.params;
-    
-    //             const deletedSubtable = await this.subtableService.deleteSubtable(subtableName);
-    //             if (!deletedSubtable) {
-    //                 return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Failed to delete subtable' });
-    //             }
-    //             res.status(HTTP_STATUS.OK).json({
-    //                 message: 'Subtable deleted successfully',
-    //                 data: {
-    //                     subtable: { ...deletedSubtable },
-    //                 },
-    //                 success: true,
-    //             });
-    //         } catch (error) {
-    //             res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Failed to delete subtable' });
-    //             console.error("Error deleting subtable:", error);
-    //         }
-    // }
-
-    
 }
+
 export default new SubtableController(subtableService);

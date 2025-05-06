@@ -1,130 +1,124 @@
 // backend/daos/message.dao.js
-
-import {postgresInstance} from '#db/postgres.js'; // Assuming Knex instance is exported
+import {postgresInstance} from '#db/postgres.js';
 import Message from '#models/message.model.js';
+
+/**
+ * @typedef {import('../models/message.model.js').MessageTypeEnum} MessageTypeEnum
+ */
 
 /**
  * @typedef {Object} GetMessagesOptions
  * @property {number} [limit=50] - Max number of messages to return.
  * @property {number} [offset=0] - Number of messages to skip.
  * @property {'asc'|'desc'} [order='desc'] - Sort order by createdAt. Default is desc (newest first).
- * @property {boolean} [includeDeletedForSelf=false] - If true, includes messages the requesting user has deleted.
- * @property {string} [requestingUserId] - The ID of the user making the request (required if includeDeletedForSelf is true).
  */
+
+/**
+ * @typedef {object} ConversationPartnerPreview
+ * @property {string} partnerId - The UUID of the conversation partner.
+ * @property {string | null} partnerDisplayName - The display name of the partner.
+ * @property {string | null} partnerUsername - The username of the partner. // Added
+ * @property {string | null} partnerAvatar - The avatar URL of the partner. // Added
+ * @property {number} unreadCount - The number of unread messages from this partner to the user.
+ * @property {Date} lastMessageTime - The timestamp of the last message exchanged.
+ * @property {string | null} lastMessageSnippet - The body text of the last message exchanged.
+ * @property {boolean} lastMessageIsRead - If the last message was read by the requesting user. // Added
+ * @property {string | null} lastMessageSenderId - Who sent the last message. // Added
+ */
+
 
 /**
  * DAO for interacting with the base "Message" table.
  */
 class MessageDAO {
+    constructor() {
+        this.tableName = 'Message';
+    }
 
     /**
      * Creates a new message record in the database.
      * @param {Message} message - The Message instance to create (messageId, createdAt are ignored).
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<Message>} The newly created Message instance with DB-generated values.
+     * @throws {Error} For database errors (e.g., constraint violations).
      */
     async create(message, trx = null) {
-        const queryBuilder = trx ?? postgresInstance;
-        // Exclude fields managed by DB defaults or sequences
-        const {
-            messageId, createdAt, // Let DB handle these
-            ...insertData
-        } = message;
+        const queryBuilder = trx || postgresInstance;
+        const {messageId, createdAt, ...insertData} = message;
 
-        // Basic validation before inserting
         if (!insertData.senderUserId || !insertData.recipientUserId || !insertData.body) {
-            throw new Error('Missing required fields for message creation: senderUserId, recipientUserId, and body.');
+            throw new Error('[MessageDAO] Missing required fields: senderUserId, recipientUserId, body.');
         }
 
         try {
-            const insertedRows = await queryBuilder('Message')
+            const insertedRows = await queryBuilder(this.tableName)
                 .insert(insertData)
-                .returning('*'); // Return all columns of the inserted row
+                .returning('*');
 
-            if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                console.error('Message creation failed or did not return expected data.', insertedRows);
-                throw new Error('PostgresDB error during message creation: No data returned.');
+            if (!insertedRows || insertedRows.length === 0) {
+                throw new Error('Message creation in DAO failed: No data returned.');
             }
-            // Convert the first returned row into a Message model instance
             return Message.fromDbRow(insertedRows[0]);
         } catch (error) {
-            console.error('Error creating message:', error);
-            // Check for foreign key violations etc. if needed
+            console.error('[MessageDAO] Error creating message:', error);
+            // Handle FK violations specifically if needed
             // if (error.code === '23503') { ... }
-            throw error; // Re-throw
+            throw error;
         }
     }
 
     /**
      * Fetches a single message by its ID.
      * @param {string} messageId - The UUID of the message.
+     * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<Message | null>} The Message instance or null if not found.
+     * @throws {Error} For database errors.
      */
-    async getById(messageId) {
+    async getById(messageId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         if (!messageId) {
-            console.error('[MessageDAO] getById called without messageId');
+            console.warn('[MessageDAO] getById called without messageId');
             return null;
         }
         try {
-            const row = await postgresInstance('Message')
+            const row = await queryBuilder(this.tableName)
                 .where({messageId})
                 .first();
             return Message.fromDbRow(row);
         } catch (error) {
-            console.error(`Error finding message by ID (${messageId}):`, error);
+            console.error(`[MessageDAO] Error finding message by ID (${messageId}):`, error);
             throw error;
         }
     }
 
     /**
-     * Fetches messages exchanged between two specific users, ordered by creation time.
-     * Handles filtering based on soft delete flags from the requesting user's perspective.
-     * @param {string} userId1 - The UUID of the first user.
-     * @param {string} userId2 - The UUID of the second user.
-     * @param {GetMessagesOptions} [options={}] - Options for pagination, sorting, and filtering.
-     * @returns {Promise<Message[]>} - A promise resolving to an array of Message instances.
+     * Fetches unread messages sent *by* senderUserId *to* recipientUserId.
+     * @param {string} senderUserId - The UUID of the message sender.
+     * @param {string} recipientUserId - The UUID of the message recipient.
+     * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
+     * @returns {Promise<Message[]>} An array of unread Message instances.
+     * @throws {Error} For database errors.
      */
-    async getMessagesBetweenUsers(userId1, userId2, options = {}) {
-        if (!userId1 || !userId2) {
-            console.error('[MessageDAO] getMessagesBetweenUsers requires two user IDs.');
-            return [];
+    async getUnreadMessages(senderUserId, recipientUserId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        if (!senderUserId || !recipientUserId) {
+            console.error('[MessageDAO:getUnreadMessages] Requires both senderUserId and recipientUserId.');
+            return []; // Or throw BadRequestError? Service layer should validate.
         }
 
-        const {limit = 50, offset = 0, order = 'desc', requestingUserId} = options;
-        const validOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toLowerCase() : 'desc';
-
-        // Ensure requestingUserId is provided if needed for filtering deleted messages
-        // For simplicity here, we assume the caller is one of userId1 or userId2
-        const effectiveRequestingUserId = requestingUserId || userId1; // Default to userId1 if not specified
-
         try {
-            let query = postgresInstance('Message')
-                .where(function () {
-                    // Messages where user1 sent to user2 OR user2 sent to user1
-                    this.where({senderUserId: userId1, recipientUserId: userId2})
-                        .orWhere({senderUserId: userId2, recipientUserId: userId1});
+            const rows = await queryBuilder(this.tableName)
+                .select('*')
+                .where({
+                    senderUserId: senderUserId,
+                    recipientUserId: recipientUserId,
+                    isRead: false,
+                    recipientDeleted: false // Important: Don't fetch if recipient deleted it
                 })
-                // Filter out messages soft-deleted by the *requesting* user
-                .andWhere(function () {
-                    this.where(function () { // Where sender is the requester AND sender has not deleted
-                        this.where('senderUserId', effectiveRequestingUserId).andWhere('senderDeleted', false);
-                    }).orWhere(function () { // OR where recipient is the requester AND recipient has not deleted
-                        this.where('recipientUserId', effectiveRequestingUserId).andWhere('recipientDeleted', false);
-                    });
-                })
-                .orderBy('createdAt', validOrder)
-                .limit(limit)
-                .offset(offset);
-
-            const rows = await query;
-
-            if (!rows || rows.length === 0) {
-                return [];
-            }
-            return rows.map(row => Message.fromDbRow(row)).filter(details => details !== null);
-
+                .orderBy('createdAt', 'asc'); // Typically process reads in order
+            return rows.map(Message.fromDbRow);
         } catch (error) {
-            console.error(`Error fetching messages between users (${userId1}, ${userId2}):`, error);
+            console.error(`[MessageDAO] Error fetching unread messages from ${senderUserId} to ${recipientUserId}:`, error);
             throw error;
         }
     }
@@ -135,23 +129,21 @@ class MessageDAO {
      * @param {string} recipientUserId - The UUID of the recipient whose messages are being marked.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<number>} The number of messages updated.
+     * @throws {Error} For database errors.
      */
     async markAsRead(messageIds, recipientUserId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         if (!messageIds || messageIds.length === 0 || !recipientUserId) {
-            return 0; // Nothing to update or invalid input
+            return 0;
         }
-        const queryBuilder = trx ?? postgresInstance;
         try {
-            const updatedCount = await queryBuilder('Message')
+            return await queryBuilder(this.tableName)
                 .whereIn('messageId', messageIds)
-                .andWhere({recipientUserId: recipientUserId}) // Ensure only the recipient marks as read
-                .andWhere({isRead: false}) // Only update if currently unread
+                .andWhere({recipientUserId: recipientUserId}) // Crucial: Only recipient can mark as read
+                .andWhere({isRead: false}) // Only update unread messages
                 .update({isRead: true});
-
-            console.log(`[MessageDAO] Marked ${updatedCount} messages as read for recipient ${recipientUserId}`);
-            return updatedCount;
         } catch (error) {
-            console.error(`Error marking messages as read for recipient (${recipientUserId}):`, error);
+            console.error(`[MessageDAO] Error marking messages as read for recipient (${recipientUserId}):`, error);
             throw error;
         }
     }
@@ -162,207 +154,185 @@ class MessageDAO {
      * @param {string} deletingUserId - The UUID of the user deleting the messages.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<{senderDeletedCount: number, recipientDeletedCount: number}>} Count of messages marked deleted for sender/recipient roles.
+     * @throws {Error} For database errors.
      */
     async markAsDeleted(messageIds, deletingUserId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         if (!messageIds || messageIds.length === 0 || !deletingUserId) {
             return {senderDeletedCount: 0, recipientDeletedCount: 0};
         }
-        const queryBuilder = trx ?? postgresInstance;
+
         let senderDeletedCount = 0;
         let recipientDeletedCount = 0;
 
         try {
+            // Use transaction if provided, otherwise run updates independently
+            const db = trx || postgresInstance;
+
             // Update messages where the deleting user is the sender
-            senderDeletedCount = await queryBuilder('Message')
+            senderDeletedCount = await db(this.tableName)
                 .whereIn('messageId', messageIds)
                 .andWhere({senderUserId: deletingUserId})
+                // Optional: .andWhere({ senderDeleted: false }) // Only update if not already deleted
                 .update({senderDeleted: true});
 
             // Update messages where the deleting user is the recipient
-            recipientDeletedCount = await queryBuilder('Message')
+            recipientDeletedCount = await db(this.tableName)
                 .whereIn('messageId', messageIds)
                 .andWhere({recipientUserId: deletingUserId})
+                // Optional: .andWhere({ recipientDeleted: false })
                 .update({recipientDeleted: true});
 
-            console.log(`[MessageDAO] Soft deleted ${senderDeletedCount} sent messages and ${recipientDeletedCount} received messages for user ${deletingUserId}`);
             return {senderDeletedCount, recipientDeletedCount};
 
         } catch (error) {
-            console.error(`Error soft deleting messages for user (${deletingUserId}):`, error);
+            console.error(`[MessageDAO] Error soft deleting messages for user (${deletingUserId}):`, error);
             throw error;
         }
     }
-
-    /**
-     * Permanently deletes a message by its ID. Use with caution.
-     * @param {string} messageId - The UUID of the message to delete.
-     * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
-     * @returns {Promise<number>} The number of rows deleted (0 or 1).
-     */
-    async hardDelete(messageId, trx = null) {
-        if (!messageId) {
-            console.warn('[MessageDAO] hardDelete called without messageId');
-            return 0;
-        }
-        const queryBuilder = trx ?? postgresInstance;
-        try {
-            const deletedCount = await queryBuilder('Message')
-                .where({messageId})
-                .del(); // .delete() is also an alias
-
-            console.log(`Attempted HARD deletion for messageId ${messageId}. Rows affected: ${deletedCount}`);
-            return deletedCount;
-        } catch (error) {
-            console.error(`Error hard deleting message (${messageId}):`, error);
-            throw error;
-        }
-    }
-
-    async getUnreadMessages(senderUserId, recipientUserId) {
-        if (!senderUserId || !recipientUserId) {
-            console.error('[getUnreadMessages] Requires both senderUserId and recipientUserId.');
-            return [];
-        }
-
-        try {
-            return await postgresInstance('Message')
-                .select('*')
-                .where({
-                    senderUserId,
-                    recipientUserId,
-                    isRead: false,
-                    recipientDeleted: false // Ensure recipient hasn't deleted the
-                    // message
-                })
-                .orderBy('createdAt', 'asc');
-        } catch (error) {
-            console.error(`Error fetching unread messages from ${senderUserId} to ${recipientUserId}:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * @typedef {object} ConversationPartnerPreview
-     * @property {string} partnerId - The UUID of the conversation partner.
-     * @property {string | null} partnerDisplayName - The display name of the partner.
-     * @property {number} unreadCount - The number of unread messages from this partner to the user.
-     * @property {Date} lastMessageTime - The timestamp of the last message exchanged.
-     * @property {string | null} lastMessageSnippet - The body text of the last message exchanged.
-     */
-
-    /**
-     * @typedef {import('./dao').GetMessagesOptions} GetMessagesOptions
-     */
 
     /**
      * Fetches a preview list of conversation partners for a given user,
      * including their display name, unread count, last interaction time,
      * and a snippet of the last message.
+     * This implementation uses CTEs and subqueries directly without relying on a dedicated VIEW.
      *
      * @param {string} userId - The UUID of the user whose conversation partners to fetch.
      * @param {GetMessagesOptions} [options={}] - Options (limit, offset, order). Order applies to last interaction time.
      * @returns {Promise<ConversationPartnerPreview[]>} - An array of objects containing partner details, ordered by the most recent interaction.
+     * @throws {Error} For database errors.
      */
-    async getConversationPartnersPreviewData(userId, options = {}) {
+    async getConversationPartnersPreviewData(userId, options = {}) { // Restored original implementation
         if (!userId) {
-            console.error('[getConversationPartnersPreviewData] Requires a userId.');
+            console.warn('[MessageDAO:getConversationPartnersPreviewData] Requires a userId.');
             return [];
         }
 
-        // Default options and validation
         const {limit = 50, offset = 0, order = 'desc'} = options;
         const validOrder = ['asc', 'desc'].includes(order?.toLowerCase()) ? order.toLowerCase() : 'desc';
 
         try {
-            // CTE 1: Find all distinct partners the user has interacted with
+            // CTE 1: Find all distinct partners the user has interacted with, excluding self-deleted messages
             const partnersCTE = 'PartnersCTE';
-            const partnersQuery = postgresInstance('Message') // Changed knex to postgresInstance
-                .select('senderUserId as partnerId')
+            const partnersQuery = postgresInstance('Message')
+                .distinct('senderUserId as partnerId') // Partners who sent messages TO the user
                 .where('recipientUserId', userId)
-                .andWhere('senderDeleted', false) // User received, check if sender deleted
-                .union((qb) => {
-                    qb.select('recipientUserId as partnerId')
+                .andWhere('recipientDeleted', false) // User hasn't deleted the received message
+                .union((qb) => { // Combine with partners the user sent messages TO
+                    qb.distinct('recipientUserId as partnerId')
                         .from('Message')
                         .where('senderUserId', userId)
-                        .andWhere('recipientDeleted', false); // User sent, check if recipient deleted
-                }, true);
+                        .andWhere('senderDeleted', false); // User hasn't deleted the sent message
+                }, true); // true for UNION (distinct)
 
-            // CTE 2: Find the latest message time for each partner interaction
+            // CTE 2: Find the latest relevant message time for each partner interaction visible to the user
             const latestInteractionCTE = 'LatestInteractionCTE';
-            const latestInteractionQuery = postgresInstance('Message') // Changed knex to postgresInstance
+            const latestInteractionQuery = postgresInstance('Message')
                 .select(postgresInstance.raw(`
-                CASE
-                    WHEN "senderUserId" = ? THEN "recipientUserId"
-                    ELSE "senderUserId"
-                END AS "partnerId"
-            `, [userId])) // Changed knex.raw to postgresInstance.raw
+                    CASE
+                        WHEN "senderUserId" = ? THEN "recipientUserId"
+                        ELSE "senderUserId"
+                    END AS "partnerId"
+                `, [userId]))
                 .max('createdAt as lastMessageTime')
                 .where(function () {
+                    // Messages involving the user where the message is not deleted by the user
                     this.where(function () { // Messages received by user
-                        this.where('recipientUserId', userId)
-                            .andWhere('senderDeleted', false);
+                        this.where('recipientUserId', userId).andWhere('recipientDeleted', false)
                     }).orWhere(function () { // Messages sent by user
-                        this.where('senderUserId', userId)
-                            .andWhere('recipientDeleted', false);
-                    });
+                        this.where('senderUserId', userId).andWhere('senderDeleted', false)
+                    })
                 })
                 .groupBy('partnerId');
 
-            // Main Query
-            const results = await postgresInstance // Changed knex to postgresInstance
+            // Main Query joining CTEs and tables
+            const results = await postgresInstance
                 .with(partnersCTE, partnersQuery)
                 .with(latestInteractionCTE, latestInteractionQuery)
                 .select(
                     'pCTE.partnerId',
                     'prof.displayName as partnerDisplayName',
-                    // Subquery for unread count
-                    postgresInstance('Message as m_unread') // Changed knex to postgresInstance
+                    'acc.username as partnerUsername', // Get username from Account
+                    'prof.avatar as partnerAvatar', // Get avatar from Profile
+                    // Subquery for unread count (messages FROM partner TO user, unread, not deleted by user)
+                    postgresInstance('Message as m_unread')
                         .count('*')
-                        .where('m_unread.senderUserId', postgresInstance.ref('pCTE.partnerId')) // Changed knex.ref to postgresInstance.ref
-                        .andWhere('m_unread.recipientUserId', userId)               // To User
+                        .where('m_unread.senderUserId', postgresInstance.ref('pCTE.partnerId'))
+                        .andWhere('m_unread.recipientUserId', userId)
                         .andWhere('m_unread.isRead', false)
                         .andWhere('m_unread.recipientDeleted', false) // User hasn't deleted it
                         .as('unreadCount'),
                     'liCTE.lastMessageTime',
-                    // Correlated Subquery for the last message snippet
-                    postgresInstance('Message as m_snippet') // Changed knex to postgresInstance
-                        .select('body')
+                    // Correlated Subquery for the last message details (body, sender, read status)
+                    // Finds the latest message visible to the user between them and the partner
+                    postgresInstance('Message as m_snippet')
+                        .select(postgresInstance.raw(`json_build_object(
+                            'body', body,
+                            'senderId', "senderUserId",
+                            'isRead', "isRead"
+                        )::text`)) // Cast to text to avoid object type issues in main select
                         .where(function () {
-                            // Condition 1: User sent, Partner received
-                            this.where('m_snippet.senderUserId', userId)
-                                .andWhere('m_snippet.recipientUserId', postgresInstance.ref('pCTE.partnerId')) // Changed knex.ref to postgresInstance.ref
-                                .andWhere('m_snippet.recipientDeleted', false) // Check if partner deleted it
+                            // Messages between user and partner
+                            this.where(builder => builder.where('m_snippet.senderUserId', userId).andWhere('m_snippet.recipientUserId', postgresInstance.ref('pCTE.partnerId')))
+                                .orWhere(builder => builder.where('m_snippet.senderUserId', postgresInstance.ref('pCTE.partnerId')).andWhere('m_snippet.recipientUserId', userId));
                         })
-                        .orWhere(function () {
-                            // Condition 2: Partner sent, User received
-                            this.where('m_snippet.senderUserId', postgresInstance.ref('pCTE.partnerId')) // Changed knex.ref to postgresInstance.ref
-                                .andWhere('m_snippet.recipientUserId', userId)
-                                .andWhere('m_snippet.senderDeleted', false) // Check if partner (sender) deleted it
+                        .andWhere(function () {
+                            // Filter based on user's deletion status
+                            this.where(function () {
+                                this.where('m_snippet.senderUserId', userId).andWhere('m_snippet.senderDeleted', false)
+                            })
+                                .orWhere(function () {
+                                    this.where('m_snippet.recipientUserId', userId).andWhere('m_snippet.recipientDeleted', false)
+                                });
                         })
                         .orderBy('m_snippet.createdAt', 'desc')
                         .limit(1)
-                        .as('lastMessageSnippet') // Alias for the snippet column
+                        .as('lastMessageDetailsJson') // Get details as JSON string
                 )
                 .from(`${partnersCTE} as pCTE`)
                 .innerJoin(`${latestInteractionCTE} as liCTE`, 'pCTE.partnerId', 'liCTE.partnerId')
+                // Join to get partner profile info
                 .leftJoin('RegisteredUser as ru', 'pCTE.partnerId', 'ru.userId')
                 .leftJoin('Principal as p', 'ru.principalId', 'p.principalId')
                 .leftJoin('Profile as prof', 'p.profileId', 'prof.profileId')
-                .whereNotNull('pCTE.partnerId')
+                .leftJoin('Account as acc', 'p.accountId', 'acc.accountId') // Join Account for username
+                .whereNotNull('pCTE.partnerId') // Ensure partnerId is valid
                 .orderBy('liCTE.lastMessageTime', validOrder)
                 .limit(limit)
                 .offset(offset);
 
-            // Ensure unreadCount is a number and lastMessageTime is a Date
-            return results.map(row => ({
-                ...row,
-                unreadCount: parseInt(row.unreadCount, 10) || 0,
-                lastMessageTime: new Date(row.lastMessageTime),
-            }));
+            // Process results: parse JSON snippet, ensure types
+            return results.map(row => {
+                let lastMessageSnippet = null;
+                let lastMessageIsRead = false;
+                let lastMessageSenderId = null;
+                try {
+                    if (row.lastMessageDetailsJson) {
+                        const details = JSON.parse(row.lastMessageDetailsJson);
+                        lastMessageSnippet = details.body;
+                        lastMessageIsRead = !!details.isRead;
+                        lastMessageSenderId = details.senderId;
+                    }
+                } catch (e) {
+                    console.error("Error parsing last message details JSON:", e)
+                }
+
+                return {
+                    partnerId: row.partnerId,
+                    partnerDisplayName: row.partnerDisplayName,
+                    partnerUsername: row.partnerUsername, // Added
+                    partnerAvatar: row.partnerAvatar, // Added
+                    unreadCount: parseInt(row.unreadCount, 10) || 0,
+                    lastMessageTime: new Date(row.lastMessageTime),
+                    lastMessageSnippet: lastMessageSnippet,
+                    lastMessageIsRead: lastMessageIsRead, // Added
+                    lastMessageSenderId: lastMessageSenderId // Added
+                };
+            });
 
         } catch (error) {
-            console.error(`Error fetching conversation partners preview for user (${userId}):`, error);
-            return []; // Return empty array on error
+            console.error(`[MessageDAO] Error fetching conversation partners preview for user (${userId}):`, error);
+            throw error; // Re-throw for service layer
         }
     }
 }

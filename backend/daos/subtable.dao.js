@@ -1,20 +1,23 @@
-// daos/subtable.dao.js
+// backend/daos/subtable.dao.js
 import {postgresInstance} from '#db/postgres.js';
 import Subtable from '#models/subtable.model.js';
+import {ConflictError} from "#errors/AppError.js";
 
 class SubtableDAO {
     /**
      * Finds a subtable by its unique ID (UUID).
      * @param {string} subtableId - The UUID of the subtable.
      * @returns {Promise<Subtable | null>} The Subtable instance or null if not found.
+     * @throws {Error} Throws database errors.
      */
     async getById(subtableId) {
         try {
             const subtableRow = await postgresInstance('Subtable').where({subtableId}).first();
-            return Subtable.fromDbRow(subtableRow); // Returns null if subtableRow is undefined
+            // Use model's static method which handles null row
+            return Subtable.fromDbRow(subtableRow);
         } catch (error) {
-            console.error(`Error finding subtable by ID (${subtableId}):`, error);
-            throw error; // Re-throw for upstream handling
+            console.error(`[SubtableDAO] Error finding subtable by ID (${subtableId}):`, error);
+            throw error; // Re-throw for service layer
         }
     }
 
@@ -22,13 +25,14 @@ class SubtableDAO {
      * Finds a subtable by its unique name (case-sensitive based on DB collation).
      * @param {string} name - The name of the subtable.
      * @returns {Promise<Subtable | null>} The Subtable instance or null if not found.
+     * @throws {Error} Throws database errors.
      */
     async getByName(name) {
         try {
             const subtableRow = await postgresInstance('Subtable').where({name}).first();
             return Subtable.fromDbRow(subtableRow);
         } catch (error) {
-            console.error(`Error finding subtable by name (${name}):`, error);
+            console.error(`[SubtableDAO] Error finding subtable by name (${name}):`, error);
             throw error;
         }
     }
@@ -38,30 +42,25 @@ class SubtableDAO {
      * @param {Subtable} subtable - The Subtable instance to create (subtableId, createdAt, memberCount are ignored).
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<Subtable>} The newly created Subtable instance with DB-generated values.
+     * @throws {ConflictError} If subtable name constraint is violated.
+     * @throws {Error} Throws other database errors.
      */
     async create(subtable, trx = null) {
         const queryBuilder = trx || postgresInstance;
-        // Exclude fields managed by the database automatically (like defaults or sequences)
-        // name is required, description, creatorPrincipalId, iconUrl, bannerUrl are nullable
         const {subtableId, createdAt, memberCount, ...insertData} = subtable;
 
         try {
             const insertedRows = await queryBuilder('Subtable').insert(insertData).returning('*');
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                console.error('Subtable creation failed or did not return expected data.', insertedRows);
-                throw new Error('PostgresDB error during subtable creation: No data returned.');
+                // Should ideally be caught by DB error, but good safety check
+                throw new Error('Subtable creation in DAO failed: No data returned from insert.');
             }
-            // Return the full subtable object including DB-generated fields
             return Subtable.fromDbRow(insertedRows[0]);
         } catch (error) {
-            console.error('Error creating subtable:', error);
-            // Check for unique constraint violation (e.g., duplicate name)
-            if (error.code === '23505') { // PostgreSQL unique violation code
-                // You might want to wrap this in a custom error class
-                const specificError = new Error(`Subtable name "${insertData.name}" is already taken.`);
-                specificError.statusCode = 409; // Conflict
-                throw specificError;
+            console.error('[SubtableDAO] Error creating subtable:', error);
+            if (error.code === '23505' && error.constraint === 'subtable_name_key') { // Example constraint name
+                throw new ConflictError(`Subtable name "${insertData.name}" is already taken.`);
             }
             throw error; // Re-throw other errors
         }
@@ -72,23 +71,23 @@ class SubtableDAO {
      * @param {string} subtableId - The ID of the subtable to update.
      * @param {Partial<Subtable>} updateData - An object containing fields to update.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
-     * @returns {Promise<Subtable | null>} The updated Subtable instance, or null if not found.
+     * @returns {Promise<Subtable | null>} The updated Subtable instance, or null if not found or no rows updated.
+     * @throws {ConflictError} If subtable name constraint is violated on update.
+     * @throws {Error} Throws other database errors.
      */
     async update(subtableId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
-        // Remove fields that shouldn't be directly updated this way
+        const queryBuilder = trx || postgresInstance;
         const {
             subtableId: _,
             createdAt: __,
-            creatorPrincipalId: ___,
+            creatorUserId: ___, // Prevent direct update of creator
             memberCount: ____,
             ...allowedUpdates
         } = updateData;
 
         if (Object.keys(allowedUpdates).length === 0) {
-            console.warn(`Subtable update called for ID ${subtableId} with no valid fields to update.`);
-            // Optionally fetch and return the current record or throw an error
-            return this.getById(subtableId); // Return current state
+            console.warn(`[SubtableDAO] Update called for ID ${subtableId} with no valid fields.`);
+            return this.getById(subtableId); // Return current state as nothing changed
         }
 
         try {
@@ -98,16 +97,13 @@ class SubtableDAO {
                 .returning('*');
 
             if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
-                return null; // Indicate subtable not found
+                return null; // Indicate subtable not found or update failed
             }
             return Subtable.fromDbRow(updatedRows[0]);
         } catch (error) {
-            console.error(`Error updating subtable (${subtableId}):`, error);
-            // Check for unique constraint violation (e.g., trying to change name to an existing one)
-            if (error.code === '23505') {
-                const specificError = new Error(`Cannot update subtable: name "${allowedUpdates.name}" might already be taken.`);
-                specificError.statusCode = 409; // Conflict
-                throw specificError;
+            console.error(`[SubtableDAO] Error updating subtable (${subtableId}):`, error);
+            if (error.code === '23505' && error.constraint === 'subtable_name_key') {
+                throw new ConflictError(`Cannot update subtable: name "${allowedUpdates.name}" is already taken.`);
             }
             throw error;
         }
@@ -119,45 +115,36 @@ class SubtableDAO {
      * @param {string} subtableId - The ID of the subtable to delete.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
+     * @throws {Error} Throws database errors.
      */
     async delete(subtableId, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         try {
-            const deletedCount = await queryBuilder('Subtable')
+            return await queryBuilder('Subtable')
                 .where({subtableId})
-                .del(); // .delete() is also an alias
-
-            console.log(`Attempted deletion for subtableId ${subtableId}. Rows affected: ${deletedCount}`);
-            return deletedCount;
+                .del();
         } catch (error) {
-            console.error(`Error deleting subtable (${subtableId}):`, error);
+            console.error(`[SubtableDAO] Error deleting subtable (${subtableId}):`, error);
             throw error;
         }
     }
 
-    // async getSubscribedSubtables(subtableName, userId) {
-    //     try {
-    //         const subtables = await postgresInstance('Subtable')
-    //             .join('UserPostDetails', 'Subtable.subtableId', '=', 'UserPostDetails.subtableId')
-    //             .where('Subtable.name', subtableName)
-    //             .andWhere('UserPostDetails.userId', userId)
-    //             .select('Subtable.*', 'UserPostDetails.*'); // Adjust as needed
-
-    //         return subtables.map(row => Subtable.fromDbRow(row)); // Convert to Subtable instances
-    //     } catch (error) {
-    //         console.error(`Error fetching subtables for ${subtableName}:`, error);
-    //         throw error;
-    //     }
-    // }
+    /**
+     * Fetches all subtables a specific user is subscribed to.
+     * @param {string} userId - The ID of the RegisteredUser.
+     * @returns {Promise<Subtable[]>} An array of Subtable instances.
+     * @throws {Error} Throws database errors.
+     */
     async getSubscribedSubtables(userId) {
         try {
             const subscribedSubtables = await postgresInstance('Subtable')
                 .join('Subscription', 'Subtable.subtableId', '=', 'Subscription.subtableId')
                 .where('Subscription.userId', userId)
                 .select('Subtable.*');
-            return subscribedSubtables.map(row => Subtable.fromDbRow(row)); // Convert to Subtable instances
+
+            return subscribedSubtables.map(row => Subtable.fromDbRow(row));
         } catch (error) {
-            console.error(`Error fetching subscribed subtables for user ${userId}:`, error);
+            console.error(`[SubtableDAO] Error fetching subscribed subtables for user ${userId}:`, error);
             throw error;
         }
     }

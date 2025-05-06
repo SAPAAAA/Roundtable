@@ -1,46 +1,50 @@
-// backend/services/chatService.js
-
-// --- Imports ---
+// backend/services/chat.service.js
 import MessageDAO from '#daos/message.dao.js';
 import UserMessageDetailsDAO from '#daos/user-message-details.dao.js';
 import RegisteredUserDAO from '#daos/registered-user.dao.js';
 import Message, {MessageTypeEnum} from '#models/message.model.js';
 import EventBus from '#core/event-bus.js';
-import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
+import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
 import {postgresInstance} from "#db/postgres.js";
 
 class ChatService {
     /**
      * Constructor for ChatService.
-     * @param {object} msgDAO - Data Access Object for messages.
-     * @param {object} userMsgDetailsDAO - DAO for the user_message_details view/query.
-     * @param {object} regUserDAO - DAO for registered users.
+     * @param {MessageDAO} messageDao - DAO for base message operations.
+     * @param {UserMessageDetailsDAO} userMessageDetailsDao - DAO for the user message details view/object.
+     * @param {RegisteredUserDAO} registeredUserDao - DAO for registered users.
+     * @param {EventBus} eventBus - System event bus.
      */
-    constructor(msgDAO, userMsgDetailsDAO, regUserDAO) {
-        // Store injected dependencies as instance properties
-        this.messageDAO = msgDAO;
-        this.userMessageDetailsDAO = userMsgDetailsDAO;
-        this.registeredUserDAO = regUserDAO;
-        this.eventBus = EventBus;
+    constructor(messageDao, userMessageDetailsDao, registeredUserDao, eventBus) {
+        this.messageDAO = messageDao;
+        this.userMessageDetailsDAO = userMessageDetailsDao;
+        this.registeredUserDAO = registeredUserDao;
+        this.eventBus = eventBus;
     }
 
     /**
      * Retrieves the list of conversation partners (with latest message details) for a user.
      * @param {string} userId - The ID of the user whose conversations to fetch.
-     * @returns {Promise<Array<object>>} - List of latest message details per partner, likely from a specific view or query.
+     * @param {object} [options={}] - Pagination/filtering options (e.g., { limit, offset }).
+     * @returns {Promise<Array<ConversationPartnerPreview>>} - List of partner preview objects.
      * @throws {BadRequestError} If userId is missing.
      * @throws {InternalServerError} For database errors.
      */
-    async getConversationPartnersPreviewData(userId) {
+    async getConversationPartnersPreviewData(userId, options = {}) {
         if (!userId) {
             throw new BadRequestError('User ID is required to fetch conversations.');
         }
+        const userExists = await this.registeredUserDAO.getById(userId);
+        if (!userExists) {
+            throw new NotFoundError(`User with ID ${userId} not found.`);
+        }
         try {
-            // Use the injected DAO
-            // Assumes messageDAO has a method optimized for fetching conversation previews
-            return await this.messageDAO.getConversationPartnersPreviewData(userId);
+            return await this.messageDAO.getConversationPartnersPreviewData(userId, options);
         } catch (error) {
-            console.error(`[ChatService] Error fetching conversations for user ${userId}:`, error);
+            console.error(`[ChatService:getConversationPartnersPreviewData] Error for user ${userId}:`, error);
+            if (error instanceof AppError) {
+                throw error;
+            }
             throw new InternalServerError('Could not retrieve conversation list.');
         }
     }
@@ -49,38 +53,51 @@ class ChatService {
      * Retrieves the message history between two users.
      * @param {string} requestingUserId - The ID of the user making the request.
      * @param {string} partnerUserId - The ID of the other user in the conversation.
-     * @param {object} [options={}] - Pagination/filtering options (e.g., { limit, beforeMessageId }).
-     * @returns {Promise<Array<object>>} - Array of detailed messages (likely from user_message_details view).
-     * @throws {BadRequestError} If required IDs are missing.
+     * @param {object} [options={}] - Pagination/filtering options (e.g., { limit, offset }).
+     * @returns {Promise<Array<UserMessageDetails>>} - Array of detailed messages.
+     * @throws {BadRequestError} If required IDs are missing or user tries to chat with self.
      * @throws {NotFoundError} If the partner user doesn't exist.
-     * @throws {ForbiddenError} If fetching messages from the partner is disallowed (e.g., banned user).
+     * @throws {ForbiddenError} If fetching messages from the partner is disallowed (e.g., banned/blocked user).
      * @throws {InternalServerError} For database errors.
      */
     async getMessages(requestingUserId, partnerUserId, options = {}) {
         if (!requestingUserId || !partnerUserId) {
-            throw new BadRequestError('Both requesting user ID and partner user ID are required.');
+            throw new BadRequestError('Requesting user ID and partner user ID are required.');
+        }
+        if (requestingUserId === partnerUserId) {
+            throw new BadRequestError('Cannot fetch messages with yourself.');
         }
 
-        // Use injected DAO to validate partner user
+        // Validate partner exists and is accessible
         const partnerUser = await this.registeredUserDAO.getById(partnerUserId);
         if (!partnerUser) {
             throw new NotFoundError(`User with ID ${partnerUserId} not found.`);
         }
-        // Example check based on user status
-        if (partnerUser.status === 'banned') { // Adjust status values as needed
-            throw new ForbiddenError(`Cannot retrieve messages involving a banned user.`);
+        if (partnerUser.status !== 'active') { // Example status check
+            throw new ForbiddenError(`Cannot retrieve messages involving user with status: ${partnerUser.status}.`);
         }
+        // TODO: Add block check if implementing user blocking
+
+        // Sanitize options
+        const queryOptions = {
+            limit: Math.max(1, parseInt(options.limit, 10) || 50),
+            offset: Math.max(0, parseInt(options.offset, 10) || 0),
+            order: ['asc', 'desc'].includes(options.order?.toLowerCase()) ? options.order.toLowerCase() : 'desc', // Default to newest first
+            requestingUserId: requestingUserId // Crucial for filtering deleted messages
+        };
 
         try {
-            // Use the injected DAO for fetching detailed messages
-            // Pass requestingUserId to the options for potential filtering of deleted messages in the DAO layer
-            return await this.userMessageDetailsDAO.getLatestMessagesBetweenUsers(
+            // Use the DAO for fetching detailed messages view/object
+            return await this.userMessageDetailsDAO.getMessagesBetweenUsers(
                 requestingUserId,
                 partnerUserId,
-                {...options, requestingUserId}
+                queryOptions
             );
         } catch (error) {
-            console.error(`[ChatService] Error fetching messages between ${requestingUserId} and ${partnerUserId}:`, error);
+            console.error(`[ChatService:getMessages] Error between ${requestingUserId} and ${partnerUserId}:`, error);
+            if (error instanceof AppError) {
+                throw error;
+            }
             throw new InternalServerError('Could not retrieve messages.');
         }
     }
@@ -89,77 +106,64 @@ class ChatService {
      * Creates a new message, saves it, fetches its detailed view, and emits an event.
      * @param {string} senderUserId - The ID of the message sender.
      * @param {string} recipientUserId - The ID of the message recipient.
-     * @param {string} body - The message content.
-     * @returns {Promise<object>} - The created message with full sender/recipient details (from user_message_details view).
-     * @throws {BadRequestError} If validation fails (missing fields, same user).
+     * @param {string} body - The message content (trimmed).
+     * @returns {Promise<UserMessageDetails>} - The created message with full sender/recipient details.
+     * @throws {BadRequestError} If validation fails (missing fields, same user, empty body).
      * @throws {NotFoundError} If the recipient user doesn't exist.
-     * @throws {ForbiddenError} If sending to the recipient is disallowed (e.g., inactive user).
+     * @throws {ForbiddenError} If sending to the recipient is disallowed.
      * @throws {InternalServerError} For database or unexpected errors.
      */
     async sendMessage(senderUserId, recipientUserId, body) {
-        // Input validation
-        if (!senderUserId || !recipientUserId || !body) {
-            throw new BadRequestError('Sender ID, Recipient ID, and message body are required.');
+        const trimmedBody = body?.trim(); // Trim body early
+        if (!senderUserId || !recipientUserId || !trimmedBody) {
+            throw new BadRequestError('Sender ID, Recipient ID, and non-empty message body are required.');
         }
         if (senderUserId === recipientUserId) {
-            throw new BadRequestError('Sender and recipient cannot be the same user.');
+            throw new BadRequestError('Cannot send a message to yourself.');
         }
 
-        // Use injected DAO to validate recipient user
+        // Validate recipient existence and status
         const recipientUser = await this.registeredUserDAO.getById(recipientUserId);
         if (!recipientUser) {
             throw new NotFoundError(`Recipient user with ID ${recipientUserId} not found.`);
         }
-        // Example check for recipient status
-        if (recipientUser.status !== 'active') { // Adjust status values as needed
+        if (recipientUser.status !== 'active') { // Example check
             throw new ForbiddenError(`Cannot send message to user with status: ${recipientUser.status}.`);
         }
+        // TODO: Add block check
 
+        let savedMessage;
         try {
-            // Create and save within a transaction
-            const createdMessage = await postgresInstance.transaction(async (transaction) => {
-                // 1. Create Message model instance
+            // Save within a transaction (optional but good for potential related updates)
+            savedMessage = await postgresInstance.transaction(async (trx) => {
                 const newMessage = new Message(
-                    null, // messageId (generated)
-                    null, // conversationId (can be derived/set later if needed)
-                    senderUserId,
-                    recipientUserId,
-                    body,
-                    MessageTypeEnum.DIRECT // Assuming direct messages
+                    null, null, senderUserId, recipientUserId, trimmedBody, MessageTypeEnum.DIRECT
                 );
-
-                // 2. Save using injected base MessageDAO
-                const savedMessage = await this.messageDAO.create(newMessage, transaction);
-                if (!savedMessage || !savedMessage.messageId) {
-                    throw new InternalServerError('Failed to save message or retrieve its ID during transaction.');
-                }
-                return savedMessage; // Return the basic saved message from transaction
+                return await this.messageDAO.create(newMessage, trx);
             });
 
-            // 3. Fetch the *detailed* view using injected UserMessageDetailsDAO *after* transaction commits
-            const detailedCreatedMessage = await this.userMessageDetailsDAO.getByMessageId(createdMessage.messageId);
+            if (!savedMessage?.messageId) {
+                throw new InternalServerError('Failed to save message or retrieve its ID.');
+            }
+
+            // Fetch the detailed view *after* transaction commits
+            const detailedCreatedMessage = await this.userMessageDetailsDAO.getByMessageId(savedMessage.messageId);
             if (!detailedCreatedMessage) {
-                // This indicates a potential issue if the view isn't immediately updated or accessible
-                console.error(`[ChatService] CRITICAL: Could not fetch details for just-created message ${createdMessage.messageId}. View consistency issue?`);
+                console.error(`[ChatService:sendMessage] CRITICAL: Could not fetch details for just-created message ${savedMessage.messageId}.`);
                 throw new InternalServerError('Failed to retrieve created message details after saving.');
             }
 
-            // 4. Emit event using injected EventBus for real-time delivery
+            // Emit event for real-time delivery
             this.eventBus.emit('chat.message.created', {
-                recipientUserId: recipientUserId, // Target the recipient
-                message: detailedCreatedMessage // Send the rich message object
+                recipientUserId: recipientUserId,
+                message: detailedCreatedMessage // Send the rich object
             });
-            console.log(`[ChatService] Emitted 'chat.message.created' event for recipient ${recipientUserId}`);
 
-            // 5. Return the detailed message (e.g., to the API controller)
-            return detailedCreatedMessage;
+            return detailedCreatedMessage; // Return the detailed message
 
         } catch (error) {
-            console.error(`[ChatService] Error sending message from ${senderUserId} to ${recipientUserId}:`, error);
-            // Re-throw known AppErrors, wrap others
-            if (error instanceof NotFoundError || error instanceof BadRequestError || error instanceof ForbiddenError) {
-                throw error;
-            }
+            console.error(`[ChatService:sendMessage] Error from ${senderUserId} to ${recipientUserId}:`, error);
+            if (error instanceof AppError) throw error;
             throw new InternalServerError('Could not send message due to a server error.');
         }
     }
@@ -169,57 +173,53 @@ class ChatService {
      * @param {string} requestingUserId - The user who is reading the messages (the recipient).
      * @param {string} partnerUserId - The user who sent the messages.
      * @returns {Promise<number>} The number of messages marked as read.
-     * @throws {BadRequestError} If required IDs are missing.
+     * @throws {BadRequestError} If required IDs are missing or user tries to read self messages.
      * @throws {NotFoundError} If the partner user doesn't exist.
      * @throws {InternalServerError} For database errors.
      */
     async markMessagesAsRead(requestingUserId, partnerUserId) {
         if (!requestingUserId || !partnerUserId) {
-            throw new BadRequestError('Both requesting user ID and partner user ID are required.');
+            throw new BadRequestError('Requesting user ID and partner user ID are required.');
+        }
+        if (requestingUserId === partnerUserId) {
+            // Reading own messages doesn't make sense in this context
+            return 0;
         }
 
-        // Use injected DAO to validate partner user (optional but good practice)
+        // Optional: Validate partner exists
         const partnerUser = await this.registeredUserDAO.getById(partnerUserId);
         if (!partnerUser) {
             throw new NotFoundError(`User with ID ${partnerUserId} not found.`);
         }
 
         try {
-            // Perform find and update within a transaction
-            const updatedCount = await postgresInstance.transaction(async (transaction) => {
-                // 1. Find unread message IDs using injected MessageDAO
-                // Assumes getUnreadMessages finds messages WHERE sender=partner AND recipient=requesting AND isRead=false
-                const unreadMessages = await this.messageDAO.getUnreadMessages(partnerUserId, requestingUserId, transaction); // Pass transaction
-
+            // Use transaction for atomicity of find + update (optional but safer)
+            const updatedCount = await postgresInstance.transaction(async (trx) => {
+                // 1. Find unread message IDs from partner to user
+                const unreadMessages = await this.messageDAO.getUnreadMessages(partnerUserId, requestingUserId, trx);
                 const messageIdsToUpdate = unreadMessages.map(msg => msg.messageId);
 
-                if (messageIdsToUpdate.length > 0) {
-                    // 2. Call injected DAO method to update the status
-                    // Assumes markAsRead updates messages WHERE messageId IN (...) AND recipientUserId = requestingUserId
-                    const count = await this.messageDAO.markAsRead(messageIdsToUpdate, requestingUserId, transaction); // Pass transaction
-                    console.log(`[ChatService] Marked ${count} messages as read in transaction for user ${requestingUserId} from partner ${partnerUserId}.`);
-                    return count;
-                } else {
-                    console.log(`[ChatService] No unread messages found in transaction for user ${requestingUserId} from partner ${partnerUserId}.`);
-                    return 0; // No messages needed marking
+                if (messageIdsToUpdate.length === 0) {
+                    return 0; // No messages to mark
                 }
-            });
 
-            // 3. Emit event *after* transaction commits successfully
+                // 2. Mark them as read using the DAO
+                return await this.messageDAO.markAsRead(messageIdsToUpdate, requestingUserId, trx);
+            }); // Commit transaction
+
+            // Emit event *after* successful commit
             if (updatedCount > 0) {
                 this.eventBus.emit('chat.messages.read', {
                     readerUserId: requestingUserId,
-                    senderUserId: partnerUserId,
+                    senderUserId: partnerUserId, // The partner whose messages were read
                     count: updatedCount
                 });
-                console.log(`[ChatService] Emitted 'chat.messages.read' event for user ${requestingUserId} from partner ${partnerUserId}.`);
             }
-
-            return updatedCount; // Return the count of messages marked as read
+            return updatedCount;
 
         } catch (error) {
-            console.error(`[ChatService] Error marking messages as read for ${requestingUserId} from ${partnerUserId}:`, error);
-            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+            console.error(`[ChatService:markMessagesAsRead] Error for reader ${requestingUserId} from partner ${partnerUserId}:`, error);
+            if (error instanceof AppError) {
                 throw error;
             }
             throw new InternalServerError('Could not mark messages as read.');
@@ -227,6 +227,7 @@ class ChatService {
     }
 }
 
+// Inject dependencies
 export default new ChatService(
     MessageDAO,
     UserMessageDetailsDAO,

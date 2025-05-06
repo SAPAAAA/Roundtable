@@ -1,56 +1,51 @@
+// backend/daos/profile.dao.js
 import {postgresInstance} from '#db/postgres.js';
 import Profile from '#models/profile.model.js';
 
 class ProfileDAO {
-    async create(profile, trx) {
-        const queryBuilder = trx ? trx : postgresInstance;
+    constructor() {
+        this.tableName = 'Profile';
+    }
 
+    async getById(profileId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        try {
+            const profileRow = await queryBuilder(this.tableName).where({profileId}).first();
+            return profileRow ? Profile.fromDbRow(profileRow) : null;
+        } catch (error) {
+            console.error(`[ProfileDAO] Error fetching profile by ID ${profileId}:`, error);
+            throw error;
+        }
+    }
+
+    async create(profile, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         const {profileId, ...insertData} = profile;
         try {
-            // Pass the cleaned 'insertData' to Knex insert
-            const insertedRows = await queryBuilder('Profile').insert(insertData).returning('*');
-
-            // Check if we got an array and it's not empty
-            if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                console.error('Profile creation failed or did not return expected data.', insertedRows);
-                throw new Error('PostgresDB error during profile creation: No data returned.');
+            const insertedRows = await queryBuilder(this.tableName).insert(insertData).returning('*');
+            if (!insertedRows || insertedRows.length === 0) {
+                throw new Error('Profile creation in DAO failed: No data returned.');
             }
-            // Use the first element (which includes the DB-generated profileId)
             return Profile.fromDbRow(insertedRows[0]);
         } catch (error) {
-            console.error('Error creating profile:', error);
-            // Re-throw the original error
+            console.error('[ProfileDAO] Error creating profile:', error);
             throw error;
         }
     }
 
-    async getById(profileId) {
+    async update(profileId, updateData, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         try {
-            // .first() returns the object directly or undefined
-            const profileRow = await postgresInstance('Profile').where({profileId}).first();
-            // Check if a profile was actually found
-            if (!profileRow) {
-                return null; // Return null if not found
+            const {...allowedUpdates} = updateData; // Filter as needed
+            if (Object.keys(allowedUpdates).length === 0) {
+                return 0;
             }
-            // Only call fromDbRow if we found a profile
-            return Profile.fromDbRow(profileRow);
-        } catch (error) {
-            console.error('Error fetching profile:', error);
-            // Re-throw the original error
-            throw error;
-        }
-    }
 
-    async delete(profileId, trx) {
-        const queryBuilder = trx ? trx : postgresInstance;
-        try {
-            // .del() returns the number of affected rows
-            const affectedRows = await queryBuilder('Profile').where({profileId}).del();
-            // Return true if 1 or more rows were deleted, false otherwise
-            return affectedRows > 0;
+            return await queryBuilder(this.tableName)
+                .where({profileId})
+                .update(allowedUpdates);
         } catch (error) {
-            console.error('Error deleting profile:', error);
-            // Re-throw the original error
+            console.error(`[ProfileDAO] Error updating profile ${profileId}:`, error);
             throw error;
         }
     }

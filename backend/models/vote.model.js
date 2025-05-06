@@ -1,4 +1,4 @@
-// models/vote.model.js
+// backend/models/vote.model.js
 
 /**
  * Represents the possible types for a Vote, mirroring the "VoteType" ENUM.
@@ -45,8 +45,8 @@ class Vote {
         /** @type {Date | null} */
         this.createdAt = createdAt ? new Date(createdAt) : null;
 
-        // Basic validation
-        if (voteType !== VoteTypeEnum.UPVOTE && voteType !== VoteTypeEnum.DOWNVOTE) {
+        // Basic validation remains useful here
+        if (!Vote.isValidVoteType(voteType)) {
             throw new Error(`Vote type must be one of: ${Object.values(VoteTypeEnum).join(', ')}.`);
         }
         if (!postId && !commentId) {
@@ -63,19 +63,19 @@ class Vote {
      * @returns {Vote | null} A Vote instance or null if no row provided.
      */
     static fromDbRow(row) {
-        if (!row) return null;
-        // Ensure the row.voteType is one of the expected enum values
-        if (!Object.values(VoteTypeEnum).includes(row.voteType)) {
-            console.warn(`Invalid voteType ('${row.voteType}') received from database for voteId: ${row.voteId}. Setting to null or default might be needed.`);
-            // Depending on strictness, you might throw an error or handle it gracefully
-            // For now, we pass it through, assuming DB constraints enforce correctness.
+        if (!row) {
+            return null;
+        }
+        if (!Vote.isValidVoteType(row.voteType)) {
+            console.warn(`[VoteModel] Invalid voteType ('${row.voteType}') received from DB for voteId: ${row.voteId}.`);
+            // Depending on strictness, might return null or throw. Passing through for now.
         }
         return new Vote(
             row.voteId,
             row.voterUserId,
             row.postId,
             row.commentId,
-            row.voteType,
+            row.voteType, // Assumes DB stores 'upvote' or 'downvote'
             row.createdAt
         );
     }
@@ -90,5 +90,6 @@ class Vote {
     }
 }
 
-export {Vote, VoteTypeEnum}; // Export both class and enum
-export default Vote; // Default export for convenience
+// Export enum along with the class if needed elsewhere
+export {VoteTypeEnum};
+export default Vote;

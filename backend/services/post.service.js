@@ -120,7 +120,7 @@ class PostService {
         let postUserVote = null;
         if (userId) {
             // Use the DAO passed in the constructor
-            const vote = await this.voteDao.findByUserAndPost(userId, postId);
+            const vote = await this.voteDao.getByUserAndPost(userId, postId);
             // Ensure vote object or null is assigned
             postUserVote = vote ? {
                 voteType: vote.voteType,
@@ -136,7 +136,7 @@ class PostService {
             commentsRaw = await Promise.all(
                 commentsRaw.map(async (comment) => {
                     // Use the DAO passed in the constructor
-                    const vote = await this.voteDao.findByUserAndComment(userId, comment.commentId);
+                    const vote = await this.voteDao.getByUserAndComment(userId, comment.commentId);
                     return {
                         ...comment,
                         // Ensure vote object or null is assigned

@@ -1,62 +1,58 @@
-// daos/notification.dao.js
-import {postgresInstance} from '#db/postgres.js'; // Assuming your Knex instance is exported as default
+// backend/daos/notification.dao.js
+import {postgresInstance} from '#db/postgres.js';
 import Notification from '#models/notification.model.js';
 
 class NotificationDAO {
+    constructor() {
+        this.tableName = 'Notification';
+    }
+
     /**
      * Finds a notification by its unique ID (UUID).
      * @param {string} notificationId - The UUID of the notification.
+     * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional transaction object.
      * @returns {Promise<Notification | null>} The Notification instance or null if not found.
+     * @throws {Error} For database errors.
      */
-    async getById(notificationId) {
+    async getById(notificationId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         try {
-            // Select the notification from the "Notification" table where notificationId matches
-            const notificationRow = await postgresInstance('Notification').where({notificationId}).first();
-            // Convert the database row to a Notification model instance, or return null if not found
+            const notificationRow = await queryBuilder(this.tableName).where({notificationId}).first();
             return Notification.fromDbRow(notificationRow);
         } catch (error) {
-            // Log any errors encountered during the database operation
-            console.error(`Error finding notification by ID (${notificationId}):`, error);
-            // Re-throw the error to be handled by the caller
+            console.error(`[NotificationDAO] Error finding notification by ID (${notificationId}):`, error);
             throw error;
         }
     }
 
     /**
      * Creates a new notification record in the database.
-     * @param {Notification} notification - The Notification instance to create (notificationId and createdAt are ignored).
+     * @param {Notification} notification - The Notification instance to create (notificationId and createdAt are ignored/handled by DB).
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<Notification>} The newly created Notification instance with DB-generated values.
+     * @throws {Error} For database errors (e.g., constraint violations).
      */
     async create(notification, trx = null) {
-        // Use the provided transaction or the default postgresInstance connection
-        const queryBuilder = trx ?? postgresInstance;
-        // Destructure the notification object, excluding fields managed by DB defaults
-        const {
-            notificationId, createdAt,
-            ...insertData
-        } = notification;
+        const queryBuilder = trx || postgresInstance;
+        const {notificationId, createdAt, ...insertData} = notification;
 
-        // Basic validation: Ensure required fields are present
+        // Basic check in DAO - Service layer should ensure required fields are present before calling
         if (!insertData.recipientUserId || !insertData.type) {
-            throw new Error('Missing required fields for notification creation: recipientUserId and type are required.');
+            throw new Error('[NotificationDAO] Missing required fields for creation: recipientUserId and type.');
         }
 
         try {
-            // Insert the notification data into the "Notification" table and return all columns of the inserted row
-            const insertedRows = await queryBuilder('Notification').insert(insertData).returning('*');
-
-            // Validate the insertion result
-            if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                console.error('Notification creation failed or did not return expected data.', insertedRows);
-                throw new Error('PostgresDB error during notification creation: No data returned.');
+            const insertedRows = await queryBuilder(this.tableName).insert(insertData).returning('*');
+            if (!insertedRows || insertedRows.length === 0) {
+                throw new Error('Notification creation in DAO failed: No data returned.');
             }
-            // Convert the first returned row into a Notification model instance
             return Notification.fromDbRow(insertedRows[0]);
         } catch (error) {
-            // Log any errors during creation
-            console.error('Error creating notification:', error);
-            // Re-throw the error
+            console.error('[NotificationDAO] Error creating notification:', error);
+            // Example: Handle foreign key violation if recipientUserId doesn't exist
+            // if (error.code === '23503' && error.constraint === 'notification_recipientuserid_fkey') {
+            //     throw new Error(`Recipient user with ID ${insertData.recipientUserId} does not exist.`);
+            // }
             throw error;
         }
     }
@@ -66,67 +62,33 @@ class NotificationDAO {
      * @param {string} notificationId - The ID of the notification to update.
      * @param {Partial<Pick<Notification, 'isRead'>>} updateData - An object containing fields to update (currently only 'isRead').
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
-     * @returns {Promise<Notification | null>} The updated Notification instance, or null if not found.
+     * @returns {Promise<Notification | null>} The updated Notification instance, or null if not found or no rows updated.
+     * @throws {Error} For database errors.
      */
     async update(notificationId, updateData, trx = null) {
-        // Use the provided transaction or the default postgresInstance connection
-        const queryBuilder = trx ?? postgresInstance;
-        // Only allow specific fields to be updated (currently just 'isRead')
+        const queryBuilder = trx || postgresInstance;
         const allowedUpdates = {};
         if (updateData.isRead !== undefined) {
-            allowedUpdates.isRead = updateData.isRead;
+            allowedUpdates.isRead = !!updateData.isRead; // Ensure boolean
         }
 
-        // If no valid fields to update are provided, log a warning and return the current state
         if (Object.keys(allowedUpdates).length === 0) {
-            console.warn(`Notification update called for ID ${notificationId} with no valid fields to update.`);
-            return this.getById(notificationId);
+            console.warn(`[NotificationDAO] Update called for ID ${notificationId} with no valid fields.`);
+            return this.getById(notificationId, trx); // Return current state
         }
 
         try {
-            // Update the notification in the database where notificationId matches
-            const updatedRows = await queryBuilder('Notification')
+            const updatedRows = await queryBuilder(this.tableName)
                 .where({notificationId})
                 .update(allowedUpdates)
-                .returning('*'); // Return all columns of the updated row
+                .returning('*');
 
-            // If no rows were updated (notification not found), return null
-            if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
-                return null;
+            if (!updatedRows || updatedRows.length === 0) {
+                return null; // Not found or already had the target state
             }
-            // Convert the first updated row into a Notification model instance
             return Notification.fromDbRow(updatedRows[0]);
         } catch (error) {
-            // Log any errors during the update
-            console.error(`Error updating notification (${notificationId}):`, error);
-            // Re-throw the error
-            throw error;
-        }
-    }
-
-    /**
-     * Deletes a notification by its ID (HARD delete).
-     * Consider if soft deletion or TTL (time-to-live) policies are more appropriate for notifications.
-     * @param {string} notificationId - The ID of the notification to delete.
-     * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
-     * @returns {Promise<number>} The number of rows deleted (0 or 1).
-     */
-    async hardDelete(notificationId, trx = null) {
-        // Use the provided transaction or the default postgresInstance connection
-        const queryBuilder = trx ?? postgresInstance;
-        try {
-            // Delete the notification from the "Notification" table
-            const deletedCount = await queryBuilder('Notification')
-                .where({notificationId})
-                .del();
-            // Log the result of the deletion attempt
-            console.log(`Attempted HARD deletion for notificationId ${notificationId}. Rows affected: ${deletedCount}`);
-            // Return the number of deleted rows
-            return deletedCount;
-        } catch (error) {
-            // Log any errors during deletion
-            console.error(`Error hard deleting notification (${notificationId}):`, error);
-            // Re-throw the error
+            console.error(`[NotificationDAO] Error updating notification (${notificationId}):`, error);
             throw error;
         }
     }
@@ -134,40 +96,33 @@ class NotificationDAO {
     /**
      * Finds notifications for a specific recipient account, optionally paginated, filtered, and sorted.
      * @param {string} recipientUserId - The UUID of the recipient account.
-     * @param {{limit?: number, offset?: number, isRead?: boolean, sortBy?: 'createdAt', order?: 'asc' | 'desc'}} [options={}] - Pagination, filtering, and sorting options.
+     * @param {object} [options={}] - Options for pagination, filtering, and sorting.
+     * @param {number} [options.limit=25] - Max notifications per page.
+     * @param {number} [options.offset=0] - Notifications to skip.
+     * @param {boolean} [options.isRead] - Filter by read status (true, false, or undefined for all).
+     * @param {'createdAt'} [options.sortBy='createdAt'] - Field to sort by.
+     * @param {'asc'|'desc'} [options.order='desc'] - Sort order.
      * @returns {Promise<Notification[]>} An array of Notification instances.
+     * @throws {Error} For database errors.
      */
     async getByRecipient(recipientUserId, options = {}) {
-        // Destructure options with default values
         const {limit = 25, offset = 0, isRead, sortBy = 'createdAt', order = 'desc'} = options;
-        // Validate sort field and order
-        const validSortBy = ['createdAt'].includes(sortBy) ? sortBy : 'createdAt'; // Only createdAt makes sense here
+        const validSortBy = sortBy === 'createdAt' ? sortBy : 'createdAt'; // Only reliable sort field
         const validOrder = ['asc', 'desc'].includes(order) ? order : 'desc';
 
         try {
-            // Start building the query
-            const query = postgresInstance('Notification')
-                .where({recipientUserId})
+            const query = postgresInstance(this.tableName).where({recipientUserId});
 
-            // Apply isRead filter if provided
             if (isRead !== undefined) {
-                query.andWhere({isRead});
+                query.andWhere({isRead: !!isRead}); // Ensure boolean
             }
 
-            // Apply sorting, pagination
-            query.orderBy(validSortBy, validOrder)
-                .limit(limit)
-                .offset(offset);
+            query.orderBy(validSortBy, validOrder).limit(limit).offset(offset);
 
-            // Execute the query
             const notificationRows = await query;
-
-            // Convert each row to a Notification model instance
             return notificationRows.map(Notification.fromDbRow);
         } catch (error) {
-            // Log errors encountered while finding notifications
-            console.error(`Error finding notifications by recipient (${recipientUserId}):`, error);
-            // Re-throw the error
+            console.error(`[NotificationDAO] Error finding notifications by recipient (${recipientUserId}):`, error);
             throw error;
         }
     }
@@ -175,66 +130,73 @@ class NotificationDAO {
     /**
      * Counts notifications for a specific recipient, optionally filtered by read status.
      * @param {string} recipientUserId - The ID of the recipient user.
-     * @param {Object} [filters] - Optional filters for counting.
+     * @param {object} [filters={}] - Optional filters for counting.
      * @param {boolean} [filters.isRead] - Filter by read status.
      * @returns {Promise<number>} The count of notifications matching the criteria.
+     * @throws {Error} For database errors.
      */
-    async countByRecipient(recipientUserId, filters = {}) { // <-- Updated
+    async countByRecipient(recipientUserId, filters = {}) {
         const {isRead} = filters;
         try {
-            const query = postgresInstance('Notification').where({recipientUserId}); // <-- Updated
+            const query = postgresInstance(this.tableName).where({recipientUserId});
 
             if (isRead !== undefined) {
-                query.andWhere({isRead});
+                query.andWhere({isRead: !!isRead});
             }
             const result = await query.count({count: '*'}).first();
             return parseInt(result?.count, 10) || 0;
         } catch (error) {
-            console.error(`Error counting notifications for recipient (${recipientUserId}):`, error);
+            console.error(`[NotificationDAO] Error counting notifications for recipient (${recipientUserId}):`, error);
             throw error;
         }
     }
 
-
     /**
      * Marks multiple notifications as read for a specific recipient.
+     * @param {string} recipientUserId - The ID of the user owning the notifications.
      * @param {string[]} notificationIds - An array of notification IDs to mark as read.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
-     * @returns {Promise<number>} The number of notifications updated.
+     * @returns {Promise<number>} The number of notifications actually updated (marked as read).
+     * @throws {Error} For database errors.
      */
-    async markAsRead(notificationIds, trx = null) {
-        if (!notificationIds || notificationIds.length === 0) {
+    async markAsRead(recipientUserId, notificationIds, trx = null) {
+        if (!recipientUserId || !notificationIds || notificationIds.length === 0) {
             return 0; // Nothing to update
         }
-        const queryBuilder = trx ?? postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         try {
-            return await queryBuilder('Notification')
+            // Update only if owned by the user and currently unread
+            return await queryBuilder(this.tableName)
+                .where({recipientUserId: recipientUserId, isRead: false})
                 .whereIn('notificationId', notificationIds)
-                .andWhere({isRead: false}) // Only update if currently unread
                 .update({isRead: true});
         } catch (error) {
+            console.error(`[NotificationDAO] Error marking notifications as read for user ${recipientUserId}:`, error);
             throw error;
         }
     }
 
     /**
      * Marks ALL unread notifications as read for a specific recipient.
-     * @param {string} recipientAccountId - The UUID of the recipient account.
+     * @param {string} recipientUserId - The UUID of the recipient user.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<number>} The number of notifications updated.
+     * @throws {Error} For database errors.
      */
-    async markAllAsRead(recipientAccountId, trx = null) {
-        const queryBuilder = trx ?? postgresInstance;
+    async markAllAsRead(recipientUserId, trx = null) {
+        if (!recipientUserId) {
+            return 0;
+        }
+        const queryBuilder = trx || postgresInstance;
         try {
-            return await queryBuilder('Notification')
-                .where({recipientAccountId, isRead: false})
+            return await queryBuilder(this.tableName)
+                .where({recipientUserId: recipientUserId, isRead: false})
                 .update({isRead: true});
         } catch (error) {
-            console.error(`Error marking all notifications as read for recipient (${recipientAccountId}):`, error);
+            console.error(`[NotificationDAO] Error marking all notifications as read for recipient (${recipientUserId}):`, error);
             throw error;
         }
     }
 }
 
-// Export a singleton instance of the DAO
 export default new NotificationDAO();

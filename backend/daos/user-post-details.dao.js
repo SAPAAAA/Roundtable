@@ -1,5 +1,6 @@
-import {postgresInstance} from '#db/postgres.js'; // Assuming Knex instance is exported from here
-import UserPostDetails from '#models/user-post-details.model.js'; // Import the corresponding model
+// backend/daos/user-post-details.dao.js
+import {postgresInstance} from '#db/postgres.js';
+import UserPostDetails from '#models/user-post-details.model.js';
 
 /**
  * @typedef {Object} GetPostsOptions
@@ -11,31 +12,25 @@ import UserPostDetails from '#models/user-post-details.model.js'; // Import the 
  */
 
 class UserPostDetailsDAO {
-
+    constructor() {
+        this.viewName = 'UserPostDetails'; // IMPORTANT: Replace with your actual VIEW name
+    }
     /**
      * Fetches detailed post information for a single post by its ID from the VIEW.
      * @param {string} postId - The UUID of the post.
      * @returns {Promise<UserPostDetails | null>} - A promise resolving to a UserPostDetails instance or null if not found.
-     * @throws {Error} Throws an error if the database query fails.
+     * @throws {Error} Throws database errors.
      */
     async getByPostId(postId) {
-        if (!postId) {
-            console.error('getByPostId called with null or undefined postId');
-            return null;
-        }
+        if (!postId) return null;
         try {
-            const viewRow = await postgresInstance('UserPostDetails') // Query the VIEW
+            const viewRow = await postgresInstance(this.viewName)
                 .where({postId: postId})
-                .first(); // Expecting one or zero results
-
-            if (!viewRow) {
-                return null; // Post not found
-            }
-            // Convert the database row from the VIEW to a UserPostDetails model instance
+                .first();
             return UserPostDetails.fromDbRow(viewRow);
         } catch (error) {
-            console.error(`Error fetching UserPostDetails by postId (${postId}):`, error);
-            throw error; // Re-throw the error for upstream handling
+            console.error(`[UserPostDetailsDAO] Error fetching by postId (${postId}):`, error);
+            throw error;
         }
     }
 
@@ -44,44 +39,36 @@ class UserPostDetailsDAO {
      * @param {string} subtableId - The UUID of the subtable.
      * @param {GetPostsOptions} [options={}] - Options for sorting, filtering, and pagination.
      * @returns {Promise<UserPostDetails[]>} - A promise resolving to an array of UserPostDetails instances.
-     * @throws {Error} Throws an error if the database query fails.
+     * @throws {Error} Throws database errors.
      */
     async getBySubtableId(subtableId, options = {}) {
         if (!subtableId) {
-            console.error('getBySubtableId called with null or undefined subtableId');
+            console.warn('[UserPostDetailsDAO] getBySubtableId called without subtableId.');
             return [];
         }
 
         const {limit, offset, sortBy, order, includeRemoved} = this._prepareQueryOptions(options);
 
         try {
-            let query = postgresInstance('UserPostDetails')
-                .select('*') // Select all columns from the VIEW
+            let query = postgresInstance(this.viewName)
+                .select('*')
                 .where({subtableId: subtableId});
 
             if (!includeRemoved) {
-                query = query.andWhere({isRemoved: false}); // Default: exclude removed posts
+                query = query.andWhere({isRemoved: false});
             }
 
-            query = query.orderBy(sortBy, order)
-                .offset(offset);
+            query = query.orderBy(sortBy, order).offset(offset);
 
             if (limit !== null) {
                 query = query.limit(limit);
             }
 
             const viewRows = await query;
-
-            if (!viewRows || viewRows.length === 0) {
-                return []; // No posts found for this subtable
-            }
-
-            // Convert each row to a UserPostDetails model instance
-            // Filter out any potential nulls if fromDbRow fails for some reason
             return viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(details => details !== null);
 
         } catch (error) {
-            console.error(`Error fetching UserPostDetails by subtableId (${subtableId}):`, error);
+            console.error(`[UserPostDetailsDAO] Error fetching by subtableId (${subtableId}):`, error);
             throw error;
         }
     }
@@ -91,43 +78,36 @@ class UserPostDetailsDAO {
      * @param {string} authorUserId - The UUID of the author (RegisteredUser).
      * @param {GetPostsOptions} [options={}] - Options for sorting, filtering, and pagination.
      * @returns {Promise<UserPostDetails[]>} - A promise resolving to an array of UserPostDetails instances.
-     * @throws {Error} Throws an error if the database query fails.
+     * @throws {Error} Throws database errors.
      */
     async getByAuthorUserId(authorUserId, options = {}) {
         if (!authorUserId) {
-            console.error('getByAuthorUserId called with null or undefined authorUserId');
+            console.warn('[UserPostDetailsDAO] getByAuthorUserId called without authorUserId.');
             return [];
         }
 
         const {limit, offset, sortBy, order, includeRemoved} = this._prepareQueryOptions(options);
 
         try {
-            let query = postgresInstance('UserPostDetails')
+            let query = postgresInstance(this.viewName)
                 .select('*')
-                .where({authorUserId: authorUserId}); // Filter by authorUserId from the VIEW
+                .where({authorUserId: authorUserId});
 
             if (!includeRemoved) {
                 query = query.andWhere({isRemoved: false});
             }
 
-            query = query.orderBy(sortBy, order)
-                .offset(offset);
+            query = query.orderBy(sortBy, order).offset(offset);
 
             if (limit !== null) {
                 query = query.limit(limit);
             }
 
-
             const viewRows = await query;
-
-            if (!viewRows || viewRows.length === 0) {
-                return []; // No posts found for this author
-            }
-
             return viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(details => details !== null);
 
         } catch (error) {
-            console.error(`Error fetching UserPostDetails by authorUserId (${authorUserId}):`, error);
+            console.error(`[UserPostDetailsDAO] Error fetching by authorUserId (${authorUserId}):`, error);
             throw error;
         }
     }
@@ -135,59 +115,36 @@ class UserPostDetailsDAO {
     /**
      * Fetches a list of posts for the home page from the VIEW.
      * @param {GetPostsOptions} [options={}] - Options for sorting, filtering, and pagination.
-     * @returns {Promise<Object[]>} - A promise resolving to an array of formatted post objects.
-     * @throws {Error} Throws an error if the database query fails.
+     * @returns {Promise<UserPostDetails[]>} - A promise resolving to an array of formatted post objects.
+     * @throws {Error} Throws database errors.
      */
     async getHomePosts(options = {}) {
-        const {
-            limit = 20,
-            offset = 0,
-            sortBy = 'createdAt',
-            order = 'desc'
-        } = options;
-
-        // Mapping giữa tên tham số và tên cột trong DB
-        const sortColumnMapping = {
-            'createdAt': 'postCreatedAt',
-            'voteCount': 'voteCount',
-            'commentCount': 'commentCount'
-        };
-
-        const allowedSortColumns = Object.keys(sortColumnMapping);
-        const validSortBy = allowedSortColumns.includes(sortBy) ? sortColumnMapping[sortBy] : 'postCreatedAt';
-        const validOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toLowerCase() : 'desc';
+        const {limit, offset, sortBy, order, includeRemoved} = this._prepareQueryOptions({
+            ...options,
+            sortBy: options.sortBy || 'postCreatedAt', // Ensure default if needed
+            order: options.order || 'desc',
+        });
 
         try {
-            console.log("(dao)homePostsDAO", { limit, offset, sortBy, order });
-
-            const viewRows = await postgresInstance('UserPostDetails')
+            let query = postgresInstance(this.viewName)
                 .select('*')
-                .where('isRemoved', false) 
-                .orderBy(validSortBy, validOrder) 
-                .offset(offset)
-                .limit(limit !== null ? limit : undefined);
 
-            // console.log("(dao)viewRows null?", viewRows);
-
-            if (!viewRows || viewRows.length === 0) {
-                return []; // No posts found
+            if (!includeRemoved) {
+                query = query.where('isRemoved', false);
             }
 
-            // Chuyển đổi dữ liệu từ view thành đối tượng UserPostDetails
-            return viewRows.map(row => {
-                const postDetails = UserPostDetails.fromDbRow(row);
+            query = query.orderBy(sortBy, order).offset(offset);
 
-                if (!postDetails) {
-                    return null;
-                }
+            if (limit !== null) {
+                query = query.limit(limit);
+            }
 
-                return {
-                    ...postDetails
-                };
-            }).filter(post => post !== null);
+            const viewRows = await query;
+            return viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
+
         } catch (error) {
-            console.error(`(dao)Error fetching home posts:`, error);
-            throw error; // Re-throw the error for upstream handling
+            console.error(`[UserPostDetailsDAO] Error fetching home posts:`, error);
+            throw error;
         }
     }
 
@@ -199,51 +156,34 @@ class UserPostDetailsDAO {
      */
     _prepareQueryOptions(options = {}) {
         const defaults = {
-            sortBy: 'postCreatedAt',
-            order: 'desc',
+            sortBy: 'postCreatedAt', // Default sort column
+            order: 'desc',           // Default sort order
             includeRemoved: false,
             limit: 25,
             offset: 0
         };
         const finalOptions = {...defaults, ...options};
 
-        // --- Parameter validation/sanitization ---
         // Whitelist allowed sort columns from the VIEW
         const allowedSortColumns = ['postCreatedAt', 'voteCount', 'commentCount', 'title', 'authorUsername', 'subtableName'];
         const sortBy = allowedSortColumns.includes(finalOptions.sortBy) ? finalOptions.sortBy : defaults.sortBy;
-        const order = finalOptions.order.toLowerCase() === 'asc' ? 'asc' : 'desc'; // Default to desc
-        const limit = (finalOptions.limit !== null && Number.isInteger(finalOptions.limit) && finalOptions.limit > 0) ? finalOptions.limit : null; // Allow null for no limit
-        const offset = (Number.isInteger(finalOptions.offset) && finalOptions.offset >= 0) ? finalOptions.offset : defaults.offset;
-        const includeRemoved = typeof finalOptions.includeRemoved === 'boolean' ? finalOptions.includeRemoved : defaults.includeRemoved;
 
+        const order = finalOptions.order?.toLowerCase() === 'asc' ? 'asc' : 'desc'; // Default to desc
+
+        // Ensure limit is a positive integer or null
+        const limit = (finalOptions.limit !== null && Number.isInteger(Number(finalOptions.limit)) && Number(finalOptions.limit) > 0)
+            ? Number(finalOptions.limit)
+            : null;
+
+        // Ensure offset is a non-negative integer
+        const offset = (Number.isInteger(Number(finalOptions.offset)) && Number(finalOptions.offset) >= 0)
+            ? Number(finalOptions.offset)
+            : defaults.offset;
+
+        const includeRemoved = typeof finalOptions.includeRemoved === 'boolean' ? finalOptions.includeRemoved : defaults.includeRemoved;
 
         return {sortBy, order, includeRemoved, limit, offset};
     }
-    // async getSubtableDetails(subtableName) {
-        
-    //     if (!subtableName) {
-    //         console.error('getSubtableDetails called with null or undefined subtableName');
-    //         return null;
-    //     }
-    //     try {
-    //         console.log("SubtableDAO", subtableName)
-    //         // console.log("DB_PASSWORD type:", typeof process.env.DB_PASSWORD); 
-    //         // console.log("DB_PASSWORD value:", process.env.DB_PASSWORD);
-
-    //         const viewRow = await postgresInstance('UserPostDetails') // Query the VIEW
-    //             .where({subtableName: subtableName})
-    //         //console.log("viewRow nulll", viewRow)
-            
-    //         if (!viewRow) {
-    //             return null; // Subtable not found
-    //         }
-    //         return viewRow.map(row => UserPostDetails.fromDbRow(row));
-    //     } catch (error) {
-    //         console.error(`Error fetching UserPostDetails by subtableName (${subtableName}):`, error);
-    //         throw error; // Re-throw the error for upstream handling
-    //     }
-    // }
-
 }
 
 export default new UserPostDetailsDAO();

@@ -1,8 +1,6 @@
-// src/controllers/auth.controller.js
-
+// backend/controllers/auth.controller.js
 import authService from '#services/auth.service.js';
 import HTTP_STATUS from '#constants/httpStatus.js';
-// Import custom error types to handle them specifically
 import {
     AuthenticationError,
     BadRequestError,
@@ -11,64 +9,37 @@ import {
     InternalServerError,
     NotFoundError,
     VerificationError
-} from '#errors/AppError.js'; // Adjust path as needed
+} from '#errors/AppError.js';
 
-/**
- * @class AuthController
- * @description Handles HTTP requests related to authentication, registration, etc.
- */
 class AuthController {
     constructor(injectedAuthService) {
-        // Use dependency injection for better testability
         this.authService = injectedAuthService;
     }
 
-    /**
-     * Handles user registration requests.
-     * POST /register
-     */
-    register = async (req, res, next) => {
+    register = async (req, res) => { // Removed 'next' as errors are handled directly
         try {
             const {username, email, password} = req.body;
-            // Basic logging (avoid logging password)
-            console.log('[AuthController.register] Attempting registration for username:', username);
-
-            // Call the service layer - it returns data or throws specific errors
             const data = await this.authService.registerUser({username, email, password});
 
-            // --- Success Response ---
-            // Controller formats the successful response
-            return res.status(HTTP_STATUS.CREATED).json({ // Use 201 Created status
+            return res.status(HTTP_STATUS.CREATED).json({
                 success: true,
                 message: 'Registration successful. Please check your email for a verification code.',
-                data: data, // Send back the user data returned by the service
+                data: data,
             });
-
         } catch (error) {
-            // --- Error Handling ---
-            // Log the error message for debugging
-            console.error("[AuthController.register] Registration Error:", error.message);
-
-            // Map specific service errors to HTTP status codes and responses
+            console.error("[AuthController.register] Error:", error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
             if (error instanceof ConflictError) {
                 return res.status(HTTP_STATUS.CONFLICT).json({success: false, message: error.message});
             }
-            if (error instanceof InternalServerError) {
-                // Log the full stack for internal errors
-                console.error(error.stack || error);
-                // Send a generic message to the client
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: 'Registration failed due to a server error. Please try again later.'
-                });
+            // Let service-originated InternalServerError pass through if it has a specific message
+            if (error instanceof InternalServerError && error.message !== 'An unexpected error occurred during registration.') {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
             }
-
-            // --- Fallback Error Handling ---
-            // Catch any other unexpected errors (not instances of defined AppError subclasses)
-            console.error("[AuthController.register] Unexpected Error:", error.stack || error);
+            // Fallback for other unexpected errors from this controller or truly generic InternalServerErrors from service
+            console.error(error.stack || error); // Log full stack for unexpected
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred during registration.'
@@ -76,80 +47,51 @@ class AuthController {
         }
     }
 
-    /**
-     * Handles user login requests.
-     * POST /login
-     */
-    login = async (req, res, next) => {
+    login = async (req, res) => {
         try {
             const {username, password} = req.body;
-            console.log('[AuthController.login] Attempting login for username:', username);
-
-            // Call the service layer - returns user data or throws specific errors
             const user = await this.authService.login(username, password);
 
-            // --- Session Handling (Controller's responsibility after successful auth) ---
-            console.log('[AuthController.login] Authentication successful for userId:', user.userId);
-            // Store identifier in session (make sure session middleware is configured)
             req.session.userId = user.userId;
-
-            // Explicitly save the session to ensure it's written before responding
-            // Note: Behavior might vary slightly based on session store implementation
             req.session.save((err) => {
                 if (err) {
-                    console.error('[AuthController.login] Critical: Error saving session after login:', err);
-                    // If session cannot be saved, login effectively failed server-side
-                    // Throw an InternalServerError to be caught below
-                    throw new InternalServerError('Failed to establish user session after login.');
+                    console.error('[AuthController.login] Critical: Error saving session:', err);
+                    // This specific internal error originates in the controller
+                    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                        success: false,
+                        message: 'Failed to establish user session after login.'
+                    });
                 }
-
-                console.log('[AuthController.login] Session saved successfully for userId:', user.userId);
-
-                // --- Success Response ---
-                // Controller formats the successful response including user data
                 return res.status(HTTP_STATUS.OK).json({
                     success: true,
-                    message: 'Đăng nhập thành công.', // Login successful (Vietnamese)
-                    user: user, // Send back the (safe) user data from the service
+                    message: 'Đăng nhập thành công.',
+                    user: user,
                 });
             });
-
         } catch (error) {
-            // --- Error Handling ---
-            console.error('[AuthController.login] Error during login process:', error.message);
-
+            console.error('[AuthController.login] Error:', error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
             if (error instanceof AuthenticationError) {
-                // 401 Unauthorized for bad credentials
                 return res.status(HTTP_STATUS.UNAUTHORIZED).json({
                     success: false,
                     message: error.message || 'Tên đăng nhập hoặc mật khẩu không chính xác'
                 });
             }
             if (error instanceof ForbiddenError) {
-                // 403 Forbidden for issues like unverified, banned, suspended
                 return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
             }
-            if (error instanceof NotFoundError) {
-                // This usually indicates data inconsistency found by the service
-                console.error("[AuthController.login] Data Inconsistency Error:", error.message);
+            if (error instanceof NotFoundError) { // Data integrity issue from service
                 return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                     success: false,
                     message: "Login failed due to an internal account configuration issue. Please contact support."
                 });
             }
-            if (error instanceof InternalServerError) {
-                console.error(error.stack || error);
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message || 'Login failed due to a server error.'
-                });
+            if (error instanceof InternalServerError && error.message !== 'An unexpected error occurred during login.') {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
             }
-
-            // --- Fallback Error Handling ---
-            console.error("[AuthController.login] Unexpected Error:", error.stack || error);
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred during login.'
@@ -157,49 +99,27 @@ class AuthController {
         }
     }
 
-    /**
-     * Handles email verification requests.
-     * POST /verify-email
-     */
-    verifyEmail = async (req, res, next) => {
+    verifyEmail = async (req, res) => {
         try {
             const {email, code} = req.body;
-            console.log('[AuthController.verifyEmail] Attempting verification for email:', email);
-
-            // Call the service layer - returns true or throws specific errors
             await this.authService.verifyEmail(email, code);
-
-            // --- Success Response ---
-            // If the service call completes without error, verification was successful (or user already verified)
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                message: 'Email verified successfully.', // Consistent success message
+                message: 'Email verified successfully.',
             });
-
         } catch (error) {
-            // --- Error Handling ---
-            console.error("[AuthController.verifyEmail] Email Verification Error:", error.message);
-
-            if (error instanceof BadRequestError) {
+            console.error("[AuthController.verifyEmail] Error:", error.message);
+            if (error instanceof BadRequestError || error instanceof VerificationError) {
+                // VerificationError (invalid code, expired) is treated as BadRequest from client
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
-            if (error instanceof VerificationError) {
-                // Use 400 Bad Request for invalid/expired codes, as it's often due to user input/timing
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
-            }
-            if (error instanceof NotFoundError) {
+            if (error instanceof NotFoundError) { // e.g. email not found for verification
                 return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
-            if (error instanceof InternalServerError) {
-                console.error(error.stack || error);
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: 'Verification failed due to a server error.'
-                });
+            if (error instanceof InternalServerError && error.message !== 'An unexpected error occurred during email verification.') {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
             }
-
-            // --- Fallback Error Handling ---
-            console.error("[AuthController.verifyEmail] Unexpected Error:", error.stack || error);
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred during email verification.'
@@ -207,65 +127,37 @@ class AuthController {
         }
     }
 
-    /**
-     * Checks if a valid session exists and returns user data.
-     * GET /session
-     */
     checkSession = async (req, res) => {
         try {
-            // --- Session Check (Controller Logic) ---
             if (req.session && req.session.userId) {
                 const {userId} = req.session;
-                console.log('[AuthController.checkSession] Active session found for userId:', userId);
-
-                // Call service to get user data based on session ID
                 const user = await this.authService.loginWithSession(userId);
-
-                // --- Success Response ---
                 return res.status(HTTP_STATUS.OK).json({
                     success: true,
                     message: 'Session is valid.',
-                    user: user, // Send back the user data
+                    user: user,
                 });
-
             } else {
-                // --- No Session Found ---
-                // Use 401 Unauthorized to indicate client needs to authenticate
                 return res.status(HTTP_STATUS.UNAUTHORIZED).json({
                     success: false,
                     message: 'No active session found. Please log in.'
                 });
             }
         } catch (error) {
-            // --- Error Handling (from authService.loginWithSession) ---
-            console.error('[AuthController.checkSession] Error during session check:', error.message);
-
-            if (error instanceof NotFoundError) {
-                // User ID from session is invalid/stale
-                console.warn(`[AuthController.checkSession] User not found for stale session userId: ${req.session?.userId}`);
-                // Treat as unauthorized because the session is invalid
+            console.error('[AuthController.checkSession] Error:', error.message);
+            if (error instanceof NotFoundError) { // User from session no longer exists
                 return res.status(HTTP_STATUS.UNAUTHORIZED).json({
                     success: false,
                     message: 'Invalid session. Please log in again.'
                 });
             }
-            if (error instanceof ForbiddenError) { // If service checks status on session check
-                console.warn(`[AuthController.checkSession] Forbidden access for session userId: ${req.session?.userId}, Reason: ${error.message}`);
+            if (error instanceof ForbiddenError) {
                 return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
             }
-            if (error instanceof BadRequestError) { // Should not happen if session ID check is done first
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            if (error instanceof InternalServerError && error.message !== 'An unexpected error occurred during session check.') {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
             }
-            if (error instanceof InternalServerError) {
-                console.error(error.stack || error);
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: 'Session check failed due to a server error.'
-                });
-            }
-
-            // --- Fallback Error Handling ---
-            console.error("[AuthController.checkSession] Unexpected Error:", error.stack || error);
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred during session check.'
@@ -273,19 +165,20 @@ class AuthController {
         }
     }
 
-    /**
-     * Handles user logout requests.
-     * POST /logout
-     */
     logout = async (req, res) => {
-        // Session destruction is primarily a controller/framework concern
         if (req.session) {
-            const userId = req.session.userId; // Log who is logging out for audit/debug purposes
+            const {userId} = req.session; // Log who is logging out
             console.log(`[AuthController.logout] Attempting to destroy session for userId: ${userId || 'N/A'}`);
+
+            // --- Capture cookie details BEFORE destroying the session ---
+            const sessionCookie = req.session.cookie;
+            const sessionCookieName = req.app.get('trust proxy') && req.sessionOptions?.name
+                ? req.sessionOptions.name
+                : (sessionCookie?.name || 'connect.sid'); // Default to 'connect.sid'
+            const sessionCookiePath = sessionCookie?.path || '/'; // Default path to '/'
 
             req.session.destroy((err) => {
                 if (err) {
-                    // This is serious if session destruction fails
                     console.error(`[AuthController.logout] Error destroying session for userId ${userId || 'N/A'}:`, err);
                     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                         success: false,
@@ -296,20 +189,16 @@ class AuthController {
                 console.log(`[AuthController.logout] Session destroyed successfully for userId: ${userId || 'N/A'}.`);
 
                 // --- Success Response ---
-                // Also clear the session cookie on the client side
-                // Ensure 'connect.sid' matches your session cookie name (it's the default for express-session)
-                const sessionCookieName = req.app.get('trust proxy') ? (req.sessionOptions?.name || 'connect.sid') : (req.session.cookie?.name || 'connect.sid'); // More robust way to get cookie name
-                res.clearCookie(sessionCookieName, {path: req.session.cookie?.path || '/'}); // Use path from cookie options if available
+                // Clear the session cookie on the client side using the captured details
+                res.clearCookie(sessionCookieName, {path: sessionCookiePath});
 
                 return res.status(HTTP_STATUS.OK).json({success: true, message: 'Logout successful.'});
             });
         } else {
-            // No session existed to destroy
             console.log('[AuthController.logout] No active session found to log out.');
-            return res.status(HTTP_STATUS.OK).json({success: true, message: 'You are already logged out.'}); // Or simply OK status
+            return res.status(HTTP_STATUS.OK).json({success: true, message: 'You are already logged out.'});
         }
     }
 }
 
-// Export an instance, injecting the authService dependency
 export default new AuthController(authService);

@@ -1,13 +1,17 @@
-// backend/routes/notification.routes.js (NEW FILE)
-
+// backend/routes/notification.routes.js
 import express from 'express';
 import NotificationController from '#controllers/notification.controller.js';
 import {isAuthenticated} from '#middlewares/auth.mdw.js';
 
 const router = express.Router();
 
-router.get('/', isAuthenticated, NotificationController.getUserNotifications);
-router.get('/count', isAuthenticated, NotificationController.getUnreadNotificationCount);
-router.post('/:notificationId/read', isAuthenticated, NotificationController.markNotificationAsRead);
+// Apply isAuthenticated to all routes in this file
+router.use(isAuthenticated);
+
+// Define routes
+router.get('/', NotificationController.getUserNotifications);
+router.get('/count', NotificationController.getUnreadNotificationCount);
+router.post('/:notificationId/read', NotificationController.markNotificationAsRead);
+
 
 export default router;

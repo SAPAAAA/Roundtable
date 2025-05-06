@@ -9,6 +9,10 @@ import UserProfile from '#models/user-profile.model.js'; // Import the UserProfi
  * Provides methods to fetch combined user account and profile data.
  */
 class UserProfileDAO {
+    constructor() {
+        // Name of your database VIEW
+        this.viewName = 'UserProfile'; // IMPORTANT: Replace with your actual VIEW name
+    }
 
     /**
      * Fetches a user profile by their RegisteredUser ID.
@@ -18,27 +22,18 @@ class UserProfileDAO {
      */
     async getByUserId(userId) {
         if (!userId) {
-            console.error('getByUserId called with null or undefined userId');
             return null;
         }
         try {
-            // Query the 'UserProfile' VIEW using the userId column
-            const profileRow = await postgresInstance('UserProfile') // Use the VIEW name
-                .where({userId: userId}) // Filter by userId
-                .first(); // Expecting one or zero results
-
-            if (!profileRow) {
-                return null; // User profile not found for this userId
-            }
-            // Convert the database row to a UserProfile model instance
-            return UserProfile.fromDbRow(profileRow);
+            const profileRow = await postgresInstance(this.viewName)
+                .where({userId: userId}) // Assuming 'userId' is a column in your VIEW from RegisteredUser.userId
+                .first();
+            return profileRow ? UserProfile.fromDbRow(profileRow) : null;
         } catch (error) {
-            console.error(`Error fetching user profile by userId (${userId}):`, error);
-            // Re-throw the error to be handled by the caller
+            console.error(`[UserProfileDAO] Error fetching user profile by userId (${userId}):`, error);
             throw error;
         }
     }
-
     /**
      * Fetches a user profile by their username.
      * Note: Usernames should be unique based on the Account schema.
@@ -47,26 +42,17 @@ class UserProfileDAO {
      * @throws {Error} Throws an error if the database query fails.
      */
     async getByUsername(username) {
-        if (!username) {
-            console.error('getByUsername called with null or undefined username');
-            return null;
-        }
+        if (!username) return null;
         try {
-            // Query the 'UserProfile' VIEW using the username column
-            const profileRow = await postgresInstance('UserProfile')
-                .where({username: username}) // Filter by username
+            const profileRow = await postgresInstance(this.viewName)
+                .where({username: username}) // Assuming 'username' is a column in your VIEW from Account.username
                 .first();
-
-            if (!profileRow) {
-                return null; // User profile not found for this username
-            }
-            return UserProfile.fromDbRow(profileRow);
+            return profileRow ? UserProfile.fromDbRow(profileRow) : null;
         } catch (error) {
-            console.error(`Error fetching user profile by username (${username}):`, error);
+            console.error(`[UserProfileDAO] Error fetching user profile by username (${username}):`, error);
             throw error;
         }
     }
-
     /**
      * Fetches a user profile by their principalId.
      * @param {string} principalId - The principalId string.
@@ -75,25 +61,18 @@ class UserProfileDAO {
      */
     async getByPrincipalId(principalId) {
         if (!principalId) {
-            console.error('getByPrincipalId called with null or undefined principalId');
             return null;
         }
         try {
-            // Query the 'UserProfile' VIEW using the principalId column
-            const profileRow = await postgresInstance('UserProfile')
-                .where({principalId: principalId}) // Filter by principalId
+            const profileRow = await postgresInstance(this.viewName)
+                .where({principalId: principalId}) // Assuming 'principalId' is in your VIEW from Principal.principalId
                 .first();
-
-            if (!profileRow) {
-                return null; // User profile not found for this principalId
-            }
-            return UserProfile.fromDbRow(profileRow);
+            return profileRow ? UserProfile.fromDbRow(profileRow) : null;
         } catch (error) {
-            console.error(`Error fetching user profile by principalId (${principalId}):`, error);
+            console.error(`[UserProfileDAO] Error fetching user profile by principalId (${principalId}):`, error);
             throw error;
         }
     }
 }
 
-// Export a singleton instance of the DAO
 export default new UserProfileDAO();

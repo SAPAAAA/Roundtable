@@ -1,15 +1,15 @@
-// services/subtable.service.js
+// backend/services/subtable.service.js
 import UserPostDetailsDAO from '#daos/user-post-details.dao.js';
-import UserProfileDAO from '#daos/user-profile.dao.js'; // Assuming this DAO exists and has getByUserId
+import UserProfileDAO from '#daos/user-profile.dao.js';
 import SubtableDAO from '#daos/subtable.dao.js';
-import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js";
+import {AppError, BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
 class SubtableService {
     /**
      * Constructor for SubtableService.
-     * @param {object} subtableDao - Data Access Object for subtables.
-     * @param {object} userPostDetailsDao - DAO for the user_post_details view/query.
-     * @param {object} userProfileDao - DAO for user profiles.
+     * @param {SubtableDAO} subtableDao - Data Access Object for subtables.
+     * @param {UserPostDetailsDAO} userPostDetailsDao - DAO for the user_post_details view/query.
+     * @param {UserProfileDAO} userProfileDao - DAO for user profiles.
      */
     constructor(subtableDao, userPostDetailsDao, userProfileDao) {
         this.subtableDao = subtableDao;
@@ -20,34 +20,33 @@ class SubtableService {
     /**
      * Retrieves all posts belonging to a specific subtable.
      * @param {string} subtableName - The name of the subtable.
-     * @returns {Promise<Array<object>>} A promise that resolves to an array of post details.
+     * @returns {Promise<Array<UserPostDetails>>} A promise that resolves to an array of post details.
      * @throws {BadRequestError} If subtableName is not provided.
      * @throws {NotFoundError} If the subtable does not exist.
      * @throws {InternalServerError} For unexpected errors during data retrieval.
      */
     async getSubtablePosts(subtableName) {
-        if (!subtableName) {
-            throw new BadRequestError("Subtable name is required to fetch posts.");
+        if (!subtableName || typeof subtableName !== 'string' || subtableName.trim() === '') {
+            throw new BadRequestError("Subtable name is required and must be a non-empty string.");
         }
+
         try {
             // Fetch subtable details first to get the ID
-            const subtable = await this.subtableDao.getByName(subtableName);
+            const subtable = await this.subtableDao.getByName(subtableName.trim());
             if (!subtable) {
-                // Throw specific error if subtable not found
                 throw new NotFoundError(`Subtable '${subtableName}' not found.`);
             }
 
-            // Fetch posts using the subtable ID
-            const posts = await this.userPostDetailsDao.getBySubtableId(subtable.subtableId);
-            return posts;
+            // Fetch posts using the subtable ID from the UserPostDetails view
+            return await this.userPostDetailsDao.getBySubtableId(subtable.subtableId);
 
         } catch (error) {
-            // If it's already a known AppError, re-throw it
-            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+            // Re-throw known application errors
+            if (error instanceof AppError) {
                 throw error;
             }
-            // Otherwise, wrap unexpected errors
-            console.error(`Error fetching posts for subtable ${subtableName}:`, error);
+            // Wrap unexpected DAO/database errors
+            console.error(`[SubtableService:getSubtablePosts] Error for ${subtableName}:`, error);
             throw new InternalServerError("An error occurred while fetching subtable posts.");
         }
     }
@@ -55,30 +54,28 @@ class SubtableService {
     /**
      * Retrieves the details of a specific subtable.
      * @param {string} subtableName - The name of the subtable.
-     * @returns {Promise<object>} A promise that resolves to the subtable details object.
+     * @returns {Promise<Subtable>} A promise that resolves to the subtable details object.
      * @throws {BadRequestError} If subtableName is not provided.
      * @throws {NotFoundError} If the subtable does not exist.
      * @throws {InternalServerError} For unexpected errors during data retrieval.
      */
     async getSubtableDetails(subtableName) {
-        if (!subtableName) {
-            throw new BadRequestError("Subtable name is required to fetch details.");
+        if (!subtableName || typeof subtableName !== 'string' || subtableName.trim() === '') {
+            throw new BadRequestError("Subtable name is required and must be a non-empty string.");
         }
+
         try {
-            const subtable = await this.subtableDao.getByName(subtableName);
+            const subtable = await this.subtableDao.getByName(subtableName.trim());
             if (!subtable) {
-                // Throw specific error if subtable not found
                 throw new NotFoundError(`Subtable '${subtableName}' not found.`);
             }
-            return subtable;
+            return subtable; // Return the Subtable model instance
 
         } catch (error) {
-            // If it's already a known AppError, re-throw it
-            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+            if (error instanceof AppError) {
                 throw error;
             }
-            // Otherwise, wrap unexpected errors
-            console.error(`Error fetching details for subtable ${subtableName}:`, error);
+            console.error(`[SubtableService:getSubtableDetails] Error for ${subtableName}:`, error);
             throw new InternalServerError("An error occurred while fetching subtable details.");
         }
     }
@@ -86,7 +83,7 @@ class SubtableService {
     /**
      * Retrieves the list of subtables a user is subscribed to.
      * @param {string} userId - The ID of the user.
-     * @returns {Promise<Array<object>>} A promise that resolves to an array of subscribed subtable details.
+     * @returns {Promise<Array<Subtable>>} A promise that resolves to an array of subscribed subtable details.
      * @throws {BadRequestError} If userId is not provided.
      * @throws {NotFoundError} If the user does not exist.
      * @throws {InternalServerError} For unexpected errors during data retrieval.
@@ -97,28 +94,46 @@ class SubtableService {
         }
 
         try {
-            // Check if user exists using UserProfileDAO
-            const userExists = await this.userProfileDao.getByUserId(userId); // Ensure this method exists
+            // Optional: Check if user exists first using UserProfileDAO for a clearer NotFoundError
+            const userExists = await this.userProfileDao.getByUserId(userId);
             if (!userExists) {
+                // Throw specific error if the user initiating the request doesn't exist
                 throw new NotFoundError(`User with ID '${userId}' not found.`);
             }
 
-            // Fetch subscribed subtables using SubtableDAO
-            const subtables = await this.subtableDao.getSubscribedSubtables(userId); // Ensure this method exists
-            return subtables;
+            // Fetch subscribed subtables using SubtableDAO's dedicated method
+            return await this.subtableDao.getSubscribedSubtables(userId);
 
         } catch (error) {
-            // If it's already a known AppError, re-throw it
-            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+            if (error instanceof AppError) {
                 throw error;
             }
-            // Otherwise, wrap unexpected errors
-            console.error(`Error fetching subscribed subtables for user ${userId}:`, error);
+            console.error(`[SubtableService:getSubscribedSubtables] Error for userId ${userId}:`, error);
             throw new InternalServerError("An error occurred while fetching subscribed subtables.");
         }
     }
+
+    /**
+     * Creates a new subtable.
+     * @param {string} creatorUserId - The ID of the user creating the subtable.
+     * @param {object} subtableData - Data for the new subtable { name, description, icon, banner }.
+     * @returns {Promise<Subtable>} The newly created subtable.
+     * @throws {BadRequestError} For invalid input.
+     * @throws {NotFoundError} If creator user doesn't exist.
+     * @throws {ConflictError} If subtable name is taken.
+     * @throws {InternalServerError} For database errors.
+     */
+    // async createSubtable(creatorUserId, subtableData) {
+    //    // 1. Validate creatorUserId and subtableData (name required, etc.)
+    //    // 2. Check if creator user exists (using userProfileDao) -> NotFoundError
+    //    // 3. Create Subtable model instance
+    //    // 4. Call subtableDao.create (handles ConflictError for name)
+    //    // 5. Handle potential InternalServerError from DAO
+    //    // 6. Return created subtable
+    // }
 }
 
+// Inject dependencies when creating the instance
 export default new SubtableService(
     SubtableDAO,
     UserPostDetailsDAO,

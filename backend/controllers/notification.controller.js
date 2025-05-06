@@ -1,51 +1,55 @@
+// backend/controllers/notification.controller.js
 import HTTP_STATUS from "#constants/httpStatus.js";
 import notificationService from "#services/notification.service.js";
-import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js";
+import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
 class NotificationController {
-    constructor(notificationService) {
-        this.notificationService = notificationService;
+    /**
+     * @param {NotificationService} injectedNotificationService
+     */
+    constructor(injectedNotificationService) {
+        this.notificationService = injectedNotificationService;
     }
 
-    getUserNotifications = async (req, res, next) => {
-        const {userId} = req.session;
+    /**
+     * Handles GET /notifications
+     * Retrieves notifications for the authenticated user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    getUserNotifications = async (req, res) => {
+        const {userId} = req.session; // Assumes isAuthenticated middleware ran
 
-        // Parse query parameters for pagination/filtering (optional)
-        const {limit = 25, offset = 0, isRead} = req.query;
+        // Sanitize query parameters (Service layer now handles defaults and parsing)
         const options = {
-            limit: parseInt(limit, 10) || 25,
-            offset: parseInt(offset, 10) || 0,
-            isRead: isRead === undefined ? undefined : isRead === 'true',
+            limit: req.query.limit,
+            offset: req.query.offset,
+            isRead: req.query.isRead, // Pass raw value, service validates/parses
         };
 
-
+        // Redundant check if middleware is used, but safe
         if (!userId) {
-            // This shouldn't happen if isAuthenticated middleware is used, but belt-and-suspenders
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-                success: false,
-                message: 'Authentication required.'
-            });
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
 
         try {
-            console.log(`[NotificationController] Fetching notifications for userId: ${userId} with options:`, options);
             const result = await this.notificationService.getNotificationsForUser(userId, options);
 
-            res.status(HTTP_STATUS.OK).json({
+            return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: result,
+                data: result, // Contains { notifications: [], totalCount: number }
             });
 
         } catch (error) {
-            console.error(`[NotificationController] Error fetching notifications for userId ${userId}:`, error);
-            // Pass error to central error handler if you have one, or handle here
-            if (error instanceof InternalServerError) {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message || 'Failed to fetch notifications.'
-                });
+            console.error(`[NotificationController:getUserNotifications] Error for userId ${userId}:`, error.message);
+            if (error instanceof BadRequestError) { // e.g., invalid query params from service validation
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
-            // Fallback for other unexpected errors
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            // Fallback for unexpected errors
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred while fetching notifications.'
@@ -53,80 +57,111 @@ class NotificationController {
         }
     }
 
-    getUnreadNotificationCount = async (req, res, next) => {
+    /**
+     * Handles GET /notifications/count
+     * Retrieves the count of unread notifications for the authenticated user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    getUnreadNotificationCount = async (req, res) => {
         const {userId} = req.session;
 
         if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-                success: false,
-                message: 'Authentication required.'
-            });
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
 
         try {
-            console.log(`[NotificationController] Fetching unread count for userId: ${userId}`);
             const count = await this.notificationService.getUnreadCountForUser(userId);
 
-            res.status(HTTP_STATUS.OK).json({
+            return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: {
-                    unreadCount: count,
-                },
+                data: {unreadCount: count},
             });
 
         } catch (error) {
-            console.error(`[NotificationController] Error fetching unread count for userId ${userId}:`, error);
-            // Use appropriate error status codes
-            const statusCode = error instanceof BadRequestError
-                ? HTTP_STATUS.BAD_REQUEST
-                : HTTP_STATUS.INTERNAL_SERVER_ERROR;
-
-            return res.status(statusCode).json({
+            console.error(`[NotificationController:getUnreadNotificationCount] Error for userId ${userId}:`, error.message);
+            if (error instanceof BadRequestError) { // Should not happen if userId is from session
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                message: error.message || 'Failed to fetch unread notification count.'
+                message: 'An unexpected error occurred while fetching unread notification count.'
             });
         }
     }
 
-    markNotificationAsRead = async (req, res, next) => {
+    /**
+     * Handles POST /notifications/:notificationId/read
+     * Marks a specific notification as read for the authenticated user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    markNotificationAsRead = async (req, res) => {
         const {userId} = req.session;
         const {notificationId} = req.params;
 
         if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-                success: false,
-                message: 'Authentication required.'
-            });
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
+        // Basic check for notificationId presence, service does more validation
         if (!notificationId) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                success: false,
-                message: 'Notification ID is required.'
-            });
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Notification ID is required.'});
         }
 
         try {
-            console.log(`[NotificationController] Marking notification ${notificationId} as read for userId: ${userId}`);
             await this.notificationService.markNotificationAsRead(userId, notificationId);
 
-            res.status(HTTP_STATUS.OK).json({
+            return res.status(HTTP_STATUS.OK).json({
                 success: true,
                 message: 'Notification marked as read.',
             });
 
         } catch (error) {
-            console.error(`[NotificationController] Error marking notification ${notificationId} as read for userId ${userId}:`, error);
-            const statusCode = error instanceof NotFoundError
-                ? HTTP_STATUS.NOT_FOUND
-                : HTTP_STATUS.INTERNAL_SERVER_ERROR;
-
-            return res.status(statusCode).json({
+            console.error(`[NotificationController:markNotificationAsRead] Error for user ${userId}, notification ${notificationId}:`, error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof ForbiddenError) {
+                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                message: error.message || 'Failed to mark notification as read.'
+                message: 'An unexpected error occurred while marking the notification as read.'
             });
-
         }
     }
+
+    /**
+     * Handles POST /notifications/read-all (Example Route)
+     * Marks all unread notifications as read for the authenticated user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    // markAllNotificationsAsRead = async (req, res) => {
+    //     const { userId } = req.session;
+    //     if (!userId) { /* Unauthorized */ }
+    //     try {
+    //         const count = await this.notificationService.markAllNotificationsAsRead(userId);
+    //         return res.status(HTTP_STATUS.OK).json({
+    //             success: true,
+    //             message: `${count} notifications marked as read.`,
+    //             data: { count }
+    //         });
+    //     } catch (error) {
+    //         // Handle BadRequestError, InternalServerError
+    //     }
+    // }
 }
 
-export default new NotificationController(notificationService);
+export default new NotificationController(notificationService); // Inject service

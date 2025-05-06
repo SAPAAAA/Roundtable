@@ -1,88 +1,161 @@
-// src/controllers/post.controller.js
-
+// backend/controllers/post.controller.js
 import postService from '#services/post.service.js';
-import voteService from "#services/vote.service.js";
+import voteService from "#services/vote.service.js"; // Ensure voteService is imported and injected
 import HTTP_STATUS from '#constants/httpStatus.js';
-// Assuming custom errors are defined and exported from '#errors/AppError.js'
-// We rely on a downstream centralized error handler to catch these.
+import {BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
 
 class PostController {
-    constructor(postService, voteService) {
-        this.postService = postService;
-        this.voteService = voteService;
+    /**
+     * Constructor for PostController.
+     * @param {PostService} injectedPostService - Service for post operations.
+     * @param {VoteService} injectedVoteService - Service for vote operations.
+     */
+    constructor(injectedPostService, injectedVoteService) {
+        this.postService = injectedPostService;
+        this.voteService = injectedVoteService; // Make sure VoteService is injected
     }
 
     /**
-     * Handles GET /s/:subtableName/comments/:postId
+     * Handles GET /posts/:postId
      * Retrieves and returns post details as JSON.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
      */
-    getPostDetails = async (req, res, next) => {
+    getPostDetails = async (req, res) => {
         try {
             const {postId} = req.params;
+            // userId can be null if user is not logged in, service handles this
             const {userId} = req.session;
 
-            // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
             const viewData = await this.postService.getPostDetails(postId, userId);
-
-            // --- Success Response ---
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: viewData // Send the data returned by the service
+                data: viewData
             });
-
         } catch (error) {
-            // --- Error Handling ---
-            // Log the error message at controller level for context
-            console.error(`[PostController.getPostDetails] Error fetching details for postId ${req.params?.postId}:`, error.message);
-            // Pass the error (BadRequestError, NotFoundError, InternalServerError, etc.)
-            next(error);
+            console.error(`[PostController:getPostDetails] Error for postId ${req.params?.postId}:`, error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while fetching post details.'
+            });
         }
     };
 
-    castVote = async (req, res, next) => {
+    /**
+     * Handles POST /posts/
+     * Creates a new post. Requires authentication.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    createPost = async (req, res) => {
+        try {
+            const {subtableId, title, body} = req.body;
+            const {userId} = req.session; // Assuming isAuthenticated middleware ran
+
+            // Redundant check if middleware is used, but safe
+            if (!userId) {
+                return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
+            }
+
+            const newPost = await this.postService.createPost(userId, {subtableId, title, body});
+            return res.status(HTTP_STATUS.CREATED).json({
+                success: true,
+                message: 'Post created successfully.',
+                data: newPost
+            });
+        } catch (error) {
+            console.error(`[PostController:createPost] Error:`, error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) { // e.g., subtable or authorUser not found
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof ForbiddenError) { // e.g., user not subscribed
+                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while creating the post.'
+            });
+        }
+    };
+
+    /**
+     * Handles POST /posts/:postId/vote
+     * Casts, updates, or removes a vote on a specific post. Requires authentication.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    castVote = async (req, res) => {
         try {
             const {postId} = req.params;
             const {voteType} = req.body;
-            const {userId} = req.session;
+            const {userId} = req.session; // Assuming isAuthenticated ran
 
-            console.log(`[PostController.castVote] Processing vote for postId: ${postId}, voteType: ${voteType}`);
+            if (!userId) {
+                return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
+            }
 
-            const result = await this.voteService.createVote(userId, postId, null, voteType);
+            // Call the refactored service method
+            // Pass null for commentId when voting on a post
+            const result = await this.voteService.castVote(userId, postId, null, voteType);
 
+            // Determine HTTP status based on the action taken by the service
+            let responseStatus;
+            switch (result.status) {
+                case 'created':
+                    responseStatus = HTTP_STATUS.CREATED;
+                    break;
+                case 'updated':
+                case 'deleted': // Even if deleted, the request was successful (OK)
+                    responseStatus = HTTP_STATUS.OK;
+                    break;
+                default: // Should not happen, but default to OK
+                    responseStatus = HTTP_STATUS.OK;
+            }
 
-            // --- Success Response ---
-            return res.status(HTTP_STATUS.OK).json({
+            return res.status(responseStatus).json({
                 success: true,
-                data: result // Send the result of the vote casting
+                message: result.message,
+                data: {vote: result.vote} // vote is the created/updated vote object, or null if deleted
             });
-
         } catch (error) {
-            // --- Error Handling ---
-            console.error(`[PostController.castVote] Error casting vote for postId ${req.params?.postId}:`, error.message);
-            next(error);
+            console.error(`[PostController:castVote] Error for postId ${req.params?.postId}:`, error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) { // e.g., post not found
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof ConflictError) { // Should be rare if logic is correct, but possible from DB
+                return res.status(HTTP_STATUS.CONFLICT).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while casting the vote.'
+            });
         }
     }
-    createPost = async (req, res, next) => {
-        try {
-            const {subtableId, title, body} = req.body;
-            const {userId} = req.session;
-
-            // Returns data on success or throws specific errors (BadRequest, NotFound, InternalServer) on failure.
-            const newPost = await this.postService.createPost(userId, {subtableId, title, body});
-
-            // --- Success Response ---
-            return res.status(HTTP_STATUS.CREATED).json({
-                success: true,
-                data: newPost // Send the newly created post data
-            });
-
-        } catch (error) {
-            // --- Error Handling ---
-            //console.error(`[PostController.createPost] Error creating post in subtable ${req.params?.subtableName}:`, error.message);
-            next(error);
-        }
-    };
 }
 
-// Export an instance, injecting the service dependency
+// Ensure VoteService is injected correctly here
 export default new PostController(postService, voteService);

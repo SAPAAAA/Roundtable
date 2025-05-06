@@ -1,73 +1,65 @@
+// backend/daos/registered-user.dao.js
 import {postgresInstance} from '#db/postgres.js';
 import RegisteredUser from '#models/registered-user.model.js';
 
 class RegisteredUserDAO {
-    async create(registeredUser, trx) {
-        const queryBuilder = trx || postgresInstance;
+    constructor() {
+        this.tableName = 'RegisteredUser';
+    }
 
+    async getById(userId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        try {
+            const userRow = await queryBuilder(this.tableName).where({userId}).first();
+            return userRow ? RegisteredUser.fromDbRow(userRow) : null;
+        } catch (error) {
+            console.error(`[RegisteredUserDAO] Error fetching user by ID ${userId}:`, error);
+            throw error;
+        }
+    }
+
+    async getByPrincipalId(principalId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        try {
+            // Ensure the column name here matches your database schema (e.g., principalId or principal_id)
+            const userRow = await queryBuilder(this.tableName).where({principalId: principalId}).first();
+            return userRow ? RegisteredUser.fromDbRow(userRow) : null;
+        } catch (error) {
+            console.error(`[RegisteredUserDAO] Error fetching user by Principal ID ${principalId}:`, error);
+            throw error;
+        }
+    }
+
+    async create(registeredUser, trx = null) {
+        const queryBuilder = trx || postgresInstance;
         const {userId, ...insertData} = registeredUser;
         try {
-            // Pass the cleaned 'insertData' to Knex insert
-            const insertedRows = await queryBuilder('RegisteredUser').insert(insertData).returning('*');
-
-            // Check if we got an array and it's not empty
-            if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                console.error('RegisteredUser creation failed or did not return expected data.', insertedRows);
-                throw new Error('PostgresDB error during RegisteredUser creation: No data returned.');
+            const insertedRows = await queryBuilder(this.tableName).insert(insertData).returning('*');
+            if (!insertedRows || insertedRows.length === 0) {
+                throw new Error('RegisteredUser creation in DAO failed: No data returned.');
             }
-            // Use the first element (which includes the DB-generated userId and defaults)
             return RegisteredUser.fromDbRow(insertedRows[0]);
         } catch (error) {
-            console.error('Error creating registered user:', error);
-            // Re-throw the original error
+            console.error('[RegisteredUserDAO] Error creating registered user:', error);
             throw error;
         }
     }
 
-    async getByPrincipalId(principalId) {
-        try {
-            const registeredUserRow = await postgresInstance('RegisteredUser').where({principalId}).first();
-            if (!registeredUserRow) {
-                return null;
-            }
-            return RegisteredUser.fromDbRow(registeredUserRow);
-        } catch (error) {
-            console.error('Error fetching registered user:', error);
-            throw error;
-        }
-    }
-
-    async getById(userId) {
-        try {
-            const registeredUserRow = await postgresInstance('RegisteredUser').where({userId}).first();
-            if (!registeredUserRow) {
-                return null;
-            }
-            return RegisteredUser.fromDbRow(registeredUserRow);
-        } catch (error) {
-            console.error('Error fetching registered user:', error);
-            throw error;
-        }
-    }
-
-    async delete(userId, trx) {
+    async update(userId, updateData, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            const affectedRows = await queryBuilder('RegisteredUser').where({userId}).del();
-            return affectedRows > 0;
-        } catch (error) {
-            console.error('Error deleting registered user:', error);
-            throw error;
-        }
-    }
+            // Ensure only allowed fields are updated, e.g., isVerified, status, karma, lastActive
+            const {principalId, ...allowedUpdates} = updateData;
 
-    async update(userId, updatedData, trx) {
-        const queryBuilder = trx || postgresInstance;
-        try {
-            const affectedRows = await queryBuilder('RegisteredUser').where({userId}).update(updatedData);
-            return affectedRows > 0;
+            if (Object.keys(allowedUpdates).length === 0) {
+                return 0; // No fields to update
+            }
+
+            return await queryBuilder(this.tableName)
+                .where({userId})
+                .update(allowedUpdates); // Returns number of rows affected
         } catch (error) {
-            console.error('Error updating registered user:', error);
+            console.error(`[RegisteredUserDAO] Error updating registered user ${userId}:`, error);
             throw error;
         }
     }

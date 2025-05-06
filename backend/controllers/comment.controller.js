@@ -1,92 +1,176 @@
+// backend/controllers/comment.controller.js
 import commentService from '#services/comment.service.js';
 import voteService from '#services/vote.service.js';
-import notificationService from '#services/notification.service.js';
-
+import notificationService from '#services/notification.service.js'; // Keep import
+import HTTP_STATUS from '#constants/httpStatus.js';
+import {BadRequestError, ConflictError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
 class CommentController {
-    constructor(commentService, voteService, notificationService) {
-        this.commentService = commentService;
-        this.voteService = voteService;
-        this.notificationService = notificationService;
+    /**
+     * Constructor for CommentController.
+     * @param {CommentService} injectedCommentService - Service for comment operations.
+     * @param {VoteService} injectedVoteService - Service for vote operations.
+     * @param {NotificationService} injectedNotificationService - Service for notification operations.
+     */
+    constructor(injectedCommentService, injectedVoteService, injectedNotificationService) {
+        this.commentService = injectedCommentService;
+        this.voteService = injectedVoteService;
+        this.notificationService = injectedNotificationService;
     }
 
+    /**
+     * Handles POST /posts/:postId/comments
+     * Adds a top-level comment to a post.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
     addComment = async (req, res) => {
         try {
             const {postId} = req.params;
             const {body} = req.body;
             const {userId} = req.session;
-            console.log("Comment Data:", req.body);
-            console.log("Post ID:", postId);
-            console.log("User ID:", userId);
+
             const newComment = await this.commentService.createComment(postId, userId, body);
-            if (!newComment) {
-                return res.status(400).json({error: 'Failed to create comment'});
+
+            // Trigger notification using the correct service method name
+            try {
+                // *** CHANGE HERE: Use notifyNewCommentOrReply ***
+                await this.notificationService.notifyNewCommentOrReply(newComment, userId);
+            } catch (notificationError) {
+                console.error(`[CommentController:addComment] Notification failed for comment ${newComment.commentId}:`, notificationError);
             }
-            await this.notificationService.notifyNewComment(newComment, userId);
-            res.status(201).json({
-                message: 'Comment created successfully',
-                data: {
-                    comment: {...newComment},
-                },
+
+            return res.status(HTTP_STATUS.CREATED).json({
                 success: true,
+                message: 'Comment created successfully',
+                data: {comment: newComment},
             });
         } catch (error) {
-            res.status(500).json({error: 'Failed to create comment'});
-            console.error("Error creating comment:", error);
+            console.error(`[CommentController:addComment] Error for postId ${req.params?.postId}:`, error.message);
+            // ... (error handling as before) ...
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while adding the comment.'
+            });
         }
     }
 
+    /**
+     * Handles POST /comments/:commentId/replies
+     * Adds a reply to an existing comment.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
     replyToComment = async (req, res) => {
         try {
-            const {commentId} = req.params;
+            const {commentId} = req.params; // Parent comment ID
             const {body} = req.body;
             const {userId} = req.session;
-            console.log("Reply Data:", req.body);
-            console.log("Parent ID:", commentId);
-            console.log("User ID:", userId);
+
             const newReply = await this.commentService.createReply(commentId, userId, body);
-            await this.notificationService.notifyNewComment(newReply, userId);
-            if (!newReply) {
-                return res.status(400).json({error: 'Failed to create reply'});
+
+            // Trigger notification using the correct service method name
+            try {
+                // *** CHANGE HERE: Use notifyNewCommentOrReply ***
+                await this.notificationService.notifyNewCommentOrReply(newReply, userId);
+            } catch (notificationError) {
+                console.error(`[CommentController:replyToComment] Notification failed for reply ${newReply.commentId}:`, notificationError);
             }
-            res.status(201).json({
-                message: 'Reply created successfully',
-                data: {
-                    comment: {...newReply},
-                },
+
+            return res.status(HTTP_STATUS.CREATED).json({
                 success: true,
+                message: 'Reply created successfully',
+                data: {comment: newReply},
             });
         } catch (error) {
-            res.status(500).json({error: 'Failed to create reply'});
-            console.error("Error creating reply:", error);
+            console.error(`[CommentController:replyToComment] Error for parent commentId ${req.params?.commentId}:`, error.message);
+            // ... (error handling as before) ...
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while creating the reply.'
+            });
         }
     }
 
+    /**
+     * Handles POST /comments/:commentId/vote
+     * Casts, updates, or removes a vote on a specific comment. Requires authentication.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
     castVote = async (req, res) => {
         try {
             const {commentId} = req.params;
             const {voteType} = req.body;
             const {userId} = req.session;
-            console.log("Vote Data:", req.body);
-            console.log("Comment ID:", commentId);
-            console.log("User ID:", userId);
-            const result = await this.voteService.createVote(userId, null, commentId, voteType);
 
-            if (!result) {
-                return res.status(400).json({error: 'Failed to cast vote'});
+            if (!userId) {
+                return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
             }
-            res.status(201).json({
-                message: result.message,
-                data: {
-                    vote: result.vote,
-                },
+
+            const result = await this.voteService.castVote(userId, null, commentId, voteType);
+
+            let responseStatus;
+            switch (result.status) {
+                case 'created':
+                    responseStatus = HTTP_STATUS.CREATED;
+                    break;
+                case 'updated':
+                case 'deleted':
+                    responseStatus = HTTP_STATUS.OK;
+                    break;
+                default:
+                    responseStatus = HTTP_STATUS.OK;
+            }
+
+            return res.status(responseStatus).json({
                 success: true,
+                message: result.message,
+                data: {vote: result.vote}
             });
         } catch (error) {
-            res.status(500).json({error: 'Failed to cast vote'});
-            console.error("Error casting vote:", error);
+            console.error(`[CommentController:castVote] Error for commentId ${req.params?.commentId}:`, error.message);
+            // ... (error handling as before) ...
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof ConflictError) {
+                return res.status(HTTP_STATUS.CONFLICT).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while casting the vote.'
+            });
         }
     }
 }
 
+// Ensure all three services are injected when creating the instance
 export default new CommentController(commentService, voteService, notificationService);

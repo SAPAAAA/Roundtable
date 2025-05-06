@@ -1,179 +1,172 @@
 // backend/controllers/chat.controller.js
 import HTTP_STATUS from '#constants/httpStatus.js';
-import ChatService from '#services/chat.service.js'; // Assuming you create this service
-import {BadRequestError, InternalServerError, NotFoundError} from '#errors/AppError.js';
+import ChatService from '#services/chat.service.js'; // Use the injected instance name from below
+import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
 
 class ChatController {
+    /**
+     * @param {ChatService} injectedChatService
+     */
     constructor(injectedChatService) {
         this.chatService = injectedChatService;
     }
 
     /**
-     * Handles GET /api/chats
-     * Retrieves the list of conversation partners for the logged-in user.
+     * Handles GET /chats/partners
+     * Retrieves the list of conversation partners preview for the logged-in user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
      */
-    getConversationPartnersPreview = async (req, res, next) => {
+    getConversationPartnersPreview = async (req, res) => {
         const {userId} = req.session; // Assumes isAuthenticated middleware adds userId
 
-        // Basic check (should be guaranteed by middleware, but good practice)
+        // Middleware should handle this, but double-check
         if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-                success: false,
-                message: 'Authentication required.'
-            });
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
 
         try {
-            console.log(`[ChatController] Fetching conversations for userId: ${userId}`);
-            // Call the service layer to get the list of partners
-            const conversationPartners = await this.chatService.getConversationPartnersPreviewData(userId);
+            // Options can be parsed from req.query if needed for pagination/sorting partners
+            const options = {
+                limit: req.query.limit,
+                offset: req.query.offset
+                // order: req.query.order // Example
+            };
+            const conversationPartners = await this.chatService.getConversationPartnersPreviewData(userId, options);
 
-            res.status(HTTP_STATUS.OK).json({
+            return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: conversationPartners, // Send the array of partners
+                data: conversationPartners,
             });
-
         } catch (error) {
-            console.error(`[ChatController] Error fetching conversations for userId ${userId}:`, error);
-            // Pass error to central error handler or handle specific known errors
-            if (error instanceof InternalServerError) {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message || 'Failed to fetch conversations.'
-                });
+            console.error(`[ChatController:getConversationPartnersPreview] Error for userId ${userId}:`, error.message);
+            if (error instanceof BadRequestError) { // e.g., invalid options from service
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
-            // Fallback for other unexpected errors
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            // Fallback for unexpected errors
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred while fetching conversations.'
             });
-            // next(error); // Alternatively, pass to a central error handler
         }
     }
 
     /**
-     * Handles GET /api/chats/:partnerUserId/messages
+     * Handles GET /chats/:partnerUserId/messages
      * Retrieves message history between the logged-in user and a specific partner.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
      */
-    getMessages = async (req, res, next) => {
+    getMessages = async (req, res) => {
         const {userId} = req.session;
         const {partnerUserId} = req.params;
 
-        // Validate input
         if (!userId) {
             return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
+        // Basic check for partnerId presence, service does more validation
         if (!partnerUserId) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Partner user ID is required.'});
         }
 
-        // Parse query parameters for pagination (optional)
-        const {limit = 100, offset = 0} = req.query;
-        const options = {
-            limit: parseInt(limit, 10) || 50,
-            offset: parseInt(offset, 10) || 0,
-            // Add other options like sorting if needed
-        };
-
-
         try {
-            console.log(`[ChatController] Fetching messages between ${userId} and ${partnerUserId} with options:`, options);
-            // Call the service layer
+            // Parse query parameters for pagination/filtering
+            const options = {
+                limit: req.query.limit,
+                offset: req.query.offset,
+                order: req.query.order // Example, service validates/defaults
+            };
             const messages = await this.chatService.getMessages(userId, partnerUserId, options);
 
-            res.status(HTTP_STATUS.OK).json({
+            return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: messages, // Send the array of messages
+                data: messages,
             });
-
         } catch (error) {
-            console.error(`[ChatController] Error fetching messages between ${userId} and ${partnerUserId}:`, error);
-            if (error instanceof NotFoundError) { // Example: Service throws NotFoundError if chat doesn't exist
-                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
-            }
+            console.error(`[ChatController:getMessages] Error between ${userId} and ${partnerUserId}:`, error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
-            if (error instanceof InternalServerError) {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message || 'Failed to fetch messages.'
-                });
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
+            if (error instanceof ForbiddenError) {
+                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred while fetching messages.'
             });
-            // next(error);
         }
     }
 
     /**
-     * Handles POST /api/chats/messages
+     * Handles POST /chats/messages
      * Sends a new message from the logged-in user to a recipient.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
      */
-    sendMessage = async (req, res, next) => {
+    sendMessage = async (req, res) => {
         const {userId} = req.session; // Sender is the logged-in user
-        const {recipientUserId, body} = req.body; // Get recipient and message body
+        const {recipientUserId, body} = req.body;
 
-        // Validate input
         if (!userId) {
             return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
-        if (!recipientUserId || !body || typeof body !== 'string' || body.trim().length === 0) {
+        // Basic validation, service does more thorough checks
+        if (!recipientUserId || !body) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
                 success: false,
-                message: 'Recipient user ID and non-empty message body are required.'
+                message: 'Recipient user ID and message body are required.'
             });
         }
-        if (recipientUserId === userId) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                success: false,
-                message: 'Cannot send a message to yourself.'
-            });
-        }
-
 
         try {
-            console.log(`[ChatController] User ${userId} sending message to ${recipientUserId}`);
-            // Call the service layer to save and potentially trigger WS push
-            const createdMessage = await this.chatService.sendMessage(userId, recipientUserId, body.trim());
+            // Service handles trimming body, checking recipient status/blocks, saving, and emitting event
+            const createdMessage = await this.chatService.sendMessage(userId, recipientUserId, body);
 
-            // Respond with the created message data
-            res.status(HTTP_STATUS.CREATED).json({ // Use 201 Created status
+            return res.status(HTTP_STATUS.CREATED).json({
                 success: true,
                 message: "Message sent successfully.",
-                data: {
-                    message: createdMessage // Send back the created message details
-                }
+                data: {message: createdMessage} // Return the detailed created message
             });
-
         } catch (error) {
-            console.error(`[ChatController] Error sending message from ${userId} to ${recipientUserId}:`, error);
-            if (error instanceof NotFoundError) { // E.g., Recipient doesn't exist
-                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
-            }
+            console.error(`[ChatController:sendMessage] Error from ${userId} to ${recipientUserId}:`, error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
-            if (error instanceof InternalServerError) {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: error.message || 'Failed to send message.'
-                });
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
+            if (error instanceof ForbiddenError) {
+                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'An unexpected error occurred while sending the message.'
             });
-            // next(error);
         }
     }
 
     /**
-     * Read messages between the authenticated user and another user.
+     * Handles POST /chats/:partnerUserId/messages/read
+     * Marks messages from a partner as read by the authenticated user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
      */
-    markMessagesAsRead = async (req, res, next) => {
+    markMessagesAsRead = async (req, res) => {
         const {userId} = req.session;
         const {partnerUserId} = req.params; // ID of the *other* user in the chat
 
@@ -181,26 +174,35 @@ class ChatController {
             return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
         }
         if (!partnerUserId) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                success: false,
-                message: 'Partner user ID is required to read messages.'
-            });
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Partner user ID is required.'});
         }
+
         try {
-            const messages = await ChatService.markMessagesAsRead(userId, partnerUserId);
-            return res.status(HTTP_STATUS.OK).json({success: true, messages});
+            const count = await this.chatService.markMessagesAsRead(userId, partnerUserId);
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: `Marked ${count} message(s) as read.`,
+                data: {count: count}
+            });
         } catch (error) {
-            console.error(`[ChatController] Error reading messages for user ${userId} from partner ${partnerUserId}:`, error);
-            // Handle errors appropriately
+            console.error(`[ChatController:markMessagesAsRead] Error for reader ${userId} from partner ${partnerUserId}:`, error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) { // Partner user not found
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                message: 'Failed to retrieve messages.'
+                message: 'An unexpected error occurred while marking messages as read.'
             });
-            // next(error);
         }
     }
-
-
 }
 
+// Inject the service instance
 export default new ChatController(ChatService);
