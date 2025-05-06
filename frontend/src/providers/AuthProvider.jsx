@@ -8,7 +8,9 @@ const AuthProvider = ({children}) => {
     const [error, setError] = useState(null);
 
     const checkSession = useCallback(async (showLoading = true) => {
-        if (showLoading) setIsLoading(true);
+        if (showLoading) {
+            setIsLoading(true);
+        }
         try {
             const response = await sendApiRequest('/api/auth/session', {
                 method: 'GET',

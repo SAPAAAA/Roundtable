@@ -14,11 +14,11 @@ import useChat from "#hooks/useChat.jsx";
 export default function Header(props) {
     const {toggleSidebar, toggleChat, openLoginModal} = props;
     const {user, logout, isLoading} = useAuth();
+    const navigate = useNavigate();
     const {unreadCount: notificationUnreadCount} = useNotifications();
     const {totalUnreadMessages: chatUnreadCount} = useChat();
 
 
-    const navigate = useNavigate(); // Assuming useNavigate is imported from react-router-dom
 
     const handleMenuItemClick = (action) => {
         if (action) {
@@ -215,7 +215,7 @@ export default function Header(props) {
 
                                         {/* Settings Item */}
                                         <Link
-                                            href="/frontend/public"
+                                            href="/"
                                             // Removed isDropdown prop
                                             className="settings-link px-2 py-2"
                                             onClick={() => handleMenuItemClick(() => console.log("Settings clicked"))} // Example action
@@ -226,11 +226,10 @@ export default function Header(props) {
 
                                         {/* Logout Item */}
                                         <Link
-                                            href="#"
                                             className="px-2 py-2 logout-link"
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                handleLogoutClick().then(() => console.log("Logout clicked"));
+                                                handleLogoutClick().then(() => navigate("/"));
                                             }}
                                         >
                                             <Icon name="logout" size="18px" addClass="me-2"/> {/* Added margin */}
