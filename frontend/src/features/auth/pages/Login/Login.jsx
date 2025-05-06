@@ -10,25 +10,32 @@ import {useEffect, useState} from "react";
 
 function Login() {
     const navigate = useNavigate();
-    const actionData = useActionData();
-    const navigation = useNavigation();
+    const actionData = useActionData(); // Get data from the loginAction
+    const navigation = useNavigation(); // Get form submission state
+    const {user} = useAuth(); // Check if user is already logged in
 
-    const {user} = useAuth();
-
+    // Local state for the message display, updated by actionData
     const [message, setMessage] = useState(null);
 
-    const {username, setUsername, password, setPassword} = useLoginForm(true, null);
+    // Form state hook (assuming it just manages input values)
+    const {username, setUsername, password, setPassword} = useLoginForm(true, null); // Pass null for initial authError
 
+    // Effect to process the result from the loginAction
     useEffect(() => {
         if (actionData) {
-            console.log(actionData);
-            setMessage(actionData?.message);
+            console.log("Login Page actionData received:", actionData);
+            setMessage(actionData?.message); // Set the message state for display
 
-            if (actionData?.success) {
-                navigate('/');
+            if (actionData?.success === true) {
+                // Successful login handled by auth provider/redirect
+                // No need to navigate('/'), AuthProvider/session check handles it
+                console.log("Login successful (actionData indicates success)");
+            } else if (actionData?.success === false) {
+                // Handle specific error message from actionData
+                console.log("Login failed (actionData indicates failure):", actionData.message);
             }
         }
-    }, [actionData, navigate, setMessage]);
+    }, [actionData]); // Depend only on actionData
 
     // Redirect to home if user is already logged in
     useEffect(() => {
@@ -37,6 +44,17 @@ function Login() {
         }
     }, [user, navigate]);
 
+    // Clear message when user starts typing again
+    const handleUsernameChange = (e) => {
+        if (message) setMessage(null);
+        setUsername(e.target.value);
+    };
+
+    const handlePasswordChange = (e) => {
+        if (message) setMessage(null);
+        setPassword(e.target.value);
+    };
+
     return (
         <div className="login-form-container">
             <div className="login-card">
@@ -44,11 +62,21 @@ function Login() {
                     <h1>Đăng nhập</h1>
                     <p>Vui lòng nhập thông tin để đăng nhập</p>
                 </div>
-                {/* Use the error state from the AuthContext */}
+
+                {/* --- ADDED: Display Error Message --- */}
+                {/* Display the message state if it exists */}
+                {message && (
+                    <div className={`alert alert-${actionData?.success === false ? 'danger' : 'info'} mb-3`}>
+                        {message}
+                    </div>
+                )}
+                {/* --- End Added Section --- */}
+
+                {/* Use React Router's Form for action submission */}
                 <Form
                     id="login-form"
-                    method="post"
-                    action="/login"
+                    method="post" // Use POST for login
+                    action="/login"  // The route mapped to your loginAction
                     mainClass="login-form"
                 >
                     <div className="form-group">
@@ -56,26 +84,26 @@ function Login() {
                             id="loginUsername"
                             type="text"
                             label="Tên đăng nhập"
-                            name="username"
+                            name="username" // Name attribute is required for form data
                             placeholder="Nhập tên đăng nhập"
-                            value={username} // Use local state
-                            onChange={(e) => setUsername(e.target.value)} // Use local setter
+                            value={username}
+                            onChange={handleUsernameChange} // Use updated handler
                             required
-                            disabled={navigation.state === 'submitting'} // Use isLoading from context
+                            disabled={navigation.state === 'submitting'}
                             addon={<Icon name="user" size="16"/>}
                         />
                     </div>
                     <div className="form-group">
                         <Input
                             id="loginPassword"
-                            name="password"
+                            name="password" // Name attribute is required for form data
                             type="password"
                             label="Mật khẩu"
                             placeholder="Nhập mật khẩu"
-                            value={password} // Use local state
-                            onChange={(e) => setPassword(e.target.value)} // Use local setter
+                            value={password}
+                            onChange={handlePasswordChange} // Use updated handler
                             required
-                            disabled={navigation.state === 'submitting'} // Use isLoading from context
+                            disabled={navigation.state === 'submitting'}
                             addon={<Icon name="lock" size="16"/>}
                         />
                     </div>
@@ -85,7 +113,6 @@ function Login() {
                         addClass="w-100"
                         disabled={navigation.state === 'submitting'}
                     >
-                        {/* Use isLoading from context */}
                         {navigation.state === 'submitting' ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     </Button>
                 </Form>
@@ -100,8 +127,10 @@ function Login() {
                             contentType="text"
                             addClass="p-0"
                             onClick={() => {
-                                navigate('/register');
+                                navigate('/register'); // Navigate to the register page
                             }}
+                            // Optionally disable during submission
+                            disabled={navigation.state === 'submitting'}
                         >
                             Đăng ký
                         </Button>
