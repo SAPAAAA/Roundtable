@@ -157,7 +157,6 @@ class MessageDAO {
      * @throws {Error} For database errors.
      */
     async markAsDeleted(messageIds, deletingUserId, trx = null) {
-        const queryBuilder = trx || postgresInstance;
         if (!messageIds || messageIds.length === 0 || !deletingUserId) {
             return {senderDeletedCount: 0, recipientDeletedCount: 0};
         }
