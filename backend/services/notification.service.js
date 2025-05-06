@@ -52,14 +52,13 @@ class NotificationService {
 
             // 2. Determine recipient and notification type
             let recipientUserId = null;
-            let notificationType = null;
+            let notificationType;
 
             if (createdComment.parentCommentId) {
                 // It's a reply, notify the parent comment author (if different from replier)
                 notificationType = NotificationTypeEnum.COMMENT_REPLY;
-                recipientUserId = postOwnerUserId; // Default to notifying post owner for replies too for now
+                recipientUserId = createdComment.parentCommentId; // Default to notifying post owner for replies too for now
 
-                // TODO: Fetch parent comment -> get parentCommentAuthorUserId
                 if (postOwnerUserId !== commenterUserId) {
                     recipientUserId = postOwnerUserId; // Fallback to post owner
                 } else {
