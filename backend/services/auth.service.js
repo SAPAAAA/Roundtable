@@ -300,7 +300,7 @@ class AuthService {
 
             // --- 5. Return Success ---
             console.log(`Verification process completed for email ${email} (userId: ${userId}). Status updated: ${updatePerformed}`);
-            return true; // Indicate success to the controller
+            return principal.profileId; // Indicate success to the controller
 
         } catch (error) {
             // Re-throw known application errors
@@ -423,7 +423,85 @@ class AuthService {
             throw new InternalServerError('Session validation failed due to an unexpected internal error.');
         }
     }
+
+
+
+
+
+/**
+ * Cập nhật thông tin profile theo profileId.
+ * @param {string} profileId - ID của profile cần cập nhật.
+ * @param {object} profileData - Dữ liệu profile cần cập nhật.
+ * @returns {Promise<Profile>} - Profile đã được cập nhật.
+ */
+async updateProfileById(profileId, profileData) {
+    // console.log('===(SERVICE) AUTH SERVICE: UPDATE PROFILE BY ID METHOD CALLED ===', profileId);
+    // console.log('===(SERVICE) PROFILE DATA RECEIVED ===', JSON.stringify(profileData));
+    
+    if (!profileId) {
+        // console.log('===(SERVICE) PROFILE ID MISSING ===');
+        throw new BadRequestError('Thiếu thông tin profileId.');
+    }
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!profileData) {
+        // console.log('===(SERVICE) PROFILE DATA INVALID ===');
+        throw new BadRequestError('Dữ liệu hồ sơ không hợp lệ.');
+    }
+
+    // Kiểm tra giá trị gender nếu có
+    // if (profileData.gender && !Profile.isValidGender(profileData.gender)) {
+    //     console.log('===(SERVICE) INVALID GENDER VALUE ===', profileData.gender);
+    //     throw new BadRequestError('Giá trị gender không hợp lệ.');
+    // }
+
+    try {
+        // console.log('===(SERVICE) PREPARING UPDATE DATA ===');
+        // Chuẩn bị dữ liệu cập nhật
+        const updateData = {
+            avatar: profileData.avatar,
+            banner: profileData.banner,
+            bio: profileData.bio,
+            location: profileData.location,
+            displayName: profileData.displayName,
+            gender: profileData.gender
+        };
+
+        // Loại bỏ các trường undefined
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] === undefined) {
+                delete updateData[key];
+            }
+        });
+        
+        // console.log('===(SERVICE) FINAL UPDATE DATA ===', JSON.stringify(updateData));
+
+        // Cập nhật profile trong database
+        // console.log('===(SERVICE) CALLING PROFILE DAO UPDATE ===');
+        const updatedProfile = await ProfileDAO.update(profileId, updateData);
+        
+        if (!updatedProfile) {
+            // console.log('===(SERVICE) PROFILE UPDATE FAILED - NO PROFILE RETURNED ===');
+            throw new InternalServerError('Không thể cập nhật hồ sơ người dùng.');
+        }
+        
+        // console.log('===(SERVICE) PROFILE UPDATED SUCCESSFULLY ===', JSON.stringify(updatedProfile));
+        return updatedProfile;
+    } catch (error) {
+        // console.log('===(SERVICE) ERROR IN UPDATE PROFILE BY ID ===', error.message);
+        // console.error('Lỗi khi cập nhật profile:', error);
+        // Nếu lỗi đã được xử lý (là instance của AppError), ném lại
+        if (error instanceof BadRequestError || 
+            error instanceof NotFoundError || 
+            error instanceof InternalServerError) {
+            throw error;
+        }
+        // Nếu là lỗi khác, bọc trong InternalServerError
+        throw new InternalServerError('Đã xảy ra lỗi khi cập nhật hồ sơ: ' + error.message);
+    }
+}
 }
 
 // Export a singleton instance of the service
 export default new AuthService();
+

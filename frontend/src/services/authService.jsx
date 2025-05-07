@@ -58,6 +58,32 @@ class AuthService {
             throw error;
         }
     }
+    
+    /**
+     * Cập nhật hồ sơ người dùng.
+     * @param {object} profileData - Dữ liệu hồ sơ người dùng.
+     * @returns {Promise<object>} - Phản hồi từ API.
+     */
+    async createProfile(profileData) {
+        try {
+            // Kiểm tra xem profileId có tồn tại trong dữ liệu không
+            if (!profileData.profileId) {
+                throw new Error('Thiếu thông tin profileId.');
+            }
+            
+            // Sử dụng phương thức PUT để cập nhật hồ sơ
+            const response = await sendApiRequest('/api/auth/profile', {
+                method: 'PUT',
+                body: profileData
+            });
+            
+            console.log('AuthService createProfile successful:', response);
+            return response;
+        } catch (error) {
+            console.error("AuthService createProfile error:", error);
+            throw error;
+        }
+    }
 }
 
 export default new AuthService();

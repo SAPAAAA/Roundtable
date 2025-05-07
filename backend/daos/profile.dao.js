@@ -41,6 +41,37 @@ class ProfileDAO {
         }
     }
 
+    async update(profileId, updateData, trx) {
+        // console.log('===(DAO) PROFILE DAO: UPDATE METHOD CALLED ===', profileId);
+        // console.log('===(DAO) UPDATE DATA ===', JSON.stringify(updateData));
+        
+        const queryBuilder = trx ? trx : postgresInstance;
+        try {
+            // Thực hiện cập nhật và trả về dữ liệu đã cập nhật
+            // console.log('===(DAO) EXECUTING DATABASE UPDATE QUERY ===');
+            const updatedRows = await queryBuilder('Profile')
+                .where({ profileId })
+                .update(updateData)
+                .returning('*');
+            
+            // Kiểm tra kết quả trả về
+            if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
+                // console.log('===(DAO) DATABASE UPDATE FAILED - NO ROWS RETURNED ===');
+                // console.error('(DAO)Profile update failed or did not return expected data.', updatedRows);
+                return null;
+            }
+            
+            //console.log('===(DAO) DATABASE UPDATE SUCCESSFUL ===', JSON.stringify(updatedRows[0]));
+            // Trả về đối tượng Profile đã cập nhật
+            return Profile.fromDbRow(updatedRows[0]);
+        } catch (error) {
+            // console.log('===(DAO) DATABASE UPDATE ERROR ===', error.message);
+            console.error('Error updating profile:', error);
+            // Re-throw the original error
+            throw error;
+        }
+    }
+
     async delete(profileId, trx) {
         const queryBuilder = trx ? trx : postgresInstance;
         try {

@@ -167,14 +167,20 @@ class AuthController {
             console.log('[AuthController.verifyEmail] Attempting verification for email:', email);
 
             // Call the service layer - returns true or throws specific errors
-            await this.authService.verifyEmail(email, code);
-
+            const result = await this.authService.verifyEmail(email, code);
+            
             // --- Success Response ---
             // If the service call completes without error, verification was successful (or user already verified)
-            return res.status(HTTP_STATUS.OK).json({
-                success: true,
-                message: 'Email verified successfully.', // Consistent success message
-            });
+            if (result) {
+                console.log('[AuthController.verifyEmail] Email verification successful for email:', email);
+                return res.status(HTTP_STATUS.OK).json({
+                    success: true,
+                    data: {
+                        profileId: result,
+                    }, // Send back the user ID or identifier
+                    message: 'Email verified successfully.', // Consistent success message
+                });
+            }
 
         } catch (error) {
             // --- Error Handling ---
@@ -307,6 +313,65 @@ class AuthController {
             // No session existed to destroy
             console.log('[AuthController.logout] No active session found to log out.');
             return res.status(HTTP_STATUS.OK).json({success: true, message: 'You are already logged out.'}); // Or simply OK status
+        }
+    }
+
+    /**
+     * Cập nhật thông tin profile của người dùng.
+     * PATCH /profile
+     */
+    updateProfile = async (req, res, next) => {
+        try {
+            // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATE PROFILE ROUTE ACCESSED ===');
+            // console.log('===(CONTROLLER) REQUEST BODY ===', JSON.stringify(req.body));
+            
+            const profileData = req.body;
+            const profileId = profileData.profileId; // Lấy profileId từ request body
+            
+            if (!profileId) {
+                // console.log('===(CONTROLLER) PROFILE ID MISSING IN REQUEST ===');
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: 'Thiếu thông tin profileId.'
+                });
+            }
+            
+            // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATING PROFILE FOR ID ===', profileId);
+            
+            // Gọi service để cập nhật hồ sơ
+            const updatedProfile = await this.authService.updateProfileById(profileId, profileData);
+            
+            // console.log('===(CONTROLLER) PROFILE UPDATED SUCCESSFULLY ===');
+            
+            // --- Phản hồi thành công ---
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Cập nhật hồ sơ thành công.',
+            });
+            
+        } catch (error) {
+            //console.log('===(CONTROLLER) ERROR UPDATING PROFILE ===', error.message);
+    
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                console.error(error.stack || error);
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: error.message || 'Cập nhật hồ sơ thất bại do lỗi máy chủ.'
+                });
+            }
+    
+            // --- Xử lý lỗi không mong muốn ---
+            // console.error("(CONTROLLER)[AuthController.updateProfile] Lỗi không mong muốn:", error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.'
+            });
         }
     }
 }
