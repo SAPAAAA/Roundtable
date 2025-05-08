@@ -9,13 +9,13 @@ class Subtable {
      * @param {string | null} subtableId - The unique identifier (UUID), null if new.
      * @param {string} name - The unique name of the subtable (e.g., 'VietnamDevs'). Required.
      * @param {string | null} [description=null] - A description of the subtable.
-     * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
      * @param {string | null} [creatorUserId=null] - The UUID of the RegisteredUser who created the subtable. << CHANGED
      * @param {string | null} [icon=null] - URL for the subtable's icon image.
      * @param {string | null} [banner=null] - URL for the subtable's banner image.
-     * @param {number} [memberCount=1] - The number of members (defaults to 1 in DB on creation).
+     * @param {number} [memberCount=0] - The number of members (defaults to 1 in DB on creation).
+     * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
      */
-    constructor(subtableId, name, description = null, createdAt = null, creatorUserId = null, icon = null, banner = null, memberCount = 1) { // << CHANGED parameter name
+    constructor(subtableId, name, description = null, creatorUserId = null, icon = null, banner = null, memberCount = 0, createdAt = null) {
         /** @type {string | null} */
         this.subtableId = subtableId;
 
@@ -29,7 +29,7 @@ class Subtable {
         this.createdAt = createdAt instanceof Date ? createdAt : (createdAt ? new Date(createdAt) : null); // Ensure Date object
 
         /** @type {string | null} */
-        this.creatorUserId = creatorUserId; // << CHANGED property name
+        this.creatorUserId = creatorUserId;
 
         /** @type {string | null} */
         this.icon = icon;
@@ -38,7 +38,7 @@ class Subtable {
         this.banner = banner;
 
         /** @type {number} */
-        this.memberCount = Number(memberCount) || 1; // Ensure number, default 1
+        this.memberCount = Number(memberCount) || 0;
     }
 
     /**
@@ -49,7 +49,9 @@ class Subtable {
      * @returns {Subtable | null} A Subtable instance or null if no row provided.
      */
     static fromDbRow(row) {
-        if (!row) return null;
+        if (!row) {
+            return null;
+        }
 
         // Ensure correct mapping from DB column name (e.g., 'creatorUserId' or 'creator_user_id')
         // If your DB driver returns snake_case, map it here:

@@ -23,7 +23,7 @@ class Subscription {
 
         /** @type {Date | null} */
         // Ensure subscribedAt is a Date object if provided, otherwise null
-        this.subscribedAt = subscribedAt;
+        this.subscribedAt = subscribedAt ? new Date(subscribedAt) : null;
     }
 
     /**
