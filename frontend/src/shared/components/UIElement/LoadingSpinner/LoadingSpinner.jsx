@@ -68,7 +68,7 @@ const LoadingSpinner = ({
 
     return (
         <div
-            className={`loading-overlay ${mainClass} ${addClass}`.trim()}
+            className={`loading-overlay ${addClass} ${mainClass}`.trim()}
             style={{backgroundColor: `rgba(17, 45, 78, ${overlayOpacity})`}}
             id={id}
         >

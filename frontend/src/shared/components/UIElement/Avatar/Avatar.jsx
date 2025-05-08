@@ -34,7 +34,7 @@ export default function Avatar(props) {
         <img
             src={props.src}
             alt={props.alt}
-            className={`${props.mainClass || ''} avatar rounded-circle ${props.addClass || ''}`.trim()}
+            className={`avatar rounded-circle ${props.addClass || ''} ${props.mainClass || ''}`.trim()}
             width={props.width}
             height={props.height}
             style={props.style}

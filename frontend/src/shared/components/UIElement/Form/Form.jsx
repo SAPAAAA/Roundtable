@@ -58,7 +58,7 @@ function FormWithoutNavigation(props) {
     const internalFetcher = useFetcher();
     const fetcher = passedFetcher || internalFetcher; // Prioritize passed fetcher
 
-    const combinedClassName = `${mainClass || ''} ${addClass || ''}`.trim();
+    const combinedClassName = `${addClass || ''} ${mainClass || ''}`.trim();
 
     // Render fetcher.Form using the determined fetcher instance
     return (

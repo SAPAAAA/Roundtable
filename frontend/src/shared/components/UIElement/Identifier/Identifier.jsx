@@ -36,7 +36,7 @@ export default function Identifier(props) {
     return (
         <div
             id={props.id}
-            className={`${props.mainClass || ''} identifier ${props.addClass || ''}`.trim()}
+            className={` identifier ${props.addClass || ''} ${props.mainClass || ''}`.trim()}
             style={props.style}
         >
             {getTypeAbbreviation(props.type)}/{props.namespace}
