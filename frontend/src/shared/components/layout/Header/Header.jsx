@@ -120,7 +120,7 @@ export default function Header(props) {
                                         contentType="icon"
                                         dataBsToggle="tooltip"
                                         dataBsTrigger="hover focus"
-                                        tooltipTitle="Create Community"
+                                        tooltipTitle="Create a new community"
                                         tooltipPlacement="bottom"
                                         onClick={openCreateSubtableModal} // Call the handler
                                         aria-label="Create a new community"
