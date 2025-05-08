@@ -16,17 +16,16 @@ export default function Input(props) {
         onInput,
         style,
         label,
+        accept, // prop for file inputs
         mainClass = '',
         addClass = '',
         isInvalid = false,
         isValid = false,
         feedback = '',
         required = false,
-        rows = 3, // New prop for textarea rows
-        // New props for addons, replacing the old 'addon' prop
+        rows = 3, // prop for textarea rows
         addonBefore, // Text/element for prepended addon
         addonAfter,  // Text/element for appended addon
-        // Prop to control label visibility specifically for file inputs (retained)
         showLabelForFile = true,
     } = props;
 
@@ -49,6 +48,7 @@ export default function Input(props) {
                         id={id}
                         name={name}
                         type="file"
+                        accept={accept}
                         className={combinedFormControlClasses} // form-control and validation classes
                         onChange={onChange}
                         onFocus={onFocus}

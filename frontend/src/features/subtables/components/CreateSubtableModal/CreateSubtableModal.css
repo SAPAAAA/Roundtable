@@ -82,3 +82,10 @@
     padding: 0.5rem 1.25rem !important;
     line-height: 1.5;
 }
+
+/* Icon Preview */
+.create-subtable-icon-preview {
+    width: 128px;
+    height: 128px;
+    object-fit: cover;
+}
