@@ -119,28 +119,52 @@ class UserPostDetailsDAO {
      * @throws {Error} Throws database errors.
      */
     async getHomePosts(options = {}) {
-        const {limit, offset, sortBy, order, includeRemoved} = this._prepareQueryOptions({
+        const {includeRemoved} = this._prepareQueryOptions({
             ...options,
-            sortBy: options.sortBy || 'postCreatedAt', // Ensure default if needed
-            order: options.order || 'desc',
         });
 
         try {
             let query = postgresInstance(this.viewName)
-                .select('*')
+                .select('*');
 
             if (!includeRemoved) {
                 query = query.where('isRemoved', false);
             }
 
-            query = query.orderBy(sortBy, order).offset(offset);
-
-            if (limit !== null) {
-                query = query.limit(limit);
-            }
-
             const viewRows = await query;
-            return viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
+            const posts = viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
+            
+            // Tính toán điểm số cho mỗi bài đăng dựa trên 3 thuộc tính
+            const now = new Date();
+            const scoredPosts = posts.map(post => {
+                // 1. Điểm thời gian (càng mới càng cao)
+                const postDate = new Date(post.postCreatedAt);
+                const ageInDays = (now - postDate) / (1000 * 60 * 60 * 24);
+                const timeScore = Math.max(0, 100 - ageInDays); // Giảm dần theo thời gian
+                
+                // 2. Điểm vote (càng nhiều càng cao)
+                const voteScore = post.voteCount * 10; // Mỗi vote đáng giá 10 điểm
+                
+                // 3. Điểm bình luận (càng nhiều càng cao)
+                const commentScore = post.commentCount * 5; // Mỗi bình luận đáng giá 5 điểm
+                
+                // Tính tổng điểm (có thể điều chỉnh trọng số nếu cần)
+                const totalScore = timeScore + voteScore + commentScore;
+                
+                return {
+                    ...post,
+                    _score: totalScore
+                };
+            });
+            
+            // Sắp xếp bài đăng theo điểm số (cao đến thấp)
+            scoredPosts.sort((a, b) => b._score - a._score);
+            
+            // Loại bỏ thuộc tính _score trước khi trả về kết quả
+            return scoredPosts.map(post => {
+                const {_score, ...cleanPost} = post;
+                return cleanPost;
+            });
 
         } catch (error) {
             console.error(`[UserPostDetailsDAO] Error fetching home posts:`, error);
