@@ -120,8 +120,10 @@ export default function Comment(props) {
                             dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Upvote"
                             tooltipPlacement="top"
                             padding="1" onClick={handleUpvote} disabled={isVoting}>
-                            <Icon mainClass="upvote-icon" name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
-                                  size="15px"/>
+                            <Icon
+                                mainClass="upvote-icon"
+                                name={voteStatus === "upvoted" ? "upvoted" : "upvote"}
+                                size="15px"/>
                         </Button>
                         <span className="fs-icon">{voteCount ?? 0}</span>
                         <Button
@@ -129,8 +131,10 @@ export default function Comment(props) {
                             dataBsToggle="tooltip" dataBsTrigger="hover focus" tooltipTitle="Downvote"
                             tooltipPlacement="top"
                             padding="1" onClick={handleDownvote} disabled={isVoting}>
-                            <Icon mainClass="downvote-icon" name={voteStatus === "downvoted" ? "downvoted" : "downvote"}
-                                  size="15px"/>
+                            <Icon
+                                mainClass="downvote-icon"
+                                name={voteStatus === "downvoted" ? "downvoted" : "downvote"}
+                                size="15px"/>
                         </Button>
                     </div>
 
