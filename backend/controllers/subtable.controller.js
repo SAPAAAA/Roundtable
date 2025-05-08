@@ -1,7 +1,7 @@
 // backend/controllers/subtable.controller.js
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import subtableService from '#services/subtable.service.js';
-import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Include potential errors from service
+import {BadRequestError, ConflictError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Include potential errors from service
 
 class SubtableController {
     /**
@@ -125,18 +125,51 @@ class SubtableController {
      * @param {import('express').Request} req - Express request object.
      * @param {import('express').Response} res - Express response object.
      */
-    // createSubtable = async (req, res) => {
-    //     try {
-    //         const { name, description, icon, banner } = req.body;
-    //         const { userId } = req.session; // Creator is the logged-in user
-    //         if (!userId) { /* Handle unauthorized */ }
-    //         const newSubtable = await this.subtableService.createSubtable(userId, { name, description, icon, banner });
-    //         return res.status(HTTP_STATUS.CREATED).json({ /* ... */ });
-    //     } catch (error) {
-    //         // Handle BadRequestError, ConflictError, NotFoundError (for user), InternalServerError
-    //         // Log and send appropriate response
-    //     }
-    // }
+    createSubtable = async (req, res) => {
+        try {
+            const {name, description, iconFile, bannerFile} = req.body;
+            console.log(`[SubtableController:createSubtable] Received request to create subtable with name: ${name}`);
+            const {userId} = req.session; // Creator is the logged-in user
+            if (!userId) { /* Handle unauthorized */
+            }
+            const newSubtable = await this.subtableService.createSubtable(userId, {
+                name,
+                description,
+                iconFile,
+                bannerFile
+            });
+            return res.status(HTTP_STATUS.CREATED).json({
+                success: true,
+                message: "Subtable created successfully.",
+                data: {
+                    subtable: newSubtable
+                }
+            });
+        } catch (error) {
+            // Handle BadRequestError, ConflictError, NotFoundError (for user), InternalServerError
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                });
+            } else if (error instanceof ConflictError) {
+                return res.status(HTTP_STATUS.CONFLICT).json({
+                    success: false,
+                    message: error.message
+                });
+            } else if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                });
+            } else {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: "An unexpected error occurred."
+                });
+            }
+        }
+    }
 }
 
 export default new SubtableController(subtableService);

@@ -1,6 +1,6 @@
 // backend/controllers/auth.controller.js
 import authService from '#services/auth.service.js';
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import {
     AuthenticationError,
     BadRequestError,

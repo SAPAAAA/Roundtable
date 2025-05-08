@@ -1,5 +1,5 @@
 // backend/controllers/notification.controller.js
-import HTTP_STATUS from "#constants/httpStatus.js";
+import HTTP_STATUS from "#constants/http-status.js";
 import notificationService from "#services/notification.service.js";
 import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
