@@ -1,3 +1,4 @@
+// src/shared/components/UIElement/Modal/Modal.jsx
 import React, {useEffect, useRef} from 'react';
 
 /**
@@ -46,19 +47,73 @@ export default function Modal(props) {
     } = props;
 
     const modalRef = useRef(null);
+    const triggerElementRef = useRef(null); // To store the element that opened the modal
 
     useEffect(() => {
         const modalElement = modalRef.current;
+        if (!modalElement) return;
+
+        let bootstrapModalInstance = window.bootstrap.Modal.getInstance(modalElement);
+
         if (isOpen) {
-            const bootstrapModal = new window.bootstrap.Modal(modalElement);
-            bootstrapModal.show();
+            // Store the currently focused element before showing the modal
+            triggerElementRef.current = document.activeElement;
+
+            if (!bootstrapModalInstance) {
+                bootstrapModalInstance = new window.bootstrap.Modal(modalElement, {
+                    // backdrop: 'static', // Example: prevent closing on backdrop click
+                    // keyboard: false,    // Example: prevent closing with ESC key
+                });
+            }
+            bootstrapModalInstance.show();
+
+            const handleShown = () => {
+                // Optional: For specific focus management after modal is fully visible
+                // e.g., modalElement.querySelector('input:not([type="hidden"])')?.focus();
+            };
+            modalElement.addEventListener('shown.bs.modal', handleShown);
+
+            return () => {
+                modalElement.removeEventListener('shown.bs.modal', handleShown);
+            };
+
         } else {
-            const bootstrapModal = window.bootstrap.Modal.getInstance(modalElement);
-            if (bootstrapModal) {
-                bootstrapModal.hide();
+            if (bootstrapModalInstance) {
+                bootstrapModalInstance.hide();
             }
         }
-    }, [isOpen]);
+    }, [isOpen, id]);
+
+    useEffect(() => {
+        const modalElement = modalRef.current;
+        if (!modalElement) return;
+
+        const handleHidden = () => {
+            // Return focus to the element that opened the modal
+            if (triggerElementRef.current && typeof triggerElementRef.current.focus === 'function') {
+                triggerElementRef.current.focus();
+                triggerElementRef.current = null;
+            }
+        };
+
+        const handleHide = () => {
+            // Blur any active element within the modal before it's fully hidden
+            // to prevent aria-hidden focus warnings.
+            if (modalElement.contains(document.activeElement)) {
+                if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                }
+            }
+        };
+
+        modalElement.addEventListener('hide.bs.modal', handleHide);
+        modalElement.addEventListener('hidden.bs.modal', handleHidden);
+
+        return () => {
+            modalElement.removeEventListener('hide.bs.modal', handleHide);
+            modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+        };
+    }, []); // These listeners are set up once.
 
     return (
         <div
@@ -67,11 +122,9 @@ export default function Modal(props) {
             ref={modalRef}
             tabIndex="-1"
             aria-labelledby={`${id}Label`}
-            aria-hidden="true"
         >
             <div className="modal-dialog">
                 <div className={`modal-content ${addClass || ''}`}>
-                    {/* Modal header */}
                     <div className="modal-header">
                         <h1 className="modal-title fs-5" id={`${id}Label`}>
                             {title}
@@ -79,20 +132,18 @@ export default function Modal(props) {
                         <button
                             type="button"
                             className="btn-close"
-                            data-bs-dismiss="modal"
                             aria-label="Close"
                             onClick={onClose}
                         ></button>
                     </div>
-
-                    {/* Modal body */}
-                    <div className="modal-body ">
+                    <div className="modal-body">
                         {children}
                     </div>
-
-                    {/* Modal footer */}
-                    {footer && <div
-                        className="w-100 modal-footer d-flex justify-content-center align-items-center">{footer}</div>}
+                    {footer && (
+                        <div className="modal-footer d-flex justify-content-center align-items-center">
+                            {footer}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
