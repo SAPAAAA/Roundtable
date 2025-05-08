@@ -180,7 +180,7 @@ export default function RegisterModal(props) {
                         id="registerModalFullName" name="fullName" label="Họ và tên"
                         placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
                         isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
-                        addon={<Icon name="user" size="16"/>}
+                        addonBefore={<Icon name="user" size="16"/>}
                         disabled={isSubmitting}
                         required
                     />
@@ -190,7 +190,7 @@ export default function RegisterModal(props) {
                         id="registerModalUsername" name="username" label="Tên đăng nhập"
                         placeholder="Nhập tên đăng nhập" value={username} onChange={handleChange}
                         isInvalid={!!formErrors.username} feedback={formErrors.username}
-                        addon={<Icon name="user" size="16"/>}
+                        addonBefore={<Icon name="user" size="16"/>}
                         disabled={isSubmitting}
                         required
                     />
@@ -200,7 +200,7 @@ export default function RegisterModal(props) {
                         id="registerModalEmail" name="email" type="email" label="Email"
                         placeholder="Nhập địa chỉ email" value={email} onChange={handleChange}
                         isInvalid={!!formErrors.email} feedback={formErrors.email}
-                        addon={<Icon name="envelope" size="16"/>}
+                        addonBefore={<Icon name="envelope" size="16"/>}
                         disabled={isSubmitting}
                         required
                     />
@@ -210,7 +210,7 @@ export default function RegisterModal(props) {
                         id="registerModalPassword" name="password" type="password" label="Mật khẩu"
                         placeholder="Nhập mật khẩu" value={password} onChange={handleChange}
                         isInvalid={!!formErrors.password} feedback={formErrors.password}
-                        addon={<Icon name="lock" size="16"/>}
+                        addonBefore={<Icon name="lock" size="16"/>}
                         disabled={isSubmitting}
                         required
                     />
@@ -232,7 +232,7 @@ export default function RegisterModal(props) {
                         label="Xác nhận mật khẩu"
                         placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={handleChange}
                         isInvalid={!!formErrors.confirmPassword} feedback={formErrors.confirmPassword}
-                        addon={<Icon name="lock" size="16"/>}
+                        addonBefore={<Icon name="lock" size="16"/>}
                         disabled={isSubmitting}
                         required
                     />
