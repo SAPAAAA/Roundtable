@@ -33,19 +33,40 @@ class ProfileDAO {
         }
     }
 
-    async update(profileId, updateData, trx = null) {
-        const queryBuilder = trx || postgresInstance;
+    async update(profileId, updateData, trx) {
+
+        const queryBuilder = trx ? trx : postgresInstance;
         try {
-            const {...allowedUpdates} = updateData; // Filter as needed
-            if (Object.keys(allowedUpdates).length === 0) {
-                return 0;
+            // Thực hiện cập nhật và trả về dữ liệu đã cập nhật
+            const updatedRows = await queryBuilder(this.tableName)
+                .where({profileId})
+                .update(updateData)
+                .returning('*');
+
+            // Kiểm tra kết quả trả về
+            if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
+                return null;
             }
 
-            return await queryBuilder(this.tableName)
-                .where({profileId})
-                .update(allowedUpdates);
+            // Trả về đối tượng Profile đã cập nhật
+            return Profile.fromDbRow(updatedRows[0]);
         } catch (error) {
-            console.error(`[ProfileDAO] Error updating profile ${profileId}:`, error);
+            console.error('Error updating profile:', error);
+            // Re-throw the original error
+            throw error;
+        }
+    }
+
+    async delete(profileId, trx) {
+        const queryBuilder = trx ? trx : postgresInstance;
+        try {
+            // .del() returns the number of affected rows
+            const affectedRows = await queryBuilder(this.tableName).where({profileId}).del();
+            // Return true if 1 or more rows were deleted, false otherwise
+            return affectedRows > 0;
+        } catch (error) {
+            console.error('Error deleting profile:', error);
+            // Re-throw the original error
             throw error;
         }
     }
