@@ -14,13 +14,7 @@ export default function HomeContent() {
         const fetchPosts = async () => {
             try {
                 setLoading(true);
-                const options = {
-                    limit: 20,
-                    offset: 0,
-                    sortBy: 'createdAt',
-                    order: 'desc'
-                };
-                const data = await homeService.getHomeData(options);
+                const data = await homeService.getHomeData();
                 setPosts(data);
                 setLoading(false);
             } catch (error) {

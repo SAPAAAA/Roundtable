@@ -114,22 +114,14 @@ class UserPostDetailsDAO {
 
     /**
      * Fetches a list of posts for the home page from the VIEW.
-     * @param {GetPostsOptions} [options={}] - Options for sorting, filtering, and pagination.
      * @returns {Promise<UserPostDetails[]>} - A promise resolving to an array of formatted post objects.
      * @throws {Error} Throws database errors.
      */
-    async getHomePosts(options = {}) {
-        const {includeRemoved} = this._prepareQueryOptions({
-            ...options,
-        });
-
+    async getHomePosts() {
         try {
             let query = postgresInstance(this.viewName)
-                .select('*');
-
-            if (!includeRemoved) {
-                query = query.where('isRemoved', false);
-            }
+                .select('*')
+                .where('isRemoved', false);
 
             const viewRows = await query;
             const posts = viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);

@@ -4,29 +4,12 @@ import HTTP_STATUS from '#constants/httpStatus.js';
 class HomeController {
     constructor() {
         this.service = homeService;
-        // Bind method để đảm bảo this luôn đúng context
         this.getHomePosts = this.getHomePosts.bind(this);
     }
     async getHomePosts(req, res, next) {
-
         try {
-            //console.log('(controller)Request query params:', req.query);
-            
-            const { limit, offset, sortBy, order } = req.query;
-            
-            // Chuyển đổi các tham số query thành số nếu có thể
-            const options = {
-                limit: limit ? parseInt(limit, 10) : undefined,
-                offset: offset ? parseInt(offset, 10) : undefined,
-                sortBy,
-                order
-            };
-            
-            console.log('(controller)Processed options:', options);
-
-            const posts = await this.service.getHomePosts(options);
+            const posts = await this.service.getHomePosts();
             console.log(`(controller)Received ${posts?.length || 0} posts from service`);
-
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
