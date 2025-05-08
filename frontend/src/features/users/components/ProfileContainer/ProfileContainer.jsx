@@ -3,7 +3,7 @@ import '../myprofile.css'
 import Tabs from "../../../../shared/components/UIElement/Tabs/Tabs";
 import ProfileSideBar from "../ProfileSidebar/ProfileSidebar";
 // import ListPostPreview from "../../../posts/components/ListPostPreview/ListPostPreview";
-import Comment from "../../../posts/components/Comment/Comment";
+import Comment from "../../../comments/components/Comment/Comment";
 import PostPreview from "../../../posts/components/PostPreview/PostPreview";
 import Avatar from "../../../../shared/components/UIElement/Avatar/Avatar";
 import Identifier from "../../../../shared/components/UIElement/Identifier/Identifier";

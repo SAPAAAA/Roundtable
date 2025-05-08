@@ -126,7 +126,7 @@ export default function LoginModal(props) {
                         onChange={handleUsernameChange}
                         required
                         disabled={isSubmitting}
-                        addon={<Icon name="user" size="16"/>}
+                        addonBefore={<Icon name="user" size="16"/>}
                     />
                 </div>
                 <div className="form-group">
@@ -140,7 +140,7 @@ export default function LoginModal(props) {
                         onChange={handlePasswordChange}
                         required
                         disabled={isSubmitting}
-                        addon={<Icon name="lock" size="16"/>}
+                        addonBefore={<Icon name="lock" size="16"/>}
                     />
                 </div>
                 <Button

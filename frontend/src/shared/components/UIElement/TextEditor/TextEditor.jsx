@@ -2,7 +2,7 @@ import React, {forwardRef, useEffect, useImperativeHandle, useRef} from "react";
 import $ from "jquery";
 import "summernote/dist/summernote-lite.css";
 import "summernote/dist/summernote-lite.min.js";
-import './TextEditor.css'; // **** Import the new CSS file ****
+import './TextEditor.css';
 
 const TextEditor = forwardRef((props, ref) => {
     const editorRefInternal = useRef(null);

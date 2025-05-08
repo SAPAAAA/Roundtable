@@ -114,56 +114,112 @@ class UserPostDetailsDAO {
 
     /**
      * Fetches a list of posts for the home page from the VIEW.
+     * Options for sorting, filtering, and pagination.
+     * If `options.sortBy` is 'score', posts are scored and sorted by this custom score in the application.
+     * Otherwise, sorting is performed by the database based on `options.sortBy` and `options.order`.
+     *
+     * @param {object} [options={}] - Options for querying.
+     * @param {number} [options.limit] - Number of posts to return.
+     * @param {number} [options.offset] - Number of posts to skip (for pagination).
+     * @param {string} [options.sortBy='postCreatedAt'] - Column to sort by, or 'score' for custom scoring.
+     * @param {string} [options.order='desc'] - Sort order ('asc' or 'desc').
+     * @param {boolean} [options.includeRemoved=false] - Whether to include posts marked as removed.
      * @returns {Promise<UserPostDetails[]>} - A promise resolving to an array of formatted post objects.
      * @throws {Error} Throws database errors.
      */
-    async getHomePosts() {
+    async getHomePosts(options = {}) {
+        const isSortingByScore = options.sortBy === 'score';
+
+        // Prepare query options, establishing defaults.
+        // If sorting by 'score', default database sort can be by creation date or another sensible field.
+        // The final sort order for 'score' will be handled in the application.
+        const {
+            limit,
+            offset = 0, // Default offset to 0 if not provided
+            sortBy: dbSortBy,
+            order,
+            includeRemoved
+        } = this._prepareQueryOptions({ // Assuming this._prepareQueryOptions is defined in your class
+            ...options,
+            // If isSortingByScore is true, dbSortBy will use the fallback or default from _prepareQueryOptions
+            // as the true sort happens later. If false, it uses the user's specified sortBy.
+            sortBy: isSortingByScore ? (options.sortByFallback || 'postCreatedAt') : (options.sortBy || 'postCreatedAt'),
+            order: options.order || 'desc',
+            // limit is handled differently: if sorting by score, we fetch more initially.
+        });
+
         try {
-            let query = postgresInstance(this.viewName)
-                .select('*')
-                .where('isRemoved', false);
+            let query = postgresInstance(this.viewName).select('*');
+
+            if (!includeRemoved) {
+                query = query.where('isRemoved', false);
+            }
+
+            // If not sorting by custom score, apply database-level sorting and pagination (if limit is provided)
+            if (!isSortingByScore) {
+                query = query.orderBy(dbSortBy, order).offset(offset);
+                if (limit !== null && limit !== undefined) { // Ensure limit is explicitly set
+                    query = query.limit(limit);
+                }
+            }
+            // If sorting by score, we fetch all matching 'includeRemoved' status,
+            // then score, sort, and paginate in the application layer.
+            // This is necessary for accurate scoring across the entire relevant dataset.
+            // For very large datasets, consider fetching a pre-filtered subset (e.g., recent posts)
+            // before scoring to optimize performance.
 
             const viewRows = await query;
-            const posts = viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
-            
-            // Tính toán điểm số cho mỗi bài đăng dựa trên 3 thuộc tính
-            const now = new Date();
-            const scoredPosts = posts.map(post => {
-                // 1. Điểm thời gian (càng mới càng cao)
-                const postDate = new Date(post.postCreatedAt);
-                const ageInDays = (now - postDate) / (1000 * 60 * 60 * 24);
-                const timeScore = Math.max(0, 100 - ageInDays); // Giảm dần theo thời gian
-                
-                // 2. Điểm vote (càng nhiều càng cao)
-                const voteScore = post.voteCount * 10; // Mỗi vote đáng giá 10 điểm
-                
-                // 3. Điểm bình luận (càng nhiều càng cao)
-                const commentScore = post.commentCount * 5; // Mỗi bình luận đáng giá 5 điểm
-                
-                // Tính tổng điểm (có thể điều chỉnh trọng số nếu cần)
-                const totalScore = timeScore + voteScore + commentScore;
-                
-                return {
-                    ...post,
-                    _score: totalScore
-                };
-            });
-            
-            // Sắp xếp bài đăng theo điểm số (cao đến thấp)
-            scoredPosts.sort((a, b) => b._score - a._score);
-            
-            // Loại bỏ thuộc tính _score trước khi trả về kết quả
-            return scoredPosts.map(post => {
-                const {_score, ...cleanPost} = post;
-                return cleanPost;
-            });
+            let posts = viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
+
+            if (isSortingByScore) {
+                const now = new Date();
+                const scoredPosts = posts.map(post => {
+                    // 1. Time Score (newer is higher)
+                    const postDate = new Date(post.postCreatedAt);
+                    // Handle invalid dates robustly
+                    const ageInDays = (postDate && !isNaN(postDate.getTime())) ? (now - postDate) / (1000 * 60 * 60 * 24) : Infinity;
+                    const timeScore = (postDate && !isNaN(postDate.getTime())) ? Math.max(0, 100 - ageInDays) : 0;
+
+                    // 2. Vote Score (more votes is higher)
+                    const voteScore = (post.voteCount || 0) * 10; // Default to 0 if voteCount is null/undefined
+
+                    // 3. Comment Score (more comments is higher)
+                    const commentScore = (post.commentCount || 0) * 5; // Default to 0 if commentCount is null/undefined
+
+                    const totalScore = timeScore + voteScore + commentScore;
+
+                    return {
+                        ...post,
+                        _score: totalScore
+                    };
+                });
+
+                // Sort posts by the calculated score.
+                // The 'order' option from input options can determine ascending/descending for the score.
+                scoredPosts.sort((a, b) => {
+                    return order === 'asc' ? a._score - b._score : b._score - a._score;
+                });
+
+                // Apply pagination (limit and offset) after scoring and sorting
+                const startIndex = offset;
+                const endIndex = (limit !== null && limit !== undefined) ? offset + limit : scoredPosts.length;
+                const paginatedPosts = scoredPosts.slice(startIndex, endIndex);
+
+                // Remove the _score property before returning
+                return paginatedPosts.map(p => {
+                    const {_score, ...cleanPost} = p;
+                    return cleanPost;
+                });
+            } else {
+                // If not sorting by score, posts are already sorted and paginated by the DB (if limit was applied).
+                return posts;
+            }
 
         } catch (error) {
             console.error(`[UserPostDetailsDAO] Error fetching home posts:`, error);
-            throw error;
+            throw error; // Re-throw the error for upstream handling
         }
     }
-
     /**
      * Helper function to process and validate query options.
      * @private

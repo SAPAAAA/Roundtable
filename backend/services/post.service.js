@@ -1,5 +1,5 @@
 // services/post.service.js
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import UserCommentDetailsDAO from "#daos/user-comment-details.dao.js";
 import UserPostDetailsDAO from "#daos/user-post-details.dao.js";
 import PostDAO from '#daos/post.dao.js';

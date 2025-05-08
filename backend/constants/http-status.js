@@ -1,4 +1,4 @@
-// src/constants/httpStatus.js
+// src/constants/http-status.js
 
 const HTTP_STATUS = {
     OK: 200,

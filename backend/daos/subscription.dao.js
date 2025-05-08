@@ -11,39 +11,38 @@ class SubscriptionDAO {
      * Creates a new subscription record.
      * Handles unique constraint violations (user already subscribed) gracefully.
      * Note: The DB trigger 'update_subtable_member_count_ins' handles incrementing Subtable.memberCount.
-     * @param {string} userId - The ID of the user subscribing.
-     * @param {string} subtableId - The ID of the subtable being subscribed to.
+     * @param {Subscription} subscription - The Subscription object to create.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<Subscription | null>} The created Subscription object or null if the user was already subscribed.
      */
-    async create(userId, subtableId, trx = null) {
+    async create(subscription, trx = null) {
         const queryBuilder = trx || postgresInstance;
-        const insertData = {userId, subtableId};
+        const dataToInsert = {
+            userId: subscription.userId,
+            subtableId: subscription.subtableId
+        };
 
         try {
-            // Attempt to insert, but ignore if the unique constraint (userId, subtableId) fails
             const insertedRows = await queryBuilder('Subscription')
-                .insert(insertData)
-                .onConflict(['userId', 'subtableId']) // Specify unique constraint columns
-                .ignore() // Ignore the conflict, don't insert, don't throw error
-                .returning('*'); // Return the row *only if* it was inserted
+                .insert(dataToInsert)
+                .onConflict(['userId', 'subtableId'])
+                .ignore()
+                .returning('*');
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
-                // This means the ON CONFLICT IGNORE clause was triggered
-                console.warn(`User ${userId} attempted to subscribe to Subtable ${subtableId}, but was already subscribed (ignored).`);
-                return null; // Indicate no new subscription was created
+                console.info(`[SubscriptionDAO:create] User ${subscription.userId} is already subscribed to Subtable ${subscription.subtableId}, or insert was ignored.`);
+                return null;
             }
 
-            console.info(`User ${userId} successfully subscribed to Subtable ${subtableId}`);
-            return Subscription.fromDbRow(insertedRows[0]);
+            console.info(`[SubscriptionDAO:create] User ${subscription.userId} successfully subscribed to Subtable ${subscription.subtableId}. Row:`, insertedRows[0]);
+            return Subscription.fromDbRow(insertedRows[0]); // Ensure Subscription model exists and fromDbRow is correct
 
         } catch (error) {
             // Catch other potential errors (DB connection issues, etc.)
-            console.error(`Error creating subscription for User ${userId} to Subtable ${subtableId}:`, error);
+            console.error(`[SubscriptionDAO:create] Error creating subscription for User ${subscription.userId} to Subtable ${subscription.subtableId}:`, error);
             throw error; // Re-throw for upstream handling
         }
     }
-
     /**
      * Deletes a subscription record.
      * Note: The DB trigger 'update_subtable_member_count_del' handles decrementing Subtable.memberCount.

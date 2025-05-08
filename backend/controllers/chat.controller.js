@@ -1,5 +1,5 @@
 // backend/controllers/chat.controller.js
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import ChatService from '#services/chat.service.js'; // Use the injected instance name from below
 import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
 

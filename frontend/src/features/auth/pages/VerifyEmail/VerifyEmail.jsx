@@ -44,9 +44,9 @@ function VerifyEmail() {
     const combinedCode = code.join('');
 
     useEffect(() => {
-        // Redirect to login page if verification is successful
+        // Redirect to create-profile page if verification is successful
         if (actionData && actionData.success) {
-            navigate('/login', {replace: true});
+            navigate('/create-profile', {replace: true, state: {profileId: actionData.data.profileId}});
         }
         if (actionData && actionData.error) {
             console.error(actionData.error);

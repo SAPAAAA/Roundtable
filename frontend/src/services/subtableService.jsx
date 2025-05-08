@@ -3,7 +3,6 @@ import {sendApiRequest} from "#utils/apiClient";
 class SubtableService {
     async getSubtableDetails(subtableName) {
         const baseUrl = `/api/s/${subtableName}`;
-        console.log('I\'m in the subtable service');
         const response = await sendApiRequest(baseUrl, {method: 'GET'});
         if (!response.success) {
             throw new Error(`Failed to fetch subtable details for ${subtableName}: ${response.status} ${response.statusText}`);
@@ -22,11 +21,18 @@ class SubtableService {
 
     async getSubscribedSubtables() {
         const baseUrl = `/api/s/subscribed`;
-        console.log('123');
-        const response = await sendApiRequest('/api/s/subscribed', {method: 'GET'});
-        console.log('I\'m in the subtable service');
+        const response = await sendApiRequest(baseUrl, {method: 'GET'});
         if (!response.success) {
             throw new Error(`Failed to fetch subtables: ${response.status} ${response.statusText}`);
+        }
+        return response; // Return the whole response object
+    }
+
+    async createSubtable(subtableData) {
+        const baseUrl = '/api/s/';
+        const response = await sendApiRequest(baseUrl, {method: 'POST', body: subtableData});
+        if (!response.success) {
+            throw new Error(`Failed to create subtable: ${response.status} ${response.statusText}`);
         }
         return response; // Return the whole response object
     }

@@ -2,7 +2,7 @@
 import commentService from '#services/comment.service.js';
 import voteService from '#services/vote.service.js';
 import notificationService from '#services/notification.service.js'; // Keep import
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import {BadRequestError, ConflictError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
 class CommentController {

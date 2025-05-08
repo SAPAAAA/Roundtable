@@ -1,6 +1,7 @@
 import React, {lazy} from 'react';
 import createPostLoader from "#features/posts/pages/CreatePost/createPostLoader.jsx";
 import createPostAction from "#features/posts/pages/CreatePost/createPostAction.jsx";
+import createSubtableAction from "#features/subtables/components/CreateSubtableModal/createSubtableAction.jsx";
 import subtableViewLoader from "#features/subtables/pages/SubtableView/subtableViewLoader.jsx";
 
 const SubtableView = lazy(() => import('#features/subtables/pages/SubtableView/SubtableView'));
@@ -18,7 +19,11 @@ function subtableRoutes() {
             element: <CreatePost/>,
             loader: createPostLoader,
             action: createPostAction,
-        }
+        },
+        {
+            path: "/s",
+            action: createSubtableAction,
+        },
     ]
 
 }

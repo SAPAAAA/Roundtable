@@ -1,5 +1,5 @@
 import homeService from '#services/home.service.js';
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 
 class HomeController {
     constructor() {

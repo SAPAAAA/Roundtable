@@ -1,7 +1,7 @@
 // backend/controllers/post.controller.js
 import postService from '#services/post.service.js';
 import voteService from "#services/vote.service.js"; // Ensure voteService is imported and injected
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import {BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
 
 class PostController {

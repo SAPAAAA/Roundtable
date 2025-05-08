@@ -1,6 +1,6 @@
 // backend/controllers/auth.controller.js
 import authService from '#services/auth.service.js';
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import {
     AuthenticationError,
     BadRequestError,
@@ -11,12 +11,20 @@ import {
     VerificationError
 } from '#errors/AppError.js';
 
+/**
+ * @class AuthController
+ * @description Handles HTTP requests related to authentication, registration, etc.
+ */
 class AuthController {
     constructor(injectedAuthService) {
         this.authService = injectedAuthService;
     }
 
-    register = async (req, res) => { // Removed 'next' as errors are handled directly
+    /**
+     * Handles user registration requests.
+     * POST /register
+     */
+    register = async (req, res, next) => {
         try {
             const {username, email, password} = req.body;
             const data = await this.authService.registerUser({username, email, password});
@@ -47,7 +55,11 @@ class AuthController {
         }
     }
 
-    login = async (req, res) => {
+    /**
+     * Handles user login requests.
+     * POST /login
+     */
+    login = async (req, res, next) => {
         try {
             const {username, password} = req.body;
             const user = await this.authService.login(username, password);
@@ -99,14 +111,27 @@ class AuthController {
         }
     }
 
-    verifyEmail = async (req, res) => {
+    /**
+     * Handles email verification requests.
+     * POST /verify-email
+     */
+    verifyEmail = async (req, res, next) => {
         try {
             const {email, code} = req.body;
-            await this.authService.verifyEmail(email, code);
-            return res.status(HTTP_STATUS.OK).json({
-                success: true,
-                message: 'Email verified successfully.',
-            });
+
+            // Call the service layer - returns true or throws specific errors
+            const result = await this.authService.verifyEmail(email, code);
+
+            // --- Success Response ---
+            if (result) {
+                return res.status(HTTP_STATUS.OK).json({
+                    success: true,
+                    data: {
+                        profileId: result,
+                    },
+                    message: 'Email verified successfully.', // Consistent success message
+                });
+            }
         } catch (error) {
             console.error("[AuthController.verifyEmail] Error:", error.message);
             if (error instanceof BadRequestError || error instanceof VerificationError) {
@@ -127,6 +152,10 @@ class AuthController {
         }
     }
 
+    /**
+     * Checks if a valid session exists and returns user data.
+     * GET /session
+     */
     checkSession = async (req, res) => {
         try {
             if (req.session && req.session.userId) {
@@ -165,6 +194,10 @@ class AuthController {
         }
     }
 
+    /**
+     * Handles user logout requests.
+     * POST /logout
+     */
     logout = async (req, res) => {
         if (req.session) {
             const {userId} = req.session; // Log who is logging out
@@ -197,6 +230,65 @@ class AuthController {
         } else {
             console.log('[AuthController.logout] No active session found to log out.');
             return res.status(HTTP_STATUS.OK).json({success: true, message: 'You are already logged out.'});
+        }
+    }
+
+    /**
+     * Cập nhật thông tin profile của người dùng.
+     * PATCH /profile
+     */
+    updateProfile = async (req, res, next) => {
+        try {
+            // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATE PROFILE ROUTE ACCESSED ===');
+            // console.log('===(CONTROLLER) REQUEST BODY ===', JSON.stringify(req.body));
+
+            const profileData = req.body;
+            const profileId = profileData.profileId; // Lấy profileId từ request body
+
+            if (!profileId) {
+                // console.log('===(CONTROLLER) PROFILE ID MISSING IN REQUEST ===');
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: 'Thiếu thông tin profileId.'
+                });
+            }
+
+            // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATING PROFILE FOR ID ===', profileId);
+
+            // Gọi service để cập nhật hồ sơ
+            const updatedProfile = await this.authService.updateProfileById(profileId, profileData);
+
+            // console.log('===(CONTROLLER) PROFILE UPDATED SUCCESSFULLY ===');
+
+            // --- Phản hồi thành công ---
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Cập nhật hồ sơ thành công.',
+            });
+
+        } catch (error) {
+            //console.log('===(CONTROLLER) ERROR UPDATING PROFILE ===', error.message);
+
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                console.error(error.stack || error);
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: error.message || 'Cập nhật hồ sơ thất bại do lỗi máy chủ.'
+                });
+            }
+
+            // --- Xử lý lỗi không mong muốn ---
+            // console.error("(CONTROLLER)[AuthController.updateProfile] Lỗi không mong muốn:", error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.'
+            });
         }
     }
 }

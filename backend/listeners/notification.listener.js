@@ -3,7 +3,7 @@ import EventBus from '#core/event-bus.js';
 import WebSocketManager from '#core/websocket-manager.js';
 
 // Listen for a generic 'notification.created' event
-EventBus.subscribe('notification.created', (payload) => {
+EventBus.subscribe('notification.created', async (payload) => {
     // Expect payload to be { recipientUserId: string, notification: Notification }
     const {recipientUserId, notification} = payload;
 

@@ -12,12 +12,11 @@ import useNotifications from "#hooks/useNotifications.jsx";
 import useChat from "#hooks/useChat.jsx";
 
 export default function Header(props) {
-    const {toggleSidebar, toggleChat, openLoginModal} = props;
+    const {toggleSidebar, toggleChat, openLoginModal, openCreateSubtableModal} = props;
     const {user, logout, isLoading} = useAuth();
     const navigate = useNavigate();
     const {unreadCount: notificationUnreadCount} = useNotifications();
     const {totalUnreadMessages: chatUnreadCount} = useChat();
-
 
 
     const handleMenuItemClick = (action) => {
@@ -114,21 +113,21 @@ export default function Header(props) {
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
                         {isLoading ? (
                             <li className="nav-item"><span className="navbar-text">Loading...</span></li>
-                        ) : !user ? (
-                            <li className="nav-item">
-                                <Button
-                                    contentType="text"
-                                    dataBsToggle="tooltip"
-                                    dataBsTrigger="hover focus"
-                                    tooltipTitle="Login"
-                                    tooltipPlacement="bottom"
-                                    onClick={openLoginModal}
-                                >
-                                    Login
-                                </Button>
-                            </li>
-                        ) : (
+                        ) : user ?
                             <>
+                                <li className="nav-item">
+                                    <Button
+                                        contentType="icon"
+                                        dataBsToggle="tooltip"
+                                        dataBsTrigger="hover focus"
+                                        tooltipTitle="Create a new community"
+                                        tooltipPlacement="bottom"
+                                        onClick={openCreateSubtableModal} // Call the handler
+                                        aria-label="Create a new community"
+                                    >
+                                        <Icon name="plus" size="20px"/>
+                                    </Button>
+                                </li>
                                 {/* Chat Button */}
                                 <li className="nav-item">
                                     <Button
@@ -150,8 +149,8 @@ export default function Header(props) {
                                             <span
                                                 className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
                                             >
-                                                {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
-                                            </span>
+                                                                            {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                                                                        </span>
                                         )}
                                     </Button>
                                 </li>
@@ -172,8 +171,8 @@ export default function Header(props) {
                                             <span
                                                 className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
                                             >
-                                                {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
-                                            </span>
+                                                                            {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                                                                        </span>
                                         )}
                                     </Button>
                                 </li>
@@ -206,9 +205,10 @@ export default function Header(props) {
                                                     </div>
                                                     <span
                                                         className="text-muted fs-7">
-                                                        {user?.username &&
-                                                            <Identifier type="user" namespace={user.username}/>}
-                                                    </span>
+                                                                                    {user?.username &&
+                                                                                        <Identifier type="user"
+                                                                                                    namespace={user.username}/>}
+                                                                                </span>
                                                 </div>
                                             </div>
                                         </Link>
@@ -238,7 +238,19 @@ export default function Header(props) {
                                     </PopoverMenu>
                                 </li>
                             </>
-                        )}
+                            :
+                            <li className="nav-item">
+                                <Button
+                                    contentType="text"
+                                    dataBsToggle="tooltip"
+                                    dataBsTrigger="hover focus"
+                                    tooltipTitle="Login"
+                                    tooltipPlacement="bottom"
+                                    onClick={openLoginModal}
+                                >
+                                    Login
+                                </Button>
+                            </li>}
                     </ul>
                 </div>
             </nav>

@@ -5,8 +5,8 @@ import {useLoaderData, useNavigation, useRevalidator} from "react-router";
 
 import PostHeaderDetailed from "#features/posts/components/PostHeaderDetailed/PostHeaderDetailed";
 import PostCore from "#features/posts/components/PostCore/PostCore";
-import WriteComment from "#features/posts/components/WriteComment/WriteComment.jsx";
-import Comment from "#features/posts/components/Comment/Comment.jsx";
+import WriteComment from "#features/comments/components/WriteComment/WriteComment.jsx";
+import Comment from "#features/comments/components/Comment/Comment.jsx";
 import useAuth from "#hooks/useAuth.jsx";
 import "./PostDetailedView.css";
 

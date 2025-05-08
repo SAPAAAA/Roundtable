@@ -27,8 +27,7 @@ function Login() {
             setMessage(actionData?.message); // Set the message state for display
 
             if (actionData?.success === true) {
-                // Successful login handled by auth provider/redirect
-                // No need to navigate('/'), AuthProvider/session check handles it
+                navigate('/')
                 console.log("Login successful (actionData indicates success)");
             } else if (actionData?.success === false) {
                 // Handle specific error message from actionData
@@ -46,12 +45,16 @@ function Login() {
 
     // Clear message when user starts typing again
     const handleUsernameChange = (e) => {
-        if (message) setMessage(null);
+        if (message) {
+            setMessage(null);
+        }
         setUsername(e.target.value);
     };
 
     const handlePasswordChange = (e) => {
-        if (message) setMessage(null);
+        if (message) {
+            setMessage(null);
+        }
         setPassword(e.target.value);
     };
 
@@ -90,7 +93,7 @@ function Login() {
                             onChange={handleUsernameChange} // Use updated handler
                             required
                             disabled={navigation.state === 'submitting'}
-                            addon={<Icon name="user" size="16"/>}
+                            addonBefore={<Icon name="user" size="16"/>}
                         />
                     </div>
                     <div className="form-group">
@@ -104,7 +107,7 @@ function Login() {
                             onChange={handlePasswordChange} // Use updated handler
                             required
                             disabled={navigation.state === 'submitting'}
-                            addon={<Icon name="lock" size="16"/>}
+                            addonBefore={<Icon name="lock" size="16"/>}
                         />
                     </div>
                     <Button

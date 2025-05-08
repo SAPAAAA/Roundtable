@@ -1,8 +1,6 @@
+// src/shared/components/UIElement/Button/Button.jsx
 import React, {useEffect, useRef} from 'react';
 import './Button.css';
-// Assuming you have bootstrap imported somewhere globally or use a specific setup
-// If not using global bootstrap, you might need to import Tooltip specifically:
-// import { Tooltip } from 'bootstrap';
 
 /**
  * A highly flexible and Bootstrap-compatible button component.
@@ -43,6 +41,7 @@ import './Button.css';
  * @param {boolean} [props.ariaExpanded] - Indicates whether a popup element controlled by the button is currently expanded or collapsed.
  * @param {boolean} [props.disabled=false] - Whether the button is disabled.
  * @param {'button'|'submit'|'reset'} [props.type='button'] - Button type for forms.
+ * @param {string} [props.form] - The ID of the form the button is associated with.
  * @param {React.ReactNode} props.children - The button's content (text, icon, etc.).
  * @param {string} [props.className] - Optional external className to override internal styling.
  *
@@ -51,41 +50,47 @@ import './Button.css';
  * @example
  * // Simple centered button (default alignment)
  * <Button background={{ color: 'primary' }}>
- *     Centered Text
+ * Centered Text
  * </Button>
  *
  * @example
  * // Content aligned left (start), full width
  * <Button
- *     background={{ color: 'secondary' }}
- *     justifyContent="start"
- *     addClass="w-100"
+ * background={{ color: 'secondary' }}
+ * justifyContent="start"
+ * addClass="w-100"
  * >
- *     <i className="bi bi-arrow-left me-2"></i> Left Aligned
+ * <i className="bi bi-arrow-left me-2"></i> Left Aligned
  * </Button>
  *
  * @example
  * // Icon button with tooltip, standard corners
  * <Button
- *     contentType="icon"
- *     outline={{ color: 'secondary' }}
- *     rounded={false}
- *     tooltipTitle="Settings"
- *     // ariaLabel="Settings" // Automatically inferred from tooltipTitle for icon buttons
+ * contentType="icon"
+ * outline={{ color: 'secondary' }}
+ * rounded={false}
+ * tooltipTitle="Settings"
+ * // ariaLabel="Settings" // Automatically inferred from tooltipTitle for icon buttons
  * >
- *     <i className="bi bi-gear"></i>
+ * <i className="bi bi-gear"></i>
  * </Button>
  *
  * @example
  * // Button acting as a popover trigger (for PopoverMenu)
  * <Button
- *     background={{ color: 'info' }}
- *     ariaHaspopup="listbox"
- *     ariaExpanded={isPopoverOpen} // Controlled by state (e.g., const [isPopoverOpen, setOpen] = useState(false))
- *     onClick={togglePopover}      // Function to toggle the popover state
- *     onMouseDown={(e) => e.stopPropagation()} // Important for PopoverMenu interaction
+ * background={{ color: 'info' }}
+ * ariaHaspopup="listbox"
+ * ariaExpanded={isPopoverOpen} // Controlled by state (e.g., const [isPopoverOpen, setOpen] = useState(false))
+ * onClick={togglePopover}      // Function to toggle the popover state
+ * onMouseDown={(e) => e.stopPropagation()} // Important for PopoverMenu interaction
  * >
- *     Open Menu
+ * Open Menu
+ * </Button>
+ *
+ * @example
+ * // Submit button associated with an external form
+ * <Button type="submit" form="myFormId" background={{ color: 'primary' }}>
+ * Submit External Form
  * </Button>
  */
 export default function Button(props) {
@@ -93,7 +98,7 @@ export default function Button(props) {
         id,
         contentType,
         onClick,
-        onMouseDown, // <-- Added
+        onMouseDown,
         outline,
         background,
         padding,
@@ -108,12 +113,13 @@ export default function Button(props) {
         dataBsTrigger,
         dataBsDismiss,
         ariaLabel,
-        ariaHaspopup, // <-- Added
-        ariaExpanded, // <-- Added
+        ariaHaspopup,
+        ariaExpanded,
         disabled = false,
         type = 'button',
         children,
         className,
+        form,
     } = props;
 
     const buttonRef = useRef(null);
@@ -174,8 +180,9 @@ export default function Button(props) {
         finalClasses = `${className}${disabled && !className.includes('disabled') ? ' disabled' : ''}`.trim().replace(/\s+/g, ' ');
     } else {
         const internalClasses = ['btn'];
-        if (mainClass) internalClasses.unshift(mainClass);
-        if (contentType === 'icon') internalClasses.push('btn-icon');
+        if (contentType === 'icon') {
+            internalClasses.push('btn-icon');
+        }
 
         let styleClass = '';
         if (outline) {
@@ -191,9 +198,13 @@ export default function Button(props) {
         } else if (background) {
             styleClass = `btn-${background.color}`;
         }
-        if (styleClass) internalClasses.push(styleClass);
+        if (styleClass) {
+            internalClasses.push(styleClass);
+        }
 
-        if (rounded) internalClasses.push('rounded-pill');
+        if (rounded) {
+            internalClasses.push('rounded-pill');
+        }
 
         internalClasses.push(
             'd-flex',
@@ -201,8 +212,15 @@ export default function Button(props) {
             'align-items-center'
         );
         internalClasses.push(padding ? (String(padding).startsWith('p-') ? padding : `p-${padding}`) : 'p-2');
-        if (addClass) internalClasses.push(addClass);
-        if (disabled) internalClasses.push('disabled');
+        if (addClass) {
+            internalClasses.push(addClass);
+        }
+        if (mainClass) {
+            internalClasses.push(mainClass);
+        }
+        if (disabled) {
+            internalClasses.push('disabled');
+        }
 
         finalClasses = internalClasses.join(' ').trim().replace(/\s+/g, ' ');
     }
@@ -222,10 +240,12 @@ export default function Button(props) {
         'aria-label': ariaLabel || (contentType === 'icon' && tooltipTitle ? tooltipTitle : undefined),
         'aria-haspopup': ariaHaspopup,
         'aria-expanded': ariaExpanded,
-        disabled: disabled || undefined,
+        disabled: disabled || undefined, // Ensure 'disabled' attribute is absent if not true
         type: type,
+        form: form, // 'form' prop added to be passed to the HTML button
     };
 
+    // Clean up undefined/null props to avoid rendering them as attributes
     Object.keys(commonProps).forEach(key => {
         if (commonProps[key] === undefined || commonProps[key] === null) {
             delete commonProps[key];

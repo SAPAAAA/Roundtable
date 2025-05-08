@@ -4,6 +4,12 @@ import Subtable from '#models/subtable.model.js';
 import {ConflictError} from "#errors/AppError.js";
 
 class SubtableDAO {
+    constructor() {
+        if (!postgresInstance) {
+            throw new Error('Postgres instance is not initialized.');
+        }
+        this.tableName = 'Subtable';
+    }
     /**
      * Finds a subtable by its unique ID (UUID).
      * @param {string} subtableId - The UUID of the subtable.
@@ -12,7 +18,7 @@ class SubtableDAO {
      */
     async getById(subtableId) {
         try {
-            const subtableRow = await postgresInstance('Subtable').where({subtableId}).first();
+            const subtableRow = await postgresInstance(this.tableName).where({subtableId}).first();
             // Use model's static method which handles null row
             return Subtable.fromDbRow(subtableRow);
         } catch (error) {
@@ -29,7 +35,7 @@ class SubtableDAO {
      */
     async getByName(name) {
         try {
-            const subtableRow = await postgresInstance('Subtable').where({name}).first();
+            const subtableRow = await postgresInstance(this.tableName).where({name}).first();
             return Subtable.fromDbRow(subtableRow);
         } catch (error) {
             console.error(`[SubtableDAO] Error finding subtable by name (${name}):`, error);
@@ -50,7 +56,7 @@ class SubtableDAO {
         const {subtableId, createdAt, memberCount, ...insertData} = subtable;
 
         try {
-            const insertedRows = await queryBuilder('Subtable').insert(insertData).returning('*');
+            const insertedRows = await queryBuilder(this.tableName).insert(insertData).returning('*');
 
             if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
                 // Should ideally be caught by DB error, but good safety check
@@ -59,7 +65,7 @@ class SubtableDAO {
             return Subtable.fromDbRow(insertedRows[0]);
         } catch (error) {
             console.error('[SubtableDAO] Error creating subtable:', error);
-            if (error.code === '23505' && error.constraint === 'subtable_name_key') { // Example constraint name
+            if (error.code === '23505' && error.constraint === 'subtable_name_key') {
                 throw new ConflictError(`Subtable name "${insertData.name}" is already taken.`);
             }
             throw error; // Re-throw other errors
@@ -91,7 +97,7 @@ class SubtableDAO {
         }
 
         try {
-            const updatedRows = await queryBuilder('Subtable')
+            const updatedRows = await queryBuilder(this.tableName)
                 .where({subtableId})
                 .update(allowedUpdates)
                 .returning('*');
@@ -120,7 +126,7 @@ class SubtableDAO {
     async delete(subtableId, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            return await queryBuilder('Subtable')
+            return await queryBuilder(this.tableName)
                 .where({subtableId})
                 .del();
         } catch (error) {
@@ -137,7 +143,7 @@ class SubtableDAO {
      */
     async getSubscribedSubtables(userId) {
         try {
-            const subscribedSubtables = await postgresInstance('Subtable')
+            const subscribedSubtables = await postgresInstance(this.tableName)
                 .join('Subscription', 'Subtable.subtableId', '=', 'Subscription.subtableId')
                 .where('Subscription.userId', userId)
                 .select('Subtable.*');

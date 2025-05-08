@@ -1,5 +1,5 @@
 // src/middlewares/auth.mdw.js
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 
 /**
  * Middleware to ensure the user is NOT authenticated.

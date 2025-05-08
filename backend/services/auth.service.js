@@ -1,19 +1,29 @@
 // backend/services/auth.service.js
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
+
+// --- PostgresDB & Cache Clients ---
 import {postgresInstance} from '#db/postgres.js';
 import redisClient from '#db/redis.js';
+
+// --- Utility Functions ---
 import {generateShortCode} from '#utils/codeGenerator.js';
 import {sendMail} from '#utils/email.js';
+
+// --- Data Access Objects (DAOs) ---
 import AccountDAO from '#daos/account.dao.js';
 import PrincipalDAO from '#daos/principal.dao.js';
 import ProfileDAO from '#daos/profile.dao.js';
 import RegisteredUserDAO from '#daos/registered-user.dao.js';
 import UserProfileDAO from '#daos/user-profile.dao.js';
+
+// --- Data Models ---
 import Account from '#models/account.model.js';
 import Profile from '#models/profile.model.js';
 import RegisteredUser from '#models/registered-user.model.js';
 import Principal, {PrincipalRoleEnum} from '#models/principal.model.js';
+
+// --- Constants & Custom Errors ---
 import {HASH_OPTIONS} from '#constants/security.js';
 import {
     AuthenticationError,
@@ -29,6 +39,7 @@ dotenv.config();
 
 const CODE_EXPIRY_MINUTES = 5;
 
+// --- Password Hashing Utilities (Assume these are correctly defined) ---
 async function hashPassword(password) {
     try {
         return await argon2.hash(password, HASH_OPTIONS);
@@ -50,6 +61,11 @@ async function verifyPassword(hashedPassword, plainPassword) {
     }
 }
 
+
+/**
+ * @class AuthService
+ * @description Handles core business logic for authentication, registration, verification.
+ */
 class AuthService {
     constructor(accountDao, principalDao, profileDao, registeredUserDao, userProfileDao) {
         this.accountDao = accountDao;
@@ -59,6 +75,7 @@ class AuthService {
         this.userProfileDao = userProfileDao;
     }
 
+    /** Sends the verification email */
     async _sendVerificationEmail(userEmail, plainCode) {
         const subject = 'Your Email Verification Code';
         const expiryMessage = `This code is valid for ${CODE_EXPIRY_MINUTES} minutes.`;
@@ -75,13 +92,17 @@ class AuthService {
         }
     }
 
+    /**
+     * Registers a new user using DAOs within a transaction.
+     * Sends a verification email upon successful registration.
+     * (Assumes this method is correct from previous versions)
+     */
     async registerUser(registrationData) {
         const {username, email, password} = registrationData;
 
         if (!username || !email || !password) {
             throw new BadRequestError('Username, email, and password are required.');
         }
-        // Add more validation (e.g., email format, password strength) here if desired
 
         let createdEntities;
         try {
@@ -95,9 +116,10 @@ class AuthService {
                     throw new ConflictError('Email address is already registered.');
                 }
 
+                // Hash password
                 const hashedPassword = await hashPassword(password);
 
-                const account = new Account(null, username, hashedPassword, email)
+                const account = new Account(null, username, hashedPassword, email);
                 const createdAccount = await this.accountDao.create(account, trx);
                 if (!createdAccount?.accountId) {
                     throw new Error('DB_INSERT_FAIL: Account');
@@ -159,6 +181,135 @@ class AuthService {
         }
     }
 
+
+    /**
+     * Verifies a user's email address using a submitted code.
+     * Finds the userId via Account -> Principal -> RegisteredUser.
+     * Uses RegisteredUserDAO to check and update the isVerified flag within a transaction.
+     *
+     * @param {string} email - The user's email.
+     * @param {string} submittedCode - The code submitted by the user.
+     * @returns {Promise<boolean>} True if verification is successful or user already verified.
+     * @throws {BadRequestError} If email or code is missing.
+     * @throws {NotFoundError} If the account, principal, or registered user record is not found.
+     * @throws {VerificationError} If the code is invalid or expired.
+     * @throws {InternalServerError} For database, Redis, or other unexpected errors.
+     */
+    async verifyEmail(email, submittedCode) {
+        if (!email || !submittedCode) {
+            throw new BadRequestError('Email and verification code are required.');
+        }
+
+        let userId = null;
+        let redisKey = null;
+
+        try {
+            // --- 1. Find User ID from Email via Account -> Principal -> RegisteredUser ---
+            // Step 1.1: Find account by email
+            const account = await this.accountDao.getByEmail(email);
+            if (!account?.accountId) {
+                console.warn(`Verification attempt failed: No account found for email ${email}`);
+                throw new NotFoundError('Account not found or verification failed.');
+            }
+
+            // Step 1.2: Find principal by accountId
+            const principal = await this.principalDao.getByAccountId(account.accountId);
+            if (!principal?.principalId) {
+                console.error(`Data inconsistency: Account ${account.accountId} found, but no matching Principal.`);
+                throw new InternalServerError('User data configuration error during verification.');
+            }
+
+            // Step 1.3: Find registered user by principalId to get the userId
+            const registeredUser = await this.registeredUserDao.getByPrincipalId(principal.principalId);
+            if (!registeredUser?.userId) {
+                console.error(`Data inconsistency: Principal ${principal.principalId} found, but no matching RegisteredUser.`);
+                throw new InternalServerError('User registration data error during verification.');
+            }
+
+            // Successfully found the userId
+            userId = registeredUser.userId;
+            redisKey = `verify:email:${userId}`;
+            console.log(`Verification lookup: Found userId ${userId} for email ${email}.`);
+
+            // --- 2. Check Verification Code in Redis ---
+            const storedCode = await redisClient.get(redisKey);
+
+            if (!storedCode) {
+                console.warn(`No verification code found in Redis for key: ${redisKey} (email: ${email})`);
+                throw new VerificationError('Verification code is invalid or has expired. Please request a new one.');
+            }
+
+            if (storedCode !== submittedCode) {
+                console.warn(`Submitted code mismatch for key ${redisKey}. Stored: ${storedCode}, Submitted: ${submittedCode}`);
+                throw new VerificationError('Invalid verification code.');
+            }
+
+            // --- 3. Update RegisteredUser within a Transaction using RegisteredUserDAO ---
+            let alreadyVerified = false;
+            const updatePerformed = await postgresInstance.transaction(async (trx) => {
+                // Step 3.1: Fetch the RegisteredUser record *within the transaction* using its DAO
+                const userToUpdate = await this.registeredUserDao.getById(userId, trx); // Pass trx
+
+                if (!userToUpdate) {
+                    console.error(`Consistency issue inside transaction: RegisteredUser not found for update with userId ${userId}`);
+                    throw new InternalServerError('Failed to retrieve user details for verification update.'); // Rollback
+                }
+
+                // Step 3.2: Check if already verified
+                if (userToUpdate.isVerified === true) {
+                    console.log(`User (userId: ${userId}) already verified (checked via DAO within transaction).`);
+                    alreadyVerified = true;
+                    return false; // No update needed
+                }
+
+                // Step 3.3: Perform the update using the DAO's update method
+                const updateSuccessful = await this.registeredUserDao.update(
+                    userId,
+                    {isVerified: true}, // Pass data to update
+                    trx // Pass the transaction object
+                );
+
+                if (!updateSuccessful) {
+                    // The DAO's update method returns boolean indicating success
+                    console.error(`Failed to update RegisteredUser verification status via DAO for userId: ${userId} within transaction.`);
+                    throw new InternalServerError('PostgresDB update for verification failed.'); // Rollback
+                }
+
+                console.log(`User (userId: ${userId}) marked as verified via DAO within transaction.`);
+                return true; // Indicate DB update was performed
+            }); // End of postgresInstance.transaction block
+
+            // --- 4. Clean up Redis key ---
+            if (updatePerformed || alreadyVerified) {
+                try {
+                    await redisClient.del(redisKey);
+                    console.log(`Redis key ${redisKey} deleted after successful verification check/update.`);
+                } catch (redisError) {
+                    console.error(`Failed to delete Redis key ${redisKey} after verification:`, redisError);
+                }
+            }
+
+            // --- 5. Return Success ---
+            console.log(`Verification process completed for email ${email} (userId: ${userId}). Status updated: ${updatePerformed}`);
+            return principal.profileId; // Indicate success to the controller
+
+        } catch (error) {
+            // Re-throw known application errors
+            if (error instanceof BadRequestError || error instanceof NotFoundError || error instanceof VerificationError || error instanceof InternalServerError) {
+                throw error;
+            }
+            // Handle potential generic DB/Redis/other errors
+            console.error(`Email verification process failed unexpectedly for email "${email}" (userId: ${userId || 'N/A'}):`, error);
+            throw new InternalServerError('Email verification failed due to an unexpected internal error.');
+        }
+    }
+
+
+    /**
+     * Authenticates a user based on username and password.
+     * Uses UserProfileDAO for fetching combined profile data after successful auth.
+     * (Assumes this method is correct from previous versions)
+     */
     async login(username, password) {
         if (!username || !password) {
             throw new BadRequestError('Username and password are required.');
@@ -218,71 +369,11 @@ class AuthService {
         }
     }
 
-    async verifyEmail(email, submittedCode) {
-        if (!email || !submittedCode) {
-            throw new BadRequestError('Email and verification code are required.');
-        }
-
-        let userId; // To keep track for logging
-        try {
-            const account = await this.accountDao.getByEmail(email);
-            if (!account?.accountId) {
-                throw new VerificationError('Invalid email or verification code.'); // Generic to prevent email enumeration
-            }
-
-            const principal = await this.principalDao.getByAccountId(account.accountId);
-            if (!principal?.principalId) {
-                console.error(`[AuthService] Data inconsistency: Account ${account.accountId} has no Principal.`);
-                throw new InternalServerError('User data configuration error.');
-            }
-
-            const registeredUser = await this.registeredUserDao.getByPrincipalId(principal.principalId);
-            if (!registeredUser?.userId) {
-                console.error(`[AuthService] Data inconsistency: Principal ${principal.principalId} has no RegisteredUser.`);
-                throw new InternalServerError('User registration data error.');
-            }
-            userId = registeredUser.userId; // For logging and Redis key
-
-            // Check if already verified first
-            if (registeredUser.isVerified) {
-                // Optionally delete the code if it exists, but main thing is user is already verified
-                await redisClient.del(`verify:email:${userId}`);
-                return true; // Indicate success as user is already verified
-            }
-
-            const redisKey = `verify:email:${userId}`;
-            const storedCode = await redisClient.get(redisKey);
-
-            if (!storedCode) {
-                throw new VerificationError('Verification code is invalid or has expired. Please request a new one.');
-            }
-            if (storedCode !== submittedCode) {
-                throw new VerificationError('Invalid verification code.');
-            }
-
-            // If code is valid, update user status and delete code
-            const updateSuccessful = await postgresInstance.transaction(async (trx) => {
-                return await this.registeredUserDao.update(userId, {isVerified: true}, trx);
-            });
-
-            if (!updateSuccessful) {
-                console.error(`[AuthService] Failed to update RegisteredUser ${userId} as verified.`);
-                throw new InternalServerError('Failed to update verification status.');
-            }
-
-            await redisClient.del(redisKey);
-            return true; // Verification successful
-
-        } catch (error) {
-            if (error instanceof BadRequestError || error instanceof VerificationError || error instanceof InternalServerError || error instanceof NotFoundError) {
-                throw error;
-            }
-            console.error(`[AuthService] Email verification failed for email "${email}" (userId: ${userId || 'N/A'}):`, error);
-            throw new InternalServerError('An unexpected error occurred during email verification.');
-        }
-    }
-
-
+    /**
+     * Retrieves safe user profile data based on a user ID (typically from a session).
+     * Uses UserProfileDAO.
+     * (Assumes this method is correct from previous versions)
+     */
     async loginWithSession(userId) {
         if (!userId) {
             throw new BadRequestError('User ID is required for session validation.');
@@ -292,11 +383,6 @@ class AuthService {
             if (!userProfile?.userId) {
                 throw new NotFoundError('User associated with this session not found.'); // Could be stale session
             }
-
-            // Optionally, re-check status or verification if critical for every session request
-            // if (!userProfile.isVerified || userProfile.status !== 'active') {
-            //     throw new ForbiddenError('Account status requires re-authentication.');
-            // }
 
             return { // Return only necessary and safe data
                 userId: userProfile.userId,
@@ -316,6 +402,73 @@ class AuthService {
             }
             console.error(`[AuthService] Session check failed for userId "${userId}":`, error);
             throw new InternalServerError('An unexpected error occurred during session validation.');
+        }
+    }
+
+    /**
+     * Cập nhật thông tin profile theo profileId.
+     * @param {string} profileId - ID của profile cần cập nhật.
+     * @param {object} profileData - Dữ liệu profile cần cập nhật.
+     * @returns {Promise<Profile>} - Profile đã được cập nhật.
+     */
+    async updateProfileById(profileId, profileData) {
+        if (!profileId) {
+            throw new BadRequestError('Thiếu thông tin profileId.');
+        }
+
+        if (!profileData) {
+            // console.log('===(SERVICE) PROFILE DATA INVALID ===');
+            throw new BadRequestError('Dữ liệu hồ sơ không hợp lệ.');
+        }
+
+        // Kiểm tra giá trị gender nếu có
+        // if (profileData.gender && !Profile.isValidGender(profileData.gender)) {
+        //     console.log('===(SERVICE) INVALID GENDER VALUE ===', profileData.gender);
+        //     throw new BadRequestError('Giá trị gender không hợp lệ.');
+        // }
+
+        try {
+            // Chuẩn bị dữ liệu cập nhật
+            const updateData = {
+                avatar: null,
+                banner: null,
+                bio: profileData.bio,
+                location: profileData.location,
+                displayName: profileData.displayName,
+                gender: profileData.gender
+            };
+
+            // Loại bỏ các trường undefined
+            Object.keys(updateData).forEach(key => {
+                if (updateData[key] === undefined) {
+                    delete updateData[key];
+                }
+            });
+
+            // console.log('===(SERVICE) FINAL UPDATE DATA ===', JSON.stringify(updateData));
+
+            // Cập nhật profile trong database
+            // console.log('===(SERVICE) CALLING PROFILE DAO UPDATE ===');
+            const updatedProfile = await ProfileDAO.update(profileId, updateData);
+
+            if (!updatedProfile) {
+                // console.log('===(SERVICE) PROFILE UPDATE FAILED - NO PROFILE RETURNED ===');
+                throw new InternalServerError('Không thể cập nhật hồ sơ người dùng.');
+            }
+
+            // console.log('===(SERVICE) PROFILE UPDATED SUCCESSFULLY ===', JSON.stringify(updatedProfile));
+            return updatedProfile;
+        } catch (error) {
+            // console.log('===(SERVICE) ERROR IN UPDATE PROFILE BY ID ===', error.message);
+            // console.error('Lỗi khi cập nhật profile:', error);
+            // Nếu lỗi đã được xử lý (là instance của AppError), ném lại
+            if (error instanceof BadRequestError ||
+                error instanceof NotFoundError ||
+                error instanceof InternalServerError) {
+                throw error;
+            }
+            // Nếu là lỗi khác, bọc trong InternalServerError
+            throw new InternalServerError('Đã xảy ra lỗi khi cập nhật hồ sơ: ' + error.message);
         }
     }
 }
