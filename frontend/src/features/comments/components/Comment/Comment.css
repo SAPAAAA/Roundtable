@@ -65,7 +65,7 @@
 .comment-replies::before {
     content: "";
     position: absolute;
-    top: 0px;
+    top: 0;
     bottom: 10px;
     left: 12px; /* Adjust based on ps-4 */
     width: 2px;
