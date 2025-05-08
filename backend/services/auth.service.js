@@ -412,15 +412,10 @@ class AuthService {
      * @returns {Promise<Profile>} - Profile đã được cập nhật.
      */
     async updateProfileById(profileId, profileData) {
-        // console.log('===(SERVICE) AUTH SERVICE: UPDATE PROFILE BY ID METHOD CALLED ===', profileId);
-        // console.log('===(SERVICE) PROFILE DATA RECEIVED ===', JSON.stringify(profileData));
-
         if (!profileId) {
-            // console.log('===(SERVICE) PROFILE ID MISSING ===');
             throw new BadRequestError('Thiếu thông tin profileId.');
         }
 
-        // Kiểm tra dữ liệu đầu vào
         if (!profileData) {
             // console.log('===(SERVICE) PROFILE DATA INVALID ===');
             throw new BadRequestError('Dữ liệu hồ sơ không hợp lệ.');
@@ -433,11 +428,10 @@ class AuthService {
         // }
 
         try {
-            // console.log('===(SERVICE) PREPARING UPDATE DATA ===');
             // Chuẩn bị dữ liệu cập nhật
             const updateData = {
-                avatar: profileData.avatar,
-                banner: profileData.banner,
+                avatar: null,
+                banner: null,
                 bio: profileData.bio,
                 location: profileData.location,
                 displayName: profileData.displayName,
