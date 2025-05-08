@@ -12,15 +12,16 @@ const Content = React.lazy(() => import("#shared/components/layout/Content/Conte
 const Footer = React.lazy(() => import("#shared/components/layout/Footer/Footer.jsx"));
 const LoginModal = React.lazy(() => import("#features/auth/components/LoginModal/LoginModal.jsx"));
 const RegisterModal = React.lazy(() => import("#features/auth/components/RegisterModal/RegisterModal.jsx"));
-
+const CreateSubtableModal = React.lazy(() => import("#features/subtables/components/CreateSubtableModal/CreateSubtableModal.jsx"));
 export default function MainLayout() {
     // Get user state from AuthContext
-    const {user, login, isLoading, checkSession} = useAuth(); // Destructure user
+    const {user, isLoading, checkSession} = useAuth(); // Destructure user
     const [isSidebarVisible, setSidebarVisible] = useState(false);
 
     // --- Modal Visibility State ---
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [isCreateSubtableModalOpen, setIsCreateSubtableModalOpen] = useState(false);
 
     // --- Error State for Login ---
     const [loginApiError, setLoginApiError] = useState(null);
@@ -56,17 +57,14 @@ export default function MainLayout() {
         setIsRegisterModalOpen(false);
     }
 
-    // --- Login Form Submission Handler (for modal) ---
-    const handleLoginSubmit = async (email, password) => {
-        // This handler is likely for the modal login, not the page login
-        // Keep it if the modal needs its own submission logic
-        setLoginApiError(null);
-        const success = await login(email, password); // Assuming login comes from useAuth
-        if (success) {
-            closeLoginModal();
-        } else {
-            setLoginApiError("Invalid email or password. Please try again.");
-        }
+    const openCreateSubtableModal = () => {
+        setIsCreateSubtableModalOpen(true);
+        setIsLoginModalOpen(false);
+        setIsRegisterModalOpen(false);
+    };
+
+    const closeCreateSubtableModal = () => {
+        setIsCreateSubtableModalOpen(false);
     };
 
     // --- Modal Switching ---
@@ -92,6 +90,7 @@ export default function MainLayout() {
             // console.log("User detected in MainLayout, closing modals.");
             setIsLoginModalOpen(false);
             setIsRegisterModalOpen(false);
+            setIsCreateSubtableModalOpen(false);
         }
     }, [user]); // Re-run this effect whenever the user state changes
 
@@ -102,7 +101,8 @@ export default function MainLayout() {
                 toggleSidebar={toggleSidebar}
                 isSidebarVisible={isSidebarVisible}
                 openLoginModal={openLoginModal}
-                openRegisterModal={openRegisterModal} // Pass this if Header needs it
+                openRegisterModal={openRegisterModal}
+                openCreateSubtableModal={openCreateSubtableModal}
             />
 
             <Content
@@ -116,7 +116,6 @@ export default function MainLayout() {
             <LoginModal
                 isOpen={isLoginModalOpen}
                 onClose={closeLoginModal}
-                // onSubmit={handleLoginSubmit} // Keep if modal has its own submit
                 onSwitchToRegister={switchToRegister}
                 isLoading={isLoading} // Use isLoading from useAuth for modal too
                 authError={loginApiError} // Use specific modal error state
@@ -128,6 +127,11 @@ export default function MainLayout() {
                 onClose={closeRegisterModal}
                 onSwitchToLogin={switchToLogin}
                 // No submit/loading/error props needed if using RR action
+            />
+
+            <CreateSubtableModal
+                isOpen={isCreateSubtableModalOpen}
+                onClose={closeCreateSubtableModal}
             />
 
             {/* --- Render ChatApp --- */}
