@@ -6,10 +6,10 @@ import replyAction from "#features/posts/pages/PostDetailedView/replyAction.jsx"
 import postDetailLoader from "#features/posts/pages/PostDetailedView/postDetailLoader.jsx";
 import createPostLoader from "#features/posts/pages/CreatePost/createPostLoader.jsx";
 import createPostAction from "#features/posts/pages/CreatePost/createPostAction.jsx";
+import updatePostAction from "#features/posts/pages/UpdatePost/updatePostAction.jsx";
 
 const PostDetailView = lazy(() => import('#features/posts/pages/PostDetailedView/PostDetailedView'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
-
 // --- Define the Routes ---
 function postRoutes() {
     return [
@@ -31,6 +31,10 @@ function postRoutes() {
         {
             path: "/posts/:postId/comment",      // Action for top-level comments
             action: commentAction,
+        },
+        {
+            path:"/posts/:postId/update",
+            action: updatePostAction, // Assuming you have an action for updating posts
         }
     ]
 }

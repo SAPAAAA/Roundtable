@@ -26,6 +26,15 @@ class PostService {
         return response;
 
     }
+    async updatePost(data,postId) {
+        console.log("PostService.updatePost", data)
+        const baseUrl = `/api/posts/${postId}`
+        const response = await sendApiRequest(baseUrl, {method: 'PATCH', body: data});
+        if (!response.success) {
+            throw new Error(`Failed to update post : ${response.status} ${response.statusText}`);
+        }
+        return response;
+    }
 }
 
 export default new PostService();
