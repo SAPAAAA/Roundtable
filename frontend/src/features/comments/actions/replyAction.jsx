@@ -13,11 +13,13 @@ export default async function replyAction({request, params}) {
     // Use Object.fromEntries for cleaner data extraction
     const data = Object.fromEntries(formData.entries());
 
+    console.log("32222222222222222222222")
+
     // Get the HTTP method
     const method = request.method.toLowerCase();
 
     // Get commentId from route parameters (more reliable than URL splitting)
-    const commentId = params.commentId;
+    const {commentId} = params;
 
     console.log("Replying to comment:", commentId, data);
 
@@ -26,6 +28,7 @@ export default async function replyAction({request, params}) {
         // Return an object compatible with useFetcher
         return {
             status: 400, // Bad Request
+            success: false,
             message: "commentId is required.",
         };
     }
@@ -35,6 +38,7 @@ export default async function replyAction({request, params}) {
         // Return an object compatible with useFetcher
         return {
             status: 405, // Method Not Allowed
+            success: false,
             message: `Method ${request.method} not supported for this action.`,
         };
     }
@@ -47,6 +51,7 @@ export default async function replyAction({request, params}) {
         // Return an object compatible with useFetcher
         return {
             status: 400, // Bad Request
+            success: false,
             message: "Comment content cannot be empty.",
         };
     }
@@ -57,7 +62,8 @@ export default async function replyAction({request, params}) {
 
         // --- Handle Successful Response ---
         return {
-            status: 201, // HTTP Created status
+            status: response.status,
+            success: true,
             message: response.message,
             data: response.data,
         };
@@ -72,6 +78,7 @@ export default async function replyAction({request, params}) {
 
         return {
             status: error.status || 500,
+            success: false,
             message: error.data?.message || error.message || "An unexpected error occurred while posting the comment.",
         };
     }

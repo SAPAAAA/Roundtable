@@ -18,13 +18,14 @@ export default async function commentAction({request, params}) {
     const method = request.method.toLowerCase();
 
     // Get postId from route parameters (more reliable than URL splitting)
-    const postId = params.postId;
+    const {postId} = params;
 
     if (!postId) {
         console.warn("Action Warning: postId is missing.");
         // Return an object compatible with useFetcher
         return {
-            status: 400, // Bad Request
+            status: 400,
+            success: false,
             message: "postId is required.",
         };
     }
@@ -33,7 +34,8 @@ export default async function commentAction({request, params}) {
         console.warn(`Action Warning: Method ${request.method} not allowed.`);
         // Return an object compatible with useFetcher
         return {
-            status: 405, // Method Not Allowed
+            status: 405,
+            success: false,
             message: `Method ${request.method} not supported for this action.`,
         };
     }
@@ -45,7 +47,8 @@ export default async function commentAction({request, params}) {
         console.warn("Action Warning: Comment content is empty.");
         // Return an object compatible with useFetcher
         return {
-            status: 400, // Bad Request
+            status: 400,
+            success: false,
             message: "Comment content cannot be empty.",
         };
     }
@@ -53,11 +56,17 @@ export default async function commentAction({request, params}) {
     // --- Call Comment Service ---
     try {
         const response = await commentService.addComment(postId, content.trim());
-        const result = {status: 201, message: response.message, data: response.data};
+        const result = {
+            status: response.status,
+            success: true,
+            message: response.message,
+            data: response.data
+        };
         console.log("!!! commentAction returning (success):", result); // Log before return
         return result;
     } catch (error) {
         const errorResult = {
+            success: false,
             status: error.status || 500,
             message: error.data?.message || error.message || "An unexpected error occurred while posting the comment.",
         };
