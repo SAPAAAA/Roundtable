@@ -37,7 +37,10 @@ export async function sendApiRequest(url, options = {}) {
         }
 
         // Return the parsed data on success
-        return responseData;
+        return {
+            status: response.status,
+            ...responseData
+        }
 
     } catch (err) {
         console.error(`API Request Error to ${url}:`, err);
