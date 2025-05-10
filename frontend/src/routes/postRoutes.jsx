@@ -1,11 +1,11 @@
 // #routes/postRoutes.js (or wherever postRoutes is defined)
 import React, {lazy} from 'react';
 
-import commentAction from "#features/posts/pages/PostDetailedView/commentAction.jsx";
-import replyAction from "#features/posts/pages/PostDetailedView/replyAction.jsx";
-import postDetailLoader from "#features/posts/pages/PostDetailedView/postDetailLoader.jsx";
-import createPostLoader from "#features/posts/pages/CreatePost/createPostLoader.jsx";
-import createPostAction from "#features/posts/pages/CreatePost/createPostAction.jsx";
+import commentAction from "#features/comments/actions/commentAction.jsx";
+import replyAction from "#features/comments/actions/replyAction.jsx";
+import postDetailLoader from "#features/posts/loaders/postDetailLoader.jsx";
+import createPostLoader from "#features/posts/loaders/createPostLoader.jsx";
+import createPostAction from "#features/posts/actions/createPostAction.jsx";
 
 const PostDetailView = lazy(() => import('#features/posts/pages/PostDetailedView/PostDetailedView'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
@@ -25,7 +25,7 @@ function postRoutes() {
             action: createPostAction,
         },
         {
-            path: "/comments/:commentId/replies", // Action for replies
+            path: "/comments/:commentId/reply", // Action for replies
             action: replyAction,
         },
         {
