@@ -9,5 +9,6 @@ router.get('/:postId', PostController.getPostDetails);
 router.post('/:postId/comments', isAuthenticated, CommentController.addComment);
 router.post('/:postId/vote', isAuthenticated, PostController.castVote);
 router.post('/', isAuthenticated, PostController.createPost);
+router.put('/:postId', isAuthenticated, PostController.updatePost);
 
 export default router;

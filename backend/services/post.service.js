@@ -228,6 +228,39 @@ class PostService {
             }
         });
     }
+    async updatePost(postId, postData) {
+        const {body} = postData;
+        console.log("PostService.updatePost called", { postId, body });
+        // 1. Validate input
+        if (!postId || !body) {
+            const error = new Error('Invalid input data for updating a post. Missing required fields.');
+            error.statusCode = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        // 2. Check if the post exists
+        // Use the DAO passed in the constructor
+        const postExists = await this.postDao.getById(postId);
+        if (!postExists) {
+            const error = new Error('Post does not exist.');
+            error.statusCode = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        // 3. Update the post using the DAO within a transaction
+        return await postgresInstance.transaction(async (transaction) => {
+            try {
+                // Use the DAO passed in the constructor
+                const updatedPost = await this.postDao.update(postId, {body}, transaction);
+                console.log(`Post updated successfully with ID: ${updatedPost.postId}`);
+                return updatedPost;
+            } catch (error) {
+                console.error('Error updating post in transaction:', error);
+                // Re-throw the error to ensure the transaction rolls back
+                throw error;
+            }
+        });
+    }
 }
 
 export default new PostService(
