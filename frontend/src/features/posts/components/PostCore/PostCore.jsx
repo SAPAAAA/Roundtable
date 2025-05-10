@@ -7,6 +7,7 @@ import TextEdit from "#shared/components/UIElement/TextEditor/TextEditor"; // As
 import "./PostCore.css"; // Add specific styling if needed
 import Form from "#shared/components/UIElement/Form/Form";
 import {useFetcher} from "react-router";
+import $ from 'jquery';
 
 export default function PostCore(props) {
     // Destructure post from props. userVote is now directly on the post object from the service.
@@ -49,33 +50,33 @@ export default function PostCore(props) {
     const fetcher = useFetcher();
     const isSubmitting = fetcher.state === "submitting";
 
-    const actionPath = `/posts/${post.postId}/update`;
+    const actionPath = `/comments/${post.postId}/update`;
 
-    useEffect(() => {
-        if (fetcher.state === "idle" && fetcher.data) {
-            if (fetcher.data.status === 201) {
-                console.log("Fetcher completed successfully:", fetcher.data.message);
-                if (editorRef.current) {
-                    editorRef.current.clearContent();
-                }
-                // if (onCommentSubmit) {
-                //     console.log("Triggering onCommentSubmit callback...");
-                //     // Pass data if the parent needs it, otherwise just call it
-                //     onCommentSubmit(fetcher.data.data); // Pass the actual comment data if needed by parent
-                // }
-            } else {
-                // Handle cases where action returned data, but it wasn't status 201
-                console.error("Comment submission failed (action returned data):", fetcher.data.message);
-                alert(`Failed to post comment: ${fetcher.data.message || 'Action returned an error status.'}`);
-            }
-        } else {
-            // Log why the condition failed when the effect runs
-            if (fetcher.state === 'idle' && !fetcher.data) {
-                console.log("Condition NOT Met: Fetcher is idle BUT fetcher.data is undefined/falsy.");
-            }
-        }
-        // Make sure onCommentSubmit is stable (useCallback in parent) if included, otherwise remove if not needed for logic here
-    }, [fetcher.state, fetcher.data]);
+    // useEffect(() => {
+    //     if (fetcher.state === "idle" && fetcher.data) {
+    //         if (fetcher.data.status === 201) {
+    //             console.log("Fetcher completed successfully:", fetcher.data.message);
+    //             if (editorRef.current) {
+    //                 editorRef.current.clearContent();
+    //             }
+    //             // if (onCommentSubmit) {
+    //             //     console.log("Triggering onCommentSubmit callback...");
+    //             //     // Pass data if the parent needs it, otherwise just call it
+    //             //     onCommentSubmit(fetcher.data.data); // Pass the actual comment data if needed by parent
+    //             // }
+    //         } else {
+    //             // Handle cases where action returned data, but it wasn't status 201
+    //             console.error("Post submission failed (action returned data):", fetcher.data.message);
+    //             alert(`Failed to post comment: ${fetcher.data.message || 'Action returned an error status.'}`);
+    //         }
+    //     } else {
+    //         // Log why the condition failed when the effect runs
+    //         if (fetcher.state === 'idle' && !fetcher.data) {
+    //             console.log("Condition NOT Met: Fetcher is idle BUT fetcher.data is undefined/falsy.");
+    //         }
+    //     }
+    //     // Make sure onCommentSubmit is stable (useCallback in parent) if included, otherwise remove if not needed for logic here
+    // }, [fetcher.state, fetcher.data]);
     const handleCancel = () => {
         if (onUpdatePostCancel) {
             onUpdatePostCancel();
@@ -86,6 +87,10 @@ export default function PostCore(props) {
 
     console.log("PostCore post: ", post);
     const handleBeforeSubmit = (event) => {
+        if (onUpdatePostCancel) {
+            onUpdatePostCancel();
+        }
+        
         if (!editorRef.current) {
             event.preventDefault();
             return;
@@ -107,7 +112,7 @@ export default function PostCore(props) {
     return (
         <>
             <Form
-                method='post' // Use 'patch' for updates, 'post' for new comments
+                method='patch' // Use 'patch' for updates, 'post' for new comments
                 action={actionPath}
                 onSubmit={handleBeforeSubmit}
                 preventNavigation={true}
