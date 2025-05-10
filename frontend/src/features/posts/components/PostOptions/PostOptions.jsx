@@ -3,7 +3,6 @@ import React from "react";
 import PopoverMenu from "#shared/components/UIElement/PopoverMenu/PopoverMenu";
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
-import { useNavigate } from 'react-router';
 
 import "./PostOptions.css"; // Import your CSS file for styling
 export default function PostOptions(props) {
@@ -72,7 +71,7 @@ export default function PostOptions(props) {
                     checkYourPost && (
                         <Button mainClass="check-post-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
                                 onClick={handleUpdatePost}>
-                            <Icon addClass="me-2" name="update" size="15px"/>
+                            <Icon addClass="me-2" name="pencil" size="15px"/>
                             <span>Cập nhật</span>
                         </Button>
                     )
