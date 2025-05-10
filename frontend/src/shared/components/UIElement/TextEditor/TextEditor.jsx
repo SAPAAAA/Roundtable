@@ -71,6 +71,12 @@ const TextEditor = forwardRef((props, ref) => {
             if ($editorTextarea.next('.note-editor').length > 0) {
                 $editorTextarea.summernote('code', '<p><br></p>');
             }
+        },
+        setContent: (content) => {
+            const $editorTextarea = $(editorRefInternal.current);
+            if ($editorTextarea.next('.note-editor').length > 0) {
+                $editorTextarea.summernote('code', content);
+            }
         }
     }), []);
 
