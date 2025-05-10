@@ -6,7 +6,7 @@ import replyAction from "#features/comments/actions/replyAction.jsx";
 import postDetailLoader from "#features/posts/loaders/postDetailLoader.jsx";
 import createPostLoader from "#features/posts/loaders/createPostLoader.jsx";
 import createPostAction from "#features/posts/actions/createPostAction.jsx";
-import updatePostAction from "#features/posts/pages/UpdatePost/updatePostAction.jsx";
+import updatePostAction from "#features/posts/actions/updatePostAction.jsx";
 
 const PostDetailView = lazy(() => import('#features/posts/pages/PostDetailedView/PostDetailedView'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));

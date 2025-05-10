@@ -1,7 +1,7 @@
-import  postService from "../../../../services/postService";
+import postService from "../../../services/postService.jsx";
 
-import { redirect } from "react-router";
-import $ from 'jquery';
+import {redirect} from "react-router";
+
 export default async function action({ request, params }) {
     
     const formData = await request.formData();
