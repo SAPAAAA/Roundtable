@@ -155,6 +155,45 @@ class PostController {
             });
         }
     }
+    updatePost = async (req, res) => {
+        console.log("PostController:updatePost", req.body);
+        try {
+            const {postId} = req.params;
+            const {body} = req.body;
+            const {userId} = req.session; // Assuming isAuthenticated ran
+            console.log("PostController:updatePostccccc", postId, body);
+
+            if (!userId) {
+                return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
+            }
+
+            const updatedPost = await this.postService.updatePost(postId, {body});
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Post updated successfully.',
+                data: updatedPost
+            });
+        } catch (error) {
+            console.error(`[PostController:updatePost] Error for postId ${req.params?.postId}:`, error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) { // e.g., post not found
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof ForbiddenError) { // e.g., user not authorized to update
+                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while updating the post.'
+            });
+        }
+    };
 }
 
 // Ensure VoteService is injected correctly here

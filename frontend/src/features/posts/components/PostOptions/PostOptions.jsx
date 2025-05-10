@@ -3,11 +3,12 @@ import React from "react";
 import PopoverMenu from "#shared/components/UIElement/PopoverMenu/PopoverMenu";
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
+import { useNavigate } from 'react-router';
 
 import "./PostOptions.css"; // Import your CSS file for styling
 export default function PostOptions(props) {
     // Handlers passed via props from parent (Preview or Detailed)
-    const {onSave, onHide, onReport} = props;
+    const {onSave, onHide, onReport,checkYourPost,onUpdatePost} = props;
 
     const handleSavePost = () => {
         console.log("Save action triggered");
@@ -21,6 +22,14 @@ export default function PostOptions(props) {
         console.log("Report action triggered");
         if (onReport) onReport();
     };
+    //const navigate = useNavigate();
+    const handleUpdatePost = () => {
+        if(onUpdatePost){
+            console.log("ccccccccccccccccccccccccccccccccccccccccccccccc");
+            onUpdatePost();
+        }
+        // navigate(`/comments/${postId}/update`,{replace: true}); 
+    }
 
     return (
         <div className="option-container d-flex align-items-center">
@@ -59,6 +68,15 @@ export default function PostOptions(props) {
                     <Icon addClass="me-2" name="flag" size="15px"/>
                     <span>Báo cáo</span>
                 </Button>
+                {
+                    checkYourPost && (
+                        <Button mainClass="check-post-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
+                                onClick={handleUpdatePost}>
+                            <Icon addClass="me-2" name="update" size="15px"/>
+                            <span>Cập nhật</span>
+                        </Button>
+                    )
+                }
             </PopoverMenu>
         </div>
     );

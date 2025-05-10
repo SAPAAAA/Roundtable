@@ -1,6 +1,7 @@
 // src/services/PostService.js
 import {sendApiRequest} from "#utils/apiClient";
 
+
 class PostService {
     /**
      * Fetches comments for a specific post.
@@ -25,6 +26,15 @@ class PostService {
         }
         return response;
 
+    }
+    async updatePost(data,postId) {
+        console.log("PostService updatePost called", { data, postId });
+        const baseUrl = `/api/posts/${postId}`
+        const response = await sendApiRequest(baseUrl, {method: 'PUT', body: data});
+        if (!response.success) {
+            throw new Error(`Failed to update post : ${response.status} ${response.statusText}`);
+        }
+        return response;
     }
 }
 

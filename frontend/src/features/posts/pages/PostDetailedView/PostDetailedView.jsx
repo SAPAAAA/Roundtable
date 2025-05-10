@@ -25,12 +25,30 @@ export default function PostDetailedView() {
     const [author, setAuthor] = useState(initialData?.data.author);
     const [comments, setComments] = useState(initialData?.data.comments || []);
 
+    console.log("PostDetailedView initialData: ", author); // Log initial data for debugging
+    console.log("user", user); // Log post data for debugging
+
+    const [checkYourPost, setCheckYourPost] = useState(false); // State to check if the post is from the current user
+
     // Local UI state remains the same
     const [isWritingTopLevelComment, setIsWritingTopLevelComment] = useState(false);
     const [error, setError] = useState(null); // For fetcher/action errors or maybe loader errors if not using errorElement
 
+    
     // --- Update state when loader data changes ---
     useEffect(() => {
+        if(user)
+        {
+            if(user.userId === author.userId) { // Check if the post is from the current user
+                console.log("Ktcc",checkYourPost)
+    
+                    setCheckYourPost(true); // Check if the post is from the current user
+                }
+            else setCheckYourPost(false); // Post is not from the current user    
+
+        }
+       
+        
         // Only update state if the component is mounted and data is available
         // Check navigation/revalidator state to ensure updates happen after load/revalidation
         if (navigation.state === 'idle' && revalidator.state === 'idle') {
@@ -43,6 +61,7 @@ export default function PostDetailedView() {
                 // Ensure comments are always an array
                 setComments(Array.isArray(currentData.comments) ? currentData.comments : []);
                 setError(null); // Clear previous errors on successful load/reload
+                
                 console.log("Loader data processed, component state updated.");
             } else {
                 console.log("Loader data not available for state update.");
@@ -78,6 +97,7 @@ export default function PostDetailedView() {
         }
     }, [revalidator]); // Depends on revalidator
 
+
     const handleNavigateBack = () => {
         console.log("Navigate back requested");
         window.history.back();
@@ -105,17 +125,39 @@ export default function PostDetailedView() {
         return <div className="p-3 text-danger">Failed to load essential post details. Please try refreshing.</div>;
     }
 
+    const [updatePost, setUpdatePost] = useState(false); // State to check if the post is from the current user
+    const handleUpdatePost = () => {
+        setUpdatePost(true); 
+    }
+    const handleUpdatePostCancel = () => {
+        setUpdatePost(false); 
+    }
+    //const handle
+
+
+
     return (
         <>
             {/* --- Post Details --- */}
             <div className="post-detailed-container card p-3 my-3">
+                {checkYourPost ? (
+                <PostHeaderDetailed
+                    subtable={subtable}
+                    post={post}
+                    author={author}
+                    onBackClick={handleNavigateBack}
+                    isCheckYourPost={checkYourPost}
+                    onUpdatePost={handleUpdatePost} // Pass the update handler to PostHeaderDetailed
+                />
+                ) : (
                 <PostHeaderDetailed
                     subtable={subtable}
                     post={post}
                     author={author}
                     onBackClick={handleNavigateBack}
                 />
-                <PostCore post={post}/>
+                )}
+                <PostCore post={post} updatePost={updatePost} onUpdatePostCancel={handleUpdatePostCancel}/>
             </div>
 
             {/* --- Write Top-Level Comment --- */}

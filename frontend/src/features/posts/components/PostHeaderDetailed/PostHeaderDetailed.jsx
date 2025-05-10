@@ -9,12 +9,14 @@ import "./PostHeaderDetailed.css";
 import {formatTimeAgo} from "#utils/time";
 
 export default function PostHeaderDetailed(props) {
-    const {subtable, post, author, onBackClick, onOptions /* pass specific handlers */} = props;
+    const {subtable, post, author, onBackClick, isCheckYourPost,onUpdatePost /* pass specific handlers */} = props;
 
     // Placeholder handlers for options
     const handleSave = () => console.log("Detailed Save clicked");
     const handleHide = () => console.log("Detailed Hide clicked");
     const handleReport = () => console.log("Detailed Report clicked");
+    const handleUpdate = () => console.log("Check your post clicked");
+    console.log("Kt",isCheckYourPost)
 
 
     // Function to handle navigation back
@@ -70,6 +72,9 @@ export default function PostHeaderDetailed(props) {
                 onSave={handleSave}
                 onHide={handleHide}
                 onReport={handleReport}
+                checkYourPost={isCheckYourPost} // Pass the checkYourPost prop if needed
+                postId={post.postId} // Pass the postId prop if needed
+                onUpdatePost={onUpdatePost} // Pass the onUpdatePost prop if needed
             />
         </div>
     );
