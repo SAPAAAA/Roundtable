@@ -155,7 +155,7 @@ class VoteService {
     /**
      * Updates the type of an existing vote after verifying ownership.
      * @param {string} voteId - The ID of the vote to update.
-     * @param {string} userId - The ID of the user requesting the update (for ownership check).
+     * @param {string} userId - The ID of the user requesting the update.
      * @param {string} voteType - The new vote type.
      * @returns {Promise<Vote>} The updated vote object.
      * @throws {BadRequestError} If validation fails.
@@ -173,20 +173,13 @@ class VoteService {
         }
 
         try {
-            // --- Check Ownership first ---
-            // This implicitly checks if the vote exists as well
-            await this.checkVoteOwnership(voteId, userId); // Throws NotFoundError or ForbiddenError if applicable
-
             // --- Update Vote ---
             // Note: Using a transaction isn't strictly necessary here if checkVoteOwnership
             // already confirmed existence, but can be added for consistency.
             const updatedVote = await this.voteDao.update(voteId, {voteType});
 
             if (!updatedVote) {
-                // This might happen if the vote was deleted between checkVoteOwnership and update,
-                // though unlikely without transaction locking. Treat as internal error or NotFound.
-                throw new InternalServerError(`Failed to update vote ${voteId} after ownership check.`);
-                // Alternatively: throw new NotFoundError(`Vote with ID ${voteId} could not be updated.`);
+                throw new NotFoundError(`Vote with ID ${voteId} not found.`);
             }
 
             return updatedVote;
@@ -203,7 +196,7 @@ class VoteService {
     /**
      * Deletes a specific vote by its ID after verifying ownership.
      * @param {string} voteId - The ID of the vote to delete.
-     * @param {string} userId - The ID of the user requesting the deletion (for ownership check).
+     * @param {string} userId - The ID of the user requesting the deletion.
      * @returns {Promise<boolean>} True if deletion was successful.
      * @throws {BadRequestError} If voteId or userId is not provided.
      * @throws {NotFoundError} If the vote does not exist.
@@ -216,9 +209,6 @@ class VoteService {
         }
 
         try {
-            // --- Check Ownership first ---
-            await this.checkVoteOwnership(voteId, userId);
-
             // --- Delete Vote ---
             const deletedCount = await this.voteDao.delete(voteId);
 
