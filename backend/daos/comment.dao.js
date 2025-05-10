@@ -26,7 +26,7 @@ class CommentDAO {
      * @returns {Promise<Comment>} The newly created Comment instance with DB-generated values.
      */
     async create(comment, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         // Exclude fields managed by DB defaults or triggers
         const {
             commentId, createdAt, updatedAt, voteCount, isRemoved,
@@ -66,10 +66,14 @@ class CommentDAO {
      * @returns {Promise<Comment | null>} The updated Comment instance, or null if not found.
      */
     async update(commentId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         const allowedUpdates = {};
-        if (updateData.body !== undefined) allowedUpdates.body = updateData.body;
-        if (updateData.isRemoved !== undefined) allowedUpdates.isRemoved = updateData.isRemoved;
+        if (updateData.body !== undefined) {
+            allowedUpdates.body = updateData.body;
+        }
+        if (updateData.isRemoved !== undefined) {
+            allowedUpdates.isRemoved = updateData.isRemoved;
+        }
         // Note: updatedAt is handled by the trigger_set_timestamp trigger
 
         if (Object.keys(allowedUpdates).length === 0) {
@@ -102,7 +106,7 @@ class CommentDAO {
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
     async delete(commentId, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         try {
             // The trigger 'update_post_comment_count_del' will fire AFTER this delete.
             const deletedCount = await queryBuilder('Comment')
