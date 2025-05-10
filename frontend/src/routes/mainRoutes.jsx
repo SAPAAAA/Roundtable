@@ -3,6 +3,7 @@ import getPostRoutesConfig from "./postRoutes.jsx";
 import getProfileRoutesConfig from "./profileRoutes.jsx";
 import getNotificationRoutesConfig from "./notificationRoutes.jsx";
 import getSubtableRoutesConfig from './subtableRoutes';
+import getCommentRoutesConfig from "./commentRoutes.jsx";
 
 // Lazy-loaded components for this section
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
@@ -144,12 +145,9 @@ function mainRoutes() {
                 index: true,
                 element: <Home/>
             },
-            {
-                path: "createpost",
-                element: <CreatePost subtable={subtables}/>,
-            },
             ...getSubtableRoutesConfig(),
             ...getPostRoutesConfig(),
+            ...getCommentRoutesConfig(),
             ...getNotificationRoutesConfig(),
             ...getProfileRoutesConfig(),
         ],
