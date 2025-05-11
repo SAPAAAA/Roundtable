@@ -16,7 +16,8 @@ class ForbiddenError extends AppError {
 } // For permission issues, inactive accounts etc.
 class NotFoundError extends AppError {
 } // For non-existent resources
-
+class UnauthorizedError extends AppError {
+}
 class ConflictError extends AppError {
 } // For existing username/email
 class VerificationError extends AppError {
@@ -29,6 +30,7 @@ export {
     BadRequestError,
     AuthenticationError,
     ForbiddenError,
+    UnauthorizedError,
     NotFoundError,
     ConflictError,
     VerificationError,

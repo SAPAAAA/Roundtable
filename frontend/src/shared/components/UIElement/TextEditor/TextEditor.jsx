@@ -26,8 +26,17 @@ const TextEditor = forwardRef((props, ref) => {
                     // Add any necessary callbacks
                 }
             });
-        } else {
-            console.log("Summernote already initialized on this element.");
+        } 
+        // else {
+        //     console.log("Summernote already initialized on this element.");
+        // }
+        // Nếu có value → cập nhật nội dung
+        if (props.value && $editorTextarea.summernote) {
+            try {
+                $editorTextarea.summernote('code', props.value);
+            } catch (e) {
+                console.error("Error setting summernote content:", e);
+            }
         }
 
         return () => {
@@ -42,7 +51,7 @@ const TextEditor = forwardRef((props, ref) => {
                 }
             }
         };
-    },); // Dependencies
+    }, [props.value]); // Dependencies
 
     useImperativeHandle(ref, () => ({
         // Exposed methods remain the same...
@@ -70,6 +79,12 @@ const TextEditor = forwardRef((props, ref) => {
             const $editorTextarea = $(editorRefInternal.current);
             if ($editorTextarea.next('.note-editor').length > 0) {
                 $editorTextarea.summernote('code', '<p><br></p>');
+            }
+        },
+        setContent: (content) => {
+            const $editorTextarea = $(editorRefInternal.current);
+            if ($editorTextarea.next('.note-editor').length > 0) {
+                $editorTextarea.summernote('code', content);
             }
         }
     }), []);

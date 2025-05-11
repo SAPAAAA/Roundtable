@@ -1,6 +1,6 @@
 import React, {lazy} from 'react';
-import createPostLoader from "#features/posts/pages/CreatePost/createPostLoader.jsx";
-import createPostAction from "#features/posts/pages/CreatePost/createPostAction.jsx";
+import createPostLoader from "#features/posts/loaders/createPostLoader.jsx";
+import createPostAction from "#features/posts/actions/createPostAction.jsx";
 import createSubtableAction from "#features/subtables/components/CreateSubtableModal/createSubtableAction.jsx";
 import subtableViewLoader from "#features/subtables/pages/SubtableView/subtableViewLoader.jsx";
 

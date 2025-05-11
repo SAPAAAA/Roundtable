@@ -22,12 +22,12 @@ export default function WriteComment(props) {
     const isSubmitting = fetcher.state === "submitting";
 
     const actionPath = parentCommentId
-        ? `/comments/${parentCommentId}/replies`
+        ? `/comments/${parentCommentId}/reply`
         : `/posts/${postId}/comment`;
 
     useEffect(() => {
         if (fetcher.state === "idle" && fetcher.data) {
-            if (fetcher.data.status === 201) {
+            if (fetcher.data.status === 201 && fetcher.data.success) {
                 console.log("Fetcher completed successfully:", fetcher.data.message);
                 if (editorRef.current) {
                     editorRef.current.clearContent();
@@ -42,11 +42,8 @@ export default function WriteComment(props) {
                 console.error("Comment submission failed (action returned data):", fetcher.data.message);
                 alert(`Failed to post comment: ${fetcher.data.message || 'Action returned an error status.'}`);
             }
-        } else {
-            // Log why the condition failed when the effect runs
-            if (fetcher.state === 'idle' && !fetcher.data) {
-                console.log("Condition NOT Met: Fetcher is idle BUT fetcher.data is undefined/falsy.");
-            }
+        } else if (fetcher.state === 'idle' && !fetcher.data) {
+            console.log("Condition NOT Met: Fetcher is idle BUT fetcher.data is undefined/falsy.");
         }
         // Make sure onCommentSubmit is stable (useCallback in parent) if included, otherwise remove if not needed for logic here
     }, [fetcher.state, fetcher.data]);

@@ -36,6 +36,23 @@ class CommentService {
             throw error;
         }
     }
+
+    async editComment(commentId, body) {
+        try {
+            console.log("Editing comment:", commentId, body);
+            return await sendApiRequest(`/api/comments/${commentId}`,
+                {
+                    method: 'PATCH',
+                    body: {
+                        body: body,
+                    }
+                }
+            );
+        } catch (error) {
+            console.error("Error editing comment:", error);
+            throw error;
+        }
+    }
 }
 
 export default new CommentService();

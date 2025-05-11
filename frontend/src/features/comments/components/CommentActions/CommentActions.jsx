@@ -2,6 +2,7 @@ import React from 'react';
 import Button from '#shared/components/UIElement/Button/Button'; // cite: 79
 import Icon from '#shared/components/UIElement/Icon/Icon'; // cite: 75
 import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu'; // cite: 70
+import './CommentActions.css';
 
 export default function CommentActions({
                                            voteStatus,
@@ -12,9 +13,12 @@ export default function CommentActions({
                                            handleReplyClick,
                                            handleSaveComment,
                                            handleReportComment,
+                                           handleEditComment,
+                                           handleDeleteComment,
                                            onPopoverOpen, // Pass down from parent Comment
                                            onPopoverClose, // Pass down from parent Comment
-                                           voteError
+                                           voteError,
+                                           isOwner,
                                        }) {
     return (
         <div className="d-flex align-items-center gap-2 mt-2">
@@ -100,6 +104,20 @@ export default function CommentActions({
                         <Icon addClass="me-2 report-icon-class" name="flag" size="15px"/>
                         <span>Báo cáo</span>
                     </Button>
+                    {isOwner && (
+                        <Button mainClass="edit-btn w-100" type="button" justifyContent="start" rounded={false}
+                                padding={2} onClick={handleEditComment}>
+                            <Icon addClass="me-2 edit-icon-class" name="pencil" size="15px"/>
+                            <span>Chỉnh sửa</span>
+                        </Button>
+                    )}
+                    {isOwner && (
+                        <Button mainClass="delete-btn w-100" type="button" justifyContent="start" rounded={false}
+                                padding={2} onClick={handleDeleteComment}>
+                            <Icon addClass="me-2 delete-icon-class" name="trash" size="15px"/>
+                            <span>Xóa</span>
+                        </Button>
+                    )}
                 </PopoverMenu>
             </div>
         </div>

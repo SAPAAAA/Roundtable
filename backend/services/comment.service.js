@@ -4,7 +4,7 @@
 import CommentDAO from "#daos/comment.dao.js"; // Import the DAO to be injected
 import Comment from "#models/comment.model.js";
 import {postgresInstance} from "#db/postgres.js";
-import {BadRequestError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Import necessary error types
+import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError,} from "#errors/AppError.js"; // Import necessary error types
 import EventBus from '#core/event-bus.js'; // Import EventBus if needed for notifications
 
 
@@ -65,7 +65,7 @@ class CommentService {
         } catch (error) {
             console.error("[CommentService] Error creating comment:", error);
             // Re-throw known errors, wrap unknown ones
-            if (error instanceof BadRequestError || error instanceof NotFoundError) {
+            if (error instanceof AppError) {
                 throw error;
             }
             throw new InternalServerError("An error occurred while creating the comment.");
@@ -102,8 +102,6 @@ class CommentService {
                 console.error(`[CommentService] Parent comment ${parentCommentId} is missing postId.`);
                 throw new InternalServerError("Parent comment data is inconsistent.");
             }
-
-
             const createdReply = await postgresInstance.transaction(async (trx) => {
                 // Create a Comment model instance for the reply
                 // postId is inherited from the parent comment
@@ -126,11 +124,6 @@ class CommentService {
                 parentComment: parentComment, // Include parent comment info
                 replierUserId: userId,
             });
-            // Or use the same 'comment.created' event if the listener handles both cases
-            // this.eventBus.emitEvent('comment.created', {
-            //     comment: createdReply,
-            //     commenterUserId: userId,
-            // });
 
             console.log(`[CommentService] Emitted 'comment.replied' (or 'comment.created') event for replyId=${createdReply.commentId}`);
 
@@ -141,11 +134,57 @@ class CommentService {
         } catch (error) {
             console.error("[CommentService] Error creating reply:", error);
             // Re-throw known errors, wrap unknown ones
-            if (error instanceof BadRequestError || error instanceof NotFoundError) {
+            if (error instanceof AppError) {
                 throw error;
             }
             throw new InternalServerError("An error occurred while creating the reply.");
         }
+    }
+
+    async updateComment(commentId, body) {
+        if (!commentId || !body) {
+            throw new BadRequestError("Invalid input parameters.");
+        }
+        try {
+            return await postgresInstance.transaction(async (trx) => {
+                const updatedComment = await this.commentDao.update(commentId, {body}, trx);
+
+                if (!updatedComment) {
+                    throw new NotFoundError("Comment not found.");
+                }
+                return updatedComment;
+            });
+        } catch (error) {
+            console.error("[CommentService] Error updating comment:", error);
+            if (error instanceof AppError) {
+                throw error;
+            }
+            throw new InternalServerError("An error occurred while updating the comment.");
+        }
+    }
+
+    async checkCommentOwnership(commentId, userId) {
+        if (!commentId || !userId) {
+            throw new BadRequestError("Invalid input parameters.");
+        }
+        console.log('fesfwagwe fwdvesfvsfvs')
+        try {
+            const comment = await this.commentDao.getById(commentId);
+            if (!comment) {
+                throw new NotFoundError("Comment not found.");
+            }
+            if (comment.authorUserId !== userId) {
+                throw new ForbiddenError("You are not authorized to update this comment.");
+            }
+            return comment;
+        } catch (error) {
+            console.error("[CommentService] Error checking comment ownership:", error);
+            if (error instanceof AppError) {
+                throw error;
+            }
+            throw new InternalServerError("An error occurred while checking comment ownership.");
+        }
+
     }
 }
 

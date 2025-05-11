@@ -3,48 +3,6 @@ import HTTP_STATUS from '#constants/http-status.js';
 import voteService from '#services/vote.service.js';
 import {BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 
-/**
- * Middleware to check vote ownership before proceeding with update/delete.
- * Attaches the verified vote object to `req.vote` for subsequent handlers.
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-const checkVoteOwnershipMiddleware = async (req, res, next) => {
-    const {voteId} = req.params;
-    const {userId} = req.session; // Assumes isAuthenticated middleware ran first
-
-    if (!userId) { // Should be caught by isAuthenticated, but good practice
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
-    }
-
-    try {
-        // Call the service method to check ownership
-        // It will throw NotFoundError or ForbiddenError if check fails
-        const vote = await voteService.checkVoteOwnership(voteId, userId);
-        req.vote = vote; // Attach the vote object for potential use in next handler
-        next(); // Proceed to the actual update/delete controller method
-    } catch (error) {
-        console.error(`[VoteOwnershipMiddleware] Error for vote ${voteId}, user ${userId}:`, error.message);
-        if (error instanceof NotFoundError) {
-            return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
-        }
-        if (error instanceof ForbiddenError) {
-            return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
-        }
-        if (error instanceof BadRequestError) { // e.g., missing voteId/userId passed to service
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
-        }
-        // Handle unexpected errors from the service check
-        console.error(error.stack || error);
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: 'Error verifying vote ownership.'
-        });
-    }
-};
-
-
 class VoteController {
     /**
      * @param {VoteService} injectedVoteService
@@ -168,5 +126,3 @@ class VoteController {
 
 // Inject service dependency
 export default new VoteController(voteService);
-// Export middleware separately if needed in routes file
-export {checkVoteOwnershipMiddleware};
