@@ -28,6 +28,7 @@ export default function PostHeaderDetailed(props) {
             window.history.back();
         }
     };
+    console.log("author",author)
 
     return (
         <div className="d-flex align-items-center justify-content-between mb-2">
@@ -59,7 +60,8 @@ export default function PostHeaderDetailed(props) {
 
                         </div>
                         {/* Display username on the next line */}
-                        <span className="text-muted">{author.displayName}</span>
+
+                        {author&&<span className="text-muted">{author.displayName}</span>}
                     </div>
                     &nbsp;•&nbsp;
                     <span className="text-muted">{formatTimeAgo(post.postCreatedAt)}</span>

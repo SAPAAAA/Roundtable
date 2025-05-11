@@ -3,11 +3,14 @@ import React from "react";
 import PopoverMenu from "#shared/components/UIElement/PopoverMenu/PopoverMenu";
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
+import Form from "#shared/components/UIElement/Form/Form";
+import {useFetcher} from "react-router";
+import $ from 'jquery';
 
 import "./PostOptions.css"; // Import your CSS file for styling
 export default function PostOptions(props) {
     // Handlers passed via props from parent (Preview or Detailed)
-    const {onSave, onHide, onReport,checkYourPost,onUpdatePost} = props;
+    const {onSave, onHide, onReport,postId,checkYourPost,onUpdatePost} = props;
 
     const handleSavePost = () => {
         console.log("Save action triggered");
@@ -29,9 +32,19 @@ export default function PostOptions(props) {
         }
         // navigate(`/comments/${postId}/update`,{replace: true}); 
     }
+    const actionPath = `/comments/${postId}/update`;
+    const fetcher = useFetcher();
+
 
     return (
-        <div className="option-container d-flex align-items-center">
+        <Form
+            method='delete'
+            fetcher={fetcher}
+            action={actionPath}
+            //onSubmit={handleSubmit}
+            preventNavigation={true}
+        >
+            <div className="option-container d-flex align-items-center">
             <PopoverMenu
                 mainClass="option-menu"
                 addClass="bg-white rounded shadow-sm border" // Added border/shadow
@@ -69,14 +82,25 @@ export default function PostOptions(props) {
                 </Button>
                 {
                     checkYourPost && (
-                        <Button mainClass="check-post-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
+                       <>
+                        <Button mainClass="edit-post-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
                                 onClick={handleUpdatePost}>
                             <Icon addClass="me-2" name="pencil" size="15px"/>
                             <span>Cập nhật</span>
                         </Button>
+                        <Button mainClass="delete-post-btn w-100"  justifyContent="start" rounded={false} padding={2}
+                                type="submit">
+                            <Icon addClass="me-2" name="trash" size="15px"/>
+                            <span>Xóa</span>
+                        </Button>
+                       </>
                     )
+                    
                 }
             </PopoverMenu>
-        </div>
+            </div>
+
+        </Form>
+        
     );
 }

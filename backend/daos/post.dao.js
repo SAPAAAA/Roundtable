@@ -89,6 +89,42 @@ class PostDAO {
             throw error;
         }
     }
+    /**
+     * Updates an existing post.
+     * @param {string} postId - The ID of the post to update.
+     * @param {Partial<Pick<Post, 'body' | 'authorUserId'>>} updateData - An object containing allowed fields to update (title, body, isLocked, isRemoved).
+     * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
+     * @returns {Promise<Post | null>} The updated Post instance, or null if not found.
+     */
+    async updateDelete(postId, updateData, trx = null) {
+        const queryBuilder = trx ? trx : postgresInstance;
+        // Only allow specific fields to be updated via this method
+        const allowedUpdates = {};
+        if (typeof updateData.body === 'string') allowedUpdates.body = updateData.body;
+        if (typeof updateData.authorUserId === 'string') allowedUpdates.authorUserId = null;
+        // Note: updatedAt is handled by the trigger_set_timestamp trigger
+
+        if (Object.keys(allowedUpdates).length === 0) {
+            console.warn(`Post update called for ID ${postId} with no valid fields to update.`);
+            return this.getById(postId, trx); // Return current state
+        }
+
+        try {
+            const updatedRows = await queryBuilder('Post')
+                .where({postId})
+                .update(allowedUpdates) // Knex automatically includes the updatedAt update via trigger
+                .returning('*');
+
+            if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
+                return null; // Indicate post not found
+            }
+            return Post.fromDbRow(updatedRows[0]);
+        } catch (error) {
+            console.error(`Error updating post (${postId}):`, error);
+            throw error;
+        }
+
+    }
 
     /**
      * Deletes a post by its ID. Use soft delete (setting isRemoved=true) generally.

@@ -37,7 +37,7 @@ export default function PostDetailedView() {
     
     // --- Update state when loader data changes ---
     useEffect(() => {
-        if(user)
+        if(user && author) // Ensure user and author are defined before comparison
         {
             if(user.userId === author.userId) { // Check if the post is from the current user
                 console.log("Ktcc",checkYourPost)
@@ -132,8 +132,6 @@ export default function PostDetailedView() {
     const handleUpdatePostCancel = () => {
         setUpdatePost(false); 
     }
-    //const handle
-
 
 
     return (

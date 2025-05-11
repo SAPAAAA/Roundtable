@@ -194,6 +194,44 @@ class PostController {
             });
         }
     };
+    deletePost = async (req, res) => {
+        console.log("PostController:deletePost", req.body);
+        try {
+            const {postId} = req.params;
+            const {body,authorUserId} = req.body;
+            const {userId} = req.session; // Assuming isAuthenticated ran
+
+            if (!userId) {
+                return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
+            }
+
+            const deletedPost = await this.postService.deletePost(postId, {body,authorUserId});
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Post deleted successfully.',
+                data: deletedPost
+            });
+        } catch (error) {
+            console.error(`[PostController:deletePost] Error for postId ${req.params?.postId}:`, error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) { // e.g., post not found
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof ForbiddenError) { // e.g., user not authorized to delete
+                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while deleting the post.'
+            });
+        }
+    }
 }
 
 // Ensure VoteService is injected correctly here

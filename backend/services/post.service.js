@@ -261,6 +261,39 @@ class PostService {
             }
         });
     }
+    async deletePost(postId, postData) {
+        const {body,authorUserId} = postData;
+        console.log("PostService.deletePost called", { postId, body, authorUserId });
+        // 1. Validate input
+        if (!postId) {
+            const error = new Error('Invalid input data for deleting a post. Missing required fields.');
+            error.statusCode = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        // 2. Check if the post exists
+        // Use the DAO passed in the constructor
+        const postExists = await this.postDao.getById(postId);
+        if (!postExists) {
+            const error = new Error('Post does not exist.');
+            error.statusCode = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        // 3. Delete the post using the DAO within a transaction
+        return await postgresInstance.transaction(async (transaction) => {
+            try {
+                // Use the DAO passed in the constructor
+                const deletedPost = await this.postDao.updateDelete(postId,{body,authorUserId}, transaction);
+                console.log(`Post deleted successfully with ID: ${deletedPost.postId}`);
+                return deletedPost;
+            } catch (error) {
+                console.error('Error deleting post in transaction:', error);
+                // Re-throw the error to ensure the transaction rolls back
+                throw error;
+            }
+        });
+    }
 }
 
 export default new PostService(
