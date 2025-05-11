@@ -155,6 +155,111 @@ class PostController {
             });
         }
     }
+
+    /**
+     * Handles GET /posts/search
+     * Searches posts based on query parameters
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    searchPosts = async (req, res) => {
+        try {
+            const { query, subtableId, sortBy = 'relevance', page = 1, limit = 10 } = req.query;
+            const { userId } = req.session; // Can be null if user is not logged in
+
+            if (!query) {
+                throw new BadRequestError('Search query is required');
+            }
+
+            const searchResults = await this.postService.searchPosts({
+                query,
+                subtableId,
+                sortBy,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                userId
+            });
+            console.log(searchResults, `hello`);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: searchResults
+            });
+        } catch (error) {
+            console.error('[PostController:searchPosts] Error:', error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: error.message });
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while searching posts.'
+            });
+        }
+    };
+
+    /**
+     * Handles GET /posts/recent
+     * Retrieves and returns recent posts as JSON.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    getRecentPosts = async (req, res) => {
+        try {
+            const {userId} = req.session;
+            const {limit = 10} = req.query;
+
+            const posts = await this.postService.getRecentPosts(parseInt(limit), userId);
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: posts
+            });
+        } catch (error) {
+            console.error('[PostController:getRecentPosts] Error:', error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while fetching recent posts.'
+            });
+        }
+    };
+
+    /**
+     * Handles POST /posts/by-ids
+     * Retrieves multiple posts by their IDs.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    getPostsByIds = async (req, res) => {
+        try {
+            const {postIds} = req.body;
+            const {userId} = req.session;
+
+            if (!Array.isArray(postIds)) {
+                throw new BadRequestError('postIds must be an array');
+            }
+
+            const posts = await this.postService.getPostsByIds(postIds, userId);
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: posts
+            });
+        } catch (error) {
+            console.error('[PostController:getPostsByIds] Error:', error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while fetching posts.'
+            });
+        }
+    };
 }
 
 // Ensure VoteService is injected correctly here
