@@ -63,6 +63,66 @@ class RegisteredUserDAO {
             throw error;
         }
     }
+
+    /**
+     * Searches users based on query parameters
+     * @param {object} params - Search parameters
+     * @param {string} params.query - Search query
+     * @param {number} [params.limit=5] - Results limit
+     * @returns {Promise<Array>} Search results
+     */
+    async searchUsers(query, options = {}) {
+        const { limit = 25 } = options;
+        try {
+            console.log('[RegisteredUserDAO:searchUsers] Building query with params:', { query, limit });
+
+            const searchResults = await postgresInstance('RegisteredUser as u')
+                .select(
+                    'u.userId',
+                    'u.principalId',
+                    'u.karma',
+                    'u.isVerified',
+                    'u.status',
+                    'u.lastActive',
+                    'a.username',
+                    'pr.displayName',
+                    'pr.avatar',
+                    'pr.banner',
+                    'pr.bio',
+                    'pr.location',
+                    'pr.gender'
+                )
+                .leftJoin('Principal as p', 'u.principalId', 'p.principalId')
+                .leftJoin('Account as a', 'p.accountId', 'a.accountId')
+                .leftJoin('Profile as pr', 'p.profileId', 'pr.profileId')
+                .where(function() {
+                    this.where('a.username', 'ILIKE', `%${query}%`)
+                        .orWhere('a.email', 'ILIKE', `%${query}%`)
+                        .orWhere('pr.displayName', 'ILIKE', `%${query}%`);
+                })
+                .groupBy(
+                    'u.userId',
+                    'u.principalId',
+                    'u.karma',
+                    'u.isVerified',
+                    'u.status',
+                    'u.lastActive',
+                    'a.username',
+                    'pr.displayName',
+                    'pr.avatar',
+                    'pr.banner',
+                    'pr.bio',
+                    'pr.location',
+                    'pr.gender'
+                )
+                .limit(limit);
+
+            return searchResults;
+        } catch (error) {
+            console.error('[RegisteredUserDAO:searchUsers] Error details:', error);
+            throw error;
+        }
+    }
 }
 
 export default new RegisteredUserDAO();
