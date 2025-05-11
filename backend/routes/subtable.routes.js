@@ -4,6 +4,7 @@ import {isAuthenticated} from "#middlewares/auth.mdw.js";
 
 const router = express.Router();
 
+router.get('/search', SubtableController.searchSubtables);
 router.get('/subscribed', isAuthenticated, SubtableController.getSubscribedSubtables);
 router.get('/:subtableName', SubtableController.getSubtableDetails);
 router.get('/:subtableName/posts', SubtableController.getSubtablePosts);
