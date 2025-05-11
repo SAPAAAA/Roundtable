@@ -228,6 +228,169 @@ class PostService {
             }
         });
     }
+
+    /**
+     * Searches posts based on query parameters
+     * @param {object} params - Search parameters
+     * @param {string} params.query - Search query
+     * @param {string} [params.subtableId] - Optional subtable ID to filter by
+     * @param {string} [params.sortBy='relevance'] - Sort by field (relevance, newest, votes)
+     * @param {number} [params.page=1] - Page number
+     * @param {number} [params.limit=10] - Results per page
+     * @param {string} [params.userId] - Optional user ID for vote status
+     * @returns {Promise<object>} Search results
+     */
+    async searchPosts({ query, subtableId, sortBy = 'relevance', page = 1, limit = 10, userId = null }) {
+        try {
+            // Validate input
+            if (!query) {
+                throw new Error('Search query is required');
+            }
+
+            // Convert page and limit to numbers
+            page = parseInt(page);
+            limit = parseInt(limit);
+
+            // Validate numeric parameters
+            if (isNaN(page) || page < 1) {
+                throw new Error('Invalid page number');
+            }
+            if (isNaN(limit) || limit < 1) {
+                throw new Error('Invalid limit');
+            }
+
+            // Get search results from DAO
+            const { posts, total } = await this.postDao.searchPosts({
+                query,
+                subtableId,
+                sortBy,
+                page,
+                limit
+            });
+
+            // Get user vote status for each post if userId is provided
+            let postsWithVotes = posts;
+            if (userId) {
+                postsWithVotes = await Promise.all(
+                    posts.map(async (post) => {
+                        const vote = await this.voteDao.getByUserAndPost(userId, post.post_id);
+                        return {
+                            ...post,
+                            userVote: vote ? {
+                                voteType: vote.vote_type,
+                                createdAt: vote.created_at,
+                                updatedAt: vote.updated_at
+                            } : null
+                        };
+                    })
+                );
+            }
+
+            return {
+                posts: postsWithVotes,
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(total / limit)
+                }
+            };
+        } catch (error) {
+            console.error('[PostService:searchPosts] Error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Retrieves recent posts, optionally including user vote status.
+     * @param {number} [limit=10] - Maximum number of posts to return
+     * @param {string | null} [userId=null] - Optional user ID for vote status
+     * @returns {Promise<Array>} Array of post objects with details
+     */
+    async getRecentPosts(limit = 10, userId = null) {
+        try {
+            // Get recent posts using the DAO
+            const posts = await this.userPostDetailsDao.getHomePosts({
+                limit,
+                sortBy: 'postCreatedAt',
+                order: 'desc',
+                includeRemoved: false
+            });
+
+            // Get user vote status for each post if userId is provided
+            if (userId) {
+                return await Promise.all(
+                    posts.map(async (post) => {
+                        const vote = await this.voteDao.getByUserAndPost(userId, post.postId);
+                        return {
+                            ...post,
+                            userVote: vote ? {
+                                voteType: vote.voteType,
+                                createdAt: vote.createdAt,
+                                updatedAt: vote.updatedAt
+                            } : null
+                        };
+                    })
+                );
+            }
+
+            return posts;
+        } catch (error) {
+            console.error('[PostService:getRecentPosts] Error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Retrieves multiple posts by their IDs, optionally including user vote status.
+     * @param {string[]} postIds - Array of post IDs to fetch
+     * @param {string | null} [userId=null] - Optional user ID for vote status
+     * @returns {Promise<Array>} Array of post objects with details
+     */
+    async getPostsByIds(postIds, userId = null) {
+        try {
+            if (!Array.isArray(postIds) || postIds.length === 0) {
+                return [];
+            }
+
+            // Get posts using the DAO
+            const posts = await Promise.all(
+                postIds.map(async (postId) => {
+                    try {
+                        return await this.userPostDetailsDao.getByPostId(postId);
+                    } catch (error) {
+                        console.error(`Error fetching post ${postId}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            // Filter out null values (posts that couldn't be fetched)
+            const validPosts = posts.filter(post => post !== null && !post.isRemoved);
+
+            // Get user vote status for each post if userId is provided
+            if (userId) {
+                return await Promise.all(
+                    validPosts.map(async (post) => {
+                        const vote = await this.voteDao.getByUserAndPost(userId, post.postId);
+                        return {
+                            ...post,
+                            userVote: vote ? {
+                                voteType: vote.voteType,
+                                createdAt: vote.createdAt,
+                                updatedAt: vote.updatedAt
+                            } : null
+                        };
+                    })
+                );
+            }
+
+            return validPosts;
+        } catch (error) {
+            console.error('[PostService:getPostsByIds] Error:', error);
+            throw error;
+        }
+    }
 }
 
 export default new PostService(
