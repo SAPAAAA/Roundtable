@@ -163,11 +163,32 @@ class CommentService {
         }
     }
 
+    async deleteComment(commentId) {
+        if (!commentId) {
+            throw new BadRequestError("Invalid input parameters.");
+        }
+        try {
+            return await postgresInstance.transaction(async (trx) => {
+                const deletedComment = await this.commentDao.softDelete(commentId, trx);
+
+                if (!deletedComment) {
+                    throw new NotFoundError("Comment not found.");
+                }
+                return deletedComment;
+            });
+        } catch (error) {
+            console.error("[CommentService] Error deleting comment:", error);
+            if (error instanceof AppError) {
+                throw error;
+            }
+            throw new InternalServerError("An error occurred while deleting the comment.");
+        }
+    }
+
     async checkCommentOwnership(commentId, userId) {
         if (!commentId || !userId) {
             throw new BadRequestError("Invalid input parameters.");
         }
-        console.log('fesfwagwe fwdvesfvsfvs')
         try {
             const comment = await this.commentDao.getById(commentId);
             if (!comment) {

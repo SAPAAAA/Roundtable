@@ -203,6 +203,34 @@ class CommentController {
             });
         }
     }
+
+    deleteComment = async (req, res) => {
+        try {
+            const {commentId} = req.params;
+
+            const deletedComment = await this.commentService.deleteComment(commentId);
+
+            if (!deletedComment) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: 'Comment not found.'});
+            }
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Comment deleted successfully.',
+                data: {comment: deletedComment}
+            });
+        } catch (error) {
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred.'
+            });
+        }
+    }
 }
 
 // Ensure all three services are injected when creating the instance

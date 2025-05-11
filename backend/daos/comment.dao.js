@@ -98,22 +98,21 @@ class CommentDAO {
     }
 
     /**
-     * Deletes a comment by its ID. Use soft delete (setting isRemoved=true) generally.
-     * This method performs a HARD delete.
+     * Deletes a comment by its ID. Use soft softDelete (setting isRemoved=true) generally.
+     * This method performs a HARD softDelete.
      * NOTE: The Post.commentCount is decremented via DB trigger.
-     * @param {string} commentId - The ID of the comment to delete.
+     * @param {string} commentId - The ID of the comment to softDelete.
      * @param {import('knex').Knex.Transaction | null} [trx=null] - Optional Knex transaction object.
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
-    async delete(commentId, trx = null) {
+    async softDelete(commentId, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            // The trigger 'update_post_comment_count_del' will fire AFTER this delete.
-            const deletedCount = await queryBuilder('Comment')
-                .where({commentId})
-                .del();
-            console.log(`Attempted HARD deletion for commentId ${commentId}. Rows affected: ${deletedCount}`);
-            return deletedCount;
+            // Update the body and authorUserId to null
+            return await queryBuilder('Comment').where({commentId}).update({
+                body: null,
+                authorUserId: null,
+            });
         } catch (error) {
             console.error(`Error hard deleting comment (${commentId}):`, error);
             throw error;

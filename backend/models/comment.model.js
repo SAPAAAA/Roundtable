@@ -10,13 +10,13 @@ class Comment {
      * @param {string} postId - The UUID of the Post this comment belongs to. Required.
      * @param {string | null} authorUserId - The UUID of the RegisteredUser who authored the comment (null if user deleted).
      * @param {string | null} [parentCommentId=null] - The UUID of the parent comment if this is a reply (for threading).
-     * @param {string} body - The text content of the comment. Required.
+     * @param {string | null} body - The text content of the comment. Required.
      * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
      * @param {Date | null} [updatedAt=null] - Timestamp of last update (set by DB trigger/default).
      * @param {number} [voteCount=0] - Denormalized count of votes (updated by DB trigger).
      * @param {boolean} [isRemoved=false] - Whether the comment has been removed (soft delete).
      */
-    constructor(commentId, postId, authorUserId, parentCommentId = null, body, createdAt = null, updatedAt = null, voteCount = 0, isRemoved = false) {
+    constructor(commentId, postId, authorUserId, parentCommentId = null, body = null, createdAt = null, updatedAt = null, voteCount = 0, isRemoved = false) {
         /** @type {string | null} */
         this.commentId = commentId;
 

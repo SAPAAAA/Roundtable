@@ -53,6 +53,20 @@ class CommentService {
             throw error;
         }
     }
+
+    deleteComment(commentId) {
+        try {
+            console.log("Deleting comment:", commentId);
+            return sendApiRequest(`/api/comments/${commentId}`,
+                {
+                    method: 'DELETE',
+                }
+            );
+        } catch (error) {
+            console.error("Error deleting comment:", error);
+            throw error;
+        }
+    }
 }
 
 export default new CommentService();

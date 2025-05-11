@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {useRevalidator} from "react-router";
+import {useFetcher, useRevalidator} from "react-router";
 import useVote from "#features/posts/hooks/vote-hook.jsx";
 import WriteComment from "#features/comments/components/WriteComment/WriteComment";
 import CommentHeader from '#features/comments/components/CommentHeader/CommentHeader';
@@ -26,6 +26,7 @@ export default function Comment(props) {
 
     const originalBodyRef = useRef(initialComment.body);
     const revalidator = useRevalidator();
+    const fetcher = useFetcher();
 
     useEffect(() => {
         setComment(initialComment);
@@ -64,8 +65,38 @@ export default function Comment(props) {
     }, []);
 
     const handleDeleteComment = useCallback(() => {
-        console.log(`Delete comment clicked: ${comment.commentId}`);
-    }, [comment.commentId]);
+        if (window.confirm("Are you sure you want to softDelete this comment?")) {
+            const actionPath = `/comments/${comment.commentId}/manage`; // Or your dedicated softDelete route
+            // Submit with the DELETE method. No actual form data needed for the body here.
+            fetcher.submit(
+                null, // No form data for DELETE body
+                {
+                    method: "delete",
+                    action: actionPath,
+                }
+            );
+            setIsPopoverOpen(false);
+            // Optimistically update the UI to reflect the softDelete
+            setComment(prev => ({...prev, body: null, author: null}));
+        }
+    }, [comment.commentId, fetcher]);
+
+
+    // Effect to handle the fetcher's response for deletion (or other actions)
+    useEffect(() => {
+        if (fetcher.state === 'idle' && fetcher.data) {
+            if (fetcher.data.success && fetcher.formMethod === 'delete') {
+                // Revalidate to refresh data (e.g., refetch comments for the post)
+                if (revalidator.state === 'idle') {
+                    revalidator.revalidate();
+                }
+            } else if (!fetcher.data.success && fetcher.formMethod === 'delete') {
+                console.error("Failed to softDelete comment:", fetcher.data.message);
+                alert(`Error deleting comment: ${fetcher.data.message}`);
+            }
+            // Handle other fetcher.data responses if this fetcher is used for multiple actions
+        }
+    }, [fetcher.state, fetcher.data, fetcher.formMethod, revalidator]);
 
     const handleSaveEditAttempt = useCallback((newBody) => {
         // Optimistically update the UI
@@ -73,14 +104,15 @@ export default function Comment(props) {
         setIsEditing(false); // Close editor optimistically, can be reopened on error
     }, []);
 
-
     const handleSaveEditServerResponse = useCallback((success, dataOrError) => {
         if (success && dataOrError) {
             // Server confirmed, ensure local state matches server response
             setComment(prev => ({...prev, ...dataOrError}));
             setEditError(null);
             if (revalidator.state === 'idle') {
-                revalidator.revalidate();
+                revalidator.revalidate().then((r) => {
+                    console.log('Revalidation completed:', r);
+                });
             }
         } else {
             // API call failed, revert to the original body and show error
@@ -119,6 +151,10 @@ export default function Comment(props) {
         ${isReply ? 'comment-reply' : ''}
         ${isPopoverOpen ? 'popover-is-open' : ''}
     `.trim().replace(/\s+/g, ' ');
+
+    if (!comment.body && !comment.author && !comment.parentCommentId && comment.replies?.length === 0) {
+        return null;
+    }
 
     return (
         <div

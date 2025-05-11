@@ -42,7 +42,7 @@ export default async function editCommentAction({request, params}) {
         return {
             status: response.status,
             success: true,
-            message: 'Comment updated successfully',
+            message: response.message,
             data: response.data
         }
     } catch (error) {
