@@ -411,6 +411,8 @@ CREATE INDEX idx_moderatorlog_moderatorprincipalid ON "ModeratorLog"("moderatorP
 CREATE INDEX idx_adminlog_adminid ON "AdminLog"("adminId");
 CREATE INDEX idx_media_postid ON "Media"("postId");
 CREATE INDEX idx_media_uploaderprincipalid ON "Media"("uploaderPrincipalId");
+CREATE INDEX idx_post_title_trgm ON "Post" USING gin (to_tsvector('english', "title"));
+CREATE INDEX idx_post_body_trgm ON "Post" USING gin (to_tsvector('english', "body"));
 
 
 -- STEP 7: Create Views (No changes needed in these views based on the specific request)
