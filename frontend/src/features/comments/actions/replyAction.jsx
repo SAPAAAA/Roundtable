@@ -13,8 +13,6 @@ export default async function replyAction({request, params}) {
     // Use Object.fromEntries for cleaner data extraction
     const data = Object.fromEntries(formData.entries());
 
-    console.log("32222222222222222222222")
-
     // Get the HTTP method
     const method = request.method.toLowerCase();
 
