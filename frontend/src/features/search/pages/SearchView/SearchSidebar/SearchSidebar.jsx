@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
-import searchService from '#services/search.service';
+import React, {useEffect, useState} from 'react';
+import {useSearchParams} from 'react-router';
+import searchService from '#services/searchService';
 import Link from '#shared/components/Navigation/Link/Link';
 import Avatar from '#shared/components/UIElement/Avatar/Avatar';
 import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
 import Identifier from '#shared/components/UIElement/Identifier/Identifier';
+
 const SidebarSection = ({ title, items, renderItem, emptyMessage }) => (
     <div className="sidebar-section mb-4">
         <h3 className="sidebar-title h5 mb-3">{title}</h3>
@@ -25,11 +26,11 @@ export default function SearchSidebarContent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const query = searchParams.get('q');
+    const q = searchParams.get('q');
 
     useEffect(() => {
         const fetchSidebarData = async () => {
-            if (!query) {
+            if (!q) {
                 setCommunities([]);
                 setUsers([]);
                 setLoading(false);
@@ -39,12 +40,12 @@ export default function SearchSidebarContent() {
             try {
                 setLoading(true);
                 setError(null);
-                const [communitiesData, usersData] = await Promise.all([
-                    searchService.searchCommunities({ query, limit: 5 }),
-                    searchService.searchUsers({ query, limit: 5 })
+                const [communitiesReponse, usersResponse] = await Promise.all([
+                    searchService.searchCommunities({q, limit: 5}),
+                    searchService.searchUsers({q, limit: 5})
                 ]);
-                setCommunities(communitiesData.data);
-                setUsers(usersData.data);
+                setCommunities(communitiesReponse.data.communities);
+                setUsers(usersResponse.data.users);
             } catch (error) {
                 console.error("Error fetching sidebar data:", error);
                 setError(error.message || "Failed to load sidebar data");
@@ -54,10 +55,13 @@ export default function SearchSidebarContent() {
         };
 
         fetchSidebarData();
-    }, [query]);
+    }, [q]);
 
     if (loading) {
-        return <LoadingSpinner message="Loading..." />;
+        return <LoadingSpinner
+            message="Đang tải dữ liệu..."
+            overlayOpacity={0.01}
+        />;
     }
 
     if (error) {
@@ -68,19 +72,19 @@ export default function SearchSidebarContent() {
         );
     }
 
-    if (!query) {
+    if (!q) {
         return null;
     }
 
     const renderCommunity = (community) => (
         <Link
-            key={community.id}
+            key={community.subtableId}
             href={`/r/${community.name}`}
             className="list-group-item list-group-item-action d-flex align-items-center p-2"
         >
             <Avatar
-                src={community.avatarUrl}
-                alt={community.name}
+                src={community.icon}
+                alt={`s/${community.name}`}
                 width="32"
                 height="32"
                 className="me-2"
@@ -96,12 +100,12 @@ export default function SearchSidebarContent() {
 
     const renderUser = (user) => (
         <Link
-            key={user.id}
+            key={user.userId}
             href={`/u/${user.username}`}
             className="list-group-item list-group-item-action d-flex align-items-center p-2"
         >
             <Avatar
-                src={user.avatarUrl}
+                src={user.avatar}
                 alt={user.username}
                 width="32"
                 height="32"
@@ -119,17 +123,17 @@ export default function SearchSidebarContent() {
     return (
         <div className="search-sidebar">
             <SidebarSection
-                title="Relevant Communities"
+                title="Các cộng đồng liên quan"
                 items={communities}
                 renderItem={renderCommunity}
-                emptyMessage="No communities found"
+                emptyMessage="Không tìm thấy cộng đồng nào"
             />
 
             <SidebarSection
-                title="Relevant Users"
+                title="Các thành viên liên quan"
                 items={users}
                 renderItem={renderUser}
-                emptyMessage="No users found"
+                emptyMessage="Không tìm thấy thành viên nào"
             />
         </div>
     );

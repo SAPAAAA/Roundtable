@@ -1,4 +1,4 @@
-import React, {useState} from 'react'; // Removed useEffect, useRef, useState
+import React, {useState} from 'react';
 import './Header.css';
 import Button from '#shared/components/UIElement/Button/Button';
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
@@ -10,11 +10,12 @@ import PopoverMenu from '#shared/components/UIElement/PopoverMenu/PopoverMenu';
 import {useNavigate} from "react-router";
 import useNotifications from "#hooks/useNotifications.jsx";
 import useChat from "#hooks/useChat.jsx";
+// No need to import your custom Form component if we are using a standard HTML form for manual submission control
 
 export default function Header(props) {
     const {toggleSidebar, toggleChat, openLoginModal, openCreateSubtableModal} = props;
     const {user, logout, isLoading} = useAuth();
-    const navigate = useNavigate();
+    const navigate = useNavigate(); // Hook for navigation
     const {unreadCount: notificationUnreadCount} = useNotifications();
     const {totalUnreadMessages: chatUnreadCount} = useChat();
     const [searchQuery, setSearchQuery] = useState('');
@@ -23,29 +24,35 @@ export default function Header(props) {
         if (action) {
             action();
         }
-        // Removed setShowPopover(false) - PopoverMenu handles closing
     };
 
     const handleNotificationsClick = () => {
-        console.log("Notifications Clicked - Navigating");
-        navigate('/notifications'); // Navigate to the notifications route
+        navigate('/notifications');
     };
 
     const handleLogoutClick = async () => {
         await logout();
-        // Removed setShowPopover(false) - PopoverMenu handles closing
-    }
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (!searchQuery.trim()) return;
-        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        navigate("/"); // Navigate to home or another appropriate page after logout
     };
 
-    // --- Define the Trigger Element for the Popover ---
+    // Function to handle search submission
+    const handleSearchSubmit = (event) => {
+        event.preventDefault(); // Prevent default HTML form submission
+        if (searchQuery.trim()) {
+            // Navigate to the search page, including the q as a URL parameter.
+            // React Router will detect this URL change, match the '/search' route,
+            // and trigger its associated loader (searchLoader).
+            navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        } else {
+            // If the search q is empty, you might still want to navigate to the base search page
+            // or handle it differently (e.g., show a message, do nothing).
+            navigate('/search');
+        }
+    };
+
     const avatarTrigger = (
         <Button
-            dataBsToggle="tooltip" // Keep tooltip on the trigger if desired
+            dataBsToggle="tooltip"
             dataBsTrigger="hover focus"
             tooltipTitle="User menu"
             tooltipPlacement="bottom"
@@ -53,14 +60,13 @@ export default function Header(props) {
             padding="1"
         >
             <Avatar
-                src="https://avatars.githubusercontent.com/u/55435868?v=4" // Consider using user.avatarUrl if available
-                alt="User"
+                src={user?.avatarUrl || "https://avatars.githubusercontent.com/u/55435868?v=4"} // Use user's avatar if available
+                alt={user?.displayName || "User"}
                 width="25"
                 height="25"
             />
         </Button>
     );
-
 
     return (
         <header id="header-container">
@@ -89,41 +95,34 @@ export default function Header(props) {
                         <Link
                             className="nav-brand mb-0"
                             id="header-brand"
-                            href="/frontend/public"> {/* Adjust href as needed */}
-                            Navbar
+                            href="/">
+                            Roundtable {/* Or your actual brand name */}
                         </Link>
                     </div>
 
-                    {/* Center Search Bar */}
+                    {/* Center Search Bar - Using a standard HTML form for manual submission control */}
                     <form
-                        className="container-fluid d-flex justify-content-center"
                         id="header-search-bar"
                         role="search"
                         style={{maxWidth: "500px", minWidth: "40%"}}
-                        onSubmit={handleSearch}
+                        onSubmit={handleSearchSubmit} // Use the manual submit handler
+                        className="d-flex" // Optional: for styling if you add a submit button next to input
                     >
                         <input
                             className="form-control w-100 rounded-pill"
                             type="search"
-                            placeholder="Search"
+                            placeholder="Tìm kiếm..."
                             aria-label="Search"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        {/* <button 
-                            className="btn btn-outline-light position-absolute end-0 me-2"
-                            type="submit"
-                            style={{display: "block"}}
-                        >
-                            Search
-                        </button> */}
                     </form>
 
                     {/* Right Nav Items */}
                     <ul className="navbar-nav d-flex flex-row align-items-center column-gap-3 flex-shrink-0">
                         {isLoading ? (
                             <li className="nav-item"><span className="navbar-text">Loading...</span></li>
-                        ) : user ?
+                        ) : user ? (
                             <>
                                 <li className="nav-item">
                                     <Button
@@ -132,135 +131,112 @@ export default function Header(props) {
                                         dataBsTrigger="hover focus"
                                         tooltipTitle="Create a new community"
                                         tooltipPlacement="bottom"
-                                        onClick={openCreateSubtableModal} // Call the handler
+                                        onClick={openCreateSubtableModal}
                                         aria-label="Create a new community"
                                     >
                                         <Icon name="plus" size="20px"/>
                                     </Button>
                                 </li>
-                                {/* Chat Button */}
                                 <li className="nav-item">
                                     <Button
                                         aria-current="page"
                                         contentType="icon"
                                         dataBsToggle="tooltip"
                                         dataBsTrigger="hover focus"
-                                        tooltipTitle="Chat"
+                                        tooltipTitle="Tin nhắn"
                                         tooltipPlacement="bottom"
-                                        aria-label={`Chat ${chatUnreadCount > 0 ? `(${chatUnreadCount} unread)` : ''}`}
+                                        aria-label={`${chatUnreadCount > 0 ? `(${chatUnreadCount} tin nhắn chưa đọc)` : ''}`}
                                         addClass="position-relative"
                                         onClick={toggleChat}
                                     >
-                                        <Icon
-                                            name="chat"
-                                            size="20px"
-                                        />
+                                        <Icon name="chat" size="20px"/>
                                         {chatUnreadCount > 0 && (
                                             <span
-                                                className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
-                                            >
-                                                                            {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
-                                                                        </span>
+                                                className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8">
+                                                {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                                            </span>
                                         )}
                                     </Button>
                                 </li>
-                                {/* Notifications Button with Badge */}
-                                <li className="nav-item"> {/* No longer needs position-relative here */}
+                                <li className="nav-item">
                                     <Button
                                         contentType="icon"
                                         dataBsToggle="tooltip"
                                         dataBsTrigger="hover focus"
-                                        tooltipTitle="Notifications"
+                                        tooltipTitle="Thông báo"
                                         tooltipPlacement="bottom"
                                         onClick={handleNotificationsClick}
-                                        aria-label={`Notifications ${notificationUnreadCount > 0 ? `(${notificationUnreadCount} unread)` : ''}`}
-                                        addClass="position-relative" // Add relative positioning to the button
+                                        aria-label={`${notificationUnreadCount > 0 ? `(${notificationUnreadCount} thông báo chưa đọc)` : ''}`}
+                                        addClass="position-relative"
                                     >
                                         <Icon name="bell" size="20px"/>
                                         {notificationUnreadCount > 0 && (
                                             <span
-                                                className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8"
-                                            >
-                                                                            {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
-                                                                        </span>
+                                                className="position-absolute end-0 badge rounded-pill bg-danger notification-badge fs-8">
+                                                {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                                            </span>
                                         )}
                                     </Button>
                                 </li>
-
-                                {/* Avatar and Popover */}
-                                <li className="nav-item"> {/* Removed position-relative, PopoverMenu handles it */}
+                                <li className="nav-item">
                                     <PopoverMenu
                                         addClass="avatar-popover-menu bg-space-cadet rounded-bottom"
                                         trigger={avatarTrigger}
                                         position="bottom-end"
                                     >
-                                        {/* User Info Item */}
-                                        <Link
-                                            href="/frontend/public"
-                                            className="avatar-link"
-                                        >
-                                            <div
-                                                className="d-flex flex-row gap-2 align-items-center px-2 py-2"> {/* Added padding */}
+                                        <Link href="/profile"
+                                              className="avatar-link"> {/* Ensure this path matches your profile route */}
+                                            <div className="d-flex flex-row gap-2 align-items-center px-2 py-2">
                                                 <div className="d-flex align-items-center justify-content-center">
                                                     <Avatar
-                                                        src="https://avatars.githubusercontent.com/u/55435868?v=4" // Use user.avatarUrl
-                                                        alt="User"
+                                                        src={user?.avatarUrl || "https://avatars.githubusercontent.com/u/55435868?v=4"}
+                                                        alt={user?.displayName || "User"}
                                                         width="25"
                                                         height="25"
                                                     />
                                                 </div>
                                                 <div className="d-flex flex-column">
-                                                    <div className="fw-bold">
-                                                        View Profile
-                                                    </div>
-                                                    <span
-                                                        className="text-muted fs-7">
-                                                                                    {user?.username &&
-                                                                                        <Identifier type="user"
-                                                                                                    namespace={user.username}/>}
-                                                                                </span>
+                                                    <div className="fw-bold">View Profile</div>
+                                                    <span className="text-muted fs-7">
+                                                        {user?.username &&
+                                                            <Identifier type="user" namespace={user.username}/>}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </Link>
-
-                                        {/* Settings Item */}
-                                        <Link
-                                            href="/"
-                                            // Removed isDropdown prop
-                                            className="settings-link px-2 py-2"
-                                            onClick={() => handleMenuItemClick(() => console.log("Settings clicked"))} // Example action
-                                        >
-                                            <Icon name="settings" size="18px" addClass="me-2"/> {/* Added margin */}
-                                            <span>Settings</span>
+                                        <Link href="/" className="settings-link px-2 py-2"
+                                              onClick={() => handleMenuItemClick(() => console.log("Settings clicked"))}>
+                                            <Icon name="settings" size="18px" addClass="me-2"/>
+                                            <span>Cài đặt</span>
                                         </Link>
-
-                                        {/* Logout Item */}
                                         <Link
+                                            href="#" // href="#" is fine as onClick handles behavior
                                             className="px-2 py-2 logout-link"
                                             onClick={(e) => {
-                                                e.preventDefault();
-                                                handleLogoutClick().then(() => navigate("/"));
+                                                e.preventDefault(); // Prevent default link behavior
+                                                handleLogoutClick();
                                             }}
                                         >
-                                            <Icon name="logout" size="18px" addClass="me-2"/> {/* Added margin */}
-                                            <span>Logout</span>
+                                            <Icon name="box_arrow_right" size="18px" addClass="me-2"/>
+                                            <span>Đăng xuất</span>
                                         </Link>
                                     </PopoverMenu>
                                 </li>
                             </>
-                            :
+                        ) : (
                             <li className="nav-item">
                                 <Button
                                     contentType="text"
                                     dataBsToggle="tooltip"
                                     dataBsTrigger="hover focus"
-                                    tooltipTitle="Login"
+                                    tooltipTitle="Đăng nhập"
                                     tooltipPlacement="bottom"
                                     onClick={openLoginModal}
                                 >
-                                    Login
+                                    Đăng nhập
                                 </Button>
-                            </li>}
+                            </li>
+                        )}
                     </ul>
                 </div>
             </nav>

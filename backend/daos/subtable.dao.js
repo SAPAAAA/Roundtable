@@ -156,8 +156,8 @@ class SubtableDAO {
     }
 
     /**
-     * Searches subtables based on query parameters
-     * @param {string} query - Search query string
+     * Searches subtables based on q parameters
+     * @param {string} query - Search q string
      * @param {object} options - Search options
      * @param {number} [options.limit=25] - Maximum number of results
      * @param {number} [options.offset=0] - Number of results to skip
@@ -168,7 +168,7 @@ class SubtableDAO {
         const { limit = 25, offset = 0 } = options;
         
         try {
-            console.log('[SubtableDAO:searchSubtables] Building query with params:', { query, limit, offset });
+            console.log('[SubtableDAO:searchSubtables] Building q with params:', {query, limit, offset});
 
             const searchResults = await postgresInstance('Subtable')
                 .select(

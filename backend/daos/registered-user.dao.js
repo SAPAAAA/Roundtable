@@ -65,16 +65,16 @@ class RegisteredUserDAO {
     }
 
     /**
-     * Searches users based on query parameters
+     * Searches users based on q parameters
      * @param {object} params - Search parameters
-     * @param {string} params.query - Search query
+     * @param {string} params.q - Search q
      * @param {number} [params.limit=5] - Results limit
      * @returns {Promise<Array>} Search results
      */
     async searchUsers(query, options = {}) {
         const { limit = 25 } = options;
         try {
-            console.log('[RegisteredUserDAO:searchUsers] Building query with params:', { query, limit });
+            console.log('[RegisteredUserDAO:searchUsers] Building q with params:', {query, limit});
 
             const searchResults = await postgresInstance('RegisteredUser as u')
                 .select(

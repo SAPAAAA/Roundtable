@@ -120,14 +120,14 @@ class SubtableController {
 
     /**
      * Handles GET /s/search
-     * Searches for subtables based on query parameters.
+     * Searches for subtables based on q parameters.
      * @param {import('express').Request} req - Express request object.
      * @param {import('express').Response} res - Express response object.
      */
     searchSubtables = async (req, res) => {
         try {
-            const { query, limit, offset } = req.query;
-            const searchResults = await this.subtableService.searchSubtables(query, { limit, offset });
+            const {q, limit, offset} = req.query;
+            const searchResults = await this.subtableService.searchSubtables(q, {limit, offset});
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,

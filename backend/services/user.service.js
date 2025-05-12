@@ -1,4 +1,5 @@
 import RegisteredUserDao from '#daos/registered-user.dao.js';
+import {BadRequestError} from "#errors/AppError.js";
 
 class UserService {
     constructor(userDao) {
@@ -6,17 +7,17 @@ class UserService {
     }
 
     /**
-     * Searches users based on query parameters
+     * Searches users based on q parameters
      * @param {object} params - Search parameters
-     * @param {string} params.query - Search query
+     * @param {string} params.q - Search q
      * @param {number} [params.limit=5] - Results limit
      * @returns {Promise<object>} Search results
      */
-    async searchUsers({ query, limit = 5 }) {
+    async searchUsers({q, limit = 5}) {
         try {
             // Validate input
-            if (!query) {
-                throw new Error('Search query is required');
+            if (!q) {
+                throw new BadRequestError('Missing search query');
             }
 
             // Convert limit to number
@@ -24,16 +25,14 @@ class UserService {
 
             // Validate numeric parameters
             if (isNaN(limit) || limit < 1) {
-                throw new Error('Invalid limit');
+                throw new BadRequestError('Invalid limit parameter');
             }
 
             // Get search results from DAO
-            const results = await this.userDao.searchUsers(query, { limit });
-            console.log('[UserService:searchUsers] Results:', results);
+            const results = await this.userDao.searchUsers(q, {limit});
 
             return {
-                success: true,
-                data: results
+                users: results
             };
         } catch (error) {
             console.error('[UserService:searchUsers] Error:', error);

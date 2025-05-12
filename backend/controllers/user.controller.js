@@ -5,20 +5,20 @@ import {BadRequestError, InternalServerError} from '#errors/AppError.js';
 class UserController {
     /**
      * Handles GET /users/search
-     * Searches users based on query parameters
+     * Searches users based on q parameters
      * @param {import('express').Request} req
      * @param {import('express').Response} res
      */
     searchUsers = async (req, res) => {
         try {
-            const { query, limit = 5 } = req.query;
+            const {q, limit = 5} = req.query;
 
-            if (!query) {
-                throw new BadRequestError('Search query is required');
+            if (!q) {
+                throw new BadRequestError('Search q is required');
             }
 
             const searchResults = await userService.searchUsers({
-                query,
+                q,
                 limit: parseInt(limit)
             });
 

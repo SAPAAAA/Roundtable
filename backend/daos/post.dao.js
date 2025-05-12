@@ -198,9 +198,9 @@ class PostDAO {
     }
 
     /**
-     * Searches posts based on query parameters
+     * Searches posts based on q parameters
      * @param {object} params - Search parameters
-     * @param {string} params.query - Search query
+     * @param {string} params.q - Search q
      * @param {string} [params.subtableId] - Optional subtable ID to filter by
      * @param {string} [params.sortBy='relevance'] - Sort by field (relevance, newest, votes)
      * @param {number} [params.page=1] - Page number
@@ -212,10 +212,10 @@ class PostDAO {
         const offset = (page - 1) * limit;
         
         try {
-            // Ensure query is a string
+            // Ensure q is a string
             const searchQuery = typeof query === 'object' ? query.query : query;
-            
-            console.log('[PostDAO:searchPosts] Building query with params:', { 
+
+            console.log('[PostDAO:searchPosts] Building q with params:', {
                 query: searchQuery, 
                 subtableId, 
                 sortBy, 

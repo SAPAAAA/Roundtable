@@ -197,28 +197,30 @@ class PostController {
 
     /**
      * Handles GET /posts/search
-     * Searches posts based on query parameters
+     * Searches posts based on q parameters
      * @param {import('express').Request} req
      * @param {import('express').Response} res
      */
     searchPosts = async (req, res) => {
         try {
-            const { query, subtableId, sortBy = 'relevance', page = 1, limit = 10 } = req.query;
+            const {q, subtableId, sortBy = 'relevance', time = 'all', limit = 10, offset = 0} = req.query;
             const { userId } = req.session; // Can be null if user is not logged in
 
-            if (!query) {
-                throw new BadRequestError('Search query is required');
+            console.log('[PostController:searchPosts] Query:', req.query);
+
+            if (!q) {
+                throw new BadRequestError('Search q is required');
             }
 
             const searchResults = await this.postService.searchPosts({
-                query,
+                q,
                 subtableId,
                 sortBy,
-                page: parseInt(page),
+                time,
                 limit: parseInt(limit),
+                offset: parseInt(offset),
                 userId
             });
-            console.log(searchResults, `hello`);
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,

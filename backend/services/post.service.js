@@ -58,8 +58,8 @@ class PostService {
      * Constructor for PostService.
      * @param {object} postDao - Data Access Object for posts.
      * @param {object} voteDao - Data Access Object for votes.
-     * @param {object} userPostDetailsDao - DAO for the user_post_details view/query.
-     * @param {object} userCommentDetailsDao - DAO for the user_comment_details view/query.
+     * @param {object} userPostDetailsDao - DAO for the user_post_details view/q.
+     * @param {object} userCommentDetailsDao - DAO for the user_comment_details view/q.
      * @param {object} registeredUserDao - DAO for registered users.
      * @param {object} subtableDao - DAO for subtables.
      * @param {object} subscriptionDao - DAO for subscriptions.
@@ -263,9 +263,9 @@ class PostService {
     }
 
     /**
-     * Searches posts based on query parameters
+     * Searches posts based on q parameters
      * @param {object} params - Search parameters
-     * @param {string} params.query - Search query
+     * @param {string} params.q - Search q
      * @param {string} [params.subtableId] - Optional subtable ID to filter by
      * @param {string} [params.sortBy='relevance'] - Sort by field (relevance, newest, votes)
      * @param {number} [params.page=1] - Page number
@@ -273,31 +273,30 @@ class PostService {
      * @param {string} [params.userId] - Optional user ID for vote status
      * @returns {Promise<object>} Search results
      */
-    async searchPosts({ query, subtableId, sortBy = 'relevance', page = 1, limit = 10, userId = null }) {
+    async searchPosts({
+                          q,
+                          subtableId,
+                          sortBy = 'relevance',
+                          time = 'all',
+                          page = 1,
+                          limit = 10,
+                          offset = 0,
+                          userId = null
+                      }) {
         try {
             // Validate input
-            if (!query) {
-                throw new Error('Search query is required');
-            }
-
-            // Convert page and limit to numbers
-            page = parseInt(page);
-            limit = parseInt(limit);
-
-            // Validate numeric parameters
-            if (isNaN(page) || page < 1) {
-                throw new Error('Invalid page number');
-            }
-            if (isNaN(limit) || limit < 1) {
-                throw new Error('Invalid limit');
+            if (!q) {
+                throw new Error('Search q is required');
             }
 
             // Get search results from UserPostDetailsDAO
-            const { posts, total } = await this.userPostDetailsDao.searchPosts(query, {
+            const {posts, total} = await this.userPostDetailsDao.searchPosts(q, {
                 subtableId,
                 sortBy,
+                time,
                 page,
-                limit
+                limit,
+                offset
             });
 
             // Get user vote status for each post if userId is provided
@@ -320,12 +319,7 @@ class PostService {
 
             return {
                 posts: postsWithVotes,
-                pagination: {
-                    total,
-                    page,
-                    limit,
-                    totalPages: Math.ceil(total / limit)
-                }
+                total
             };
         } catch (error) {
             console.error('[PostService:searchPosts] Error:', error);

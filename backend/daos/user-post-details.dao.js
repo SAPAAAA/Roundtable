@@ -354,34 +354,61 @@ class UserPostDetailsDAO {
     }
 
     /**
-     * Searches posts based on query parameters using the UserPostDetails view
-     * @param {object} params - Search parameters
-     * @param {string} params.query - Search query
-     * @param {string} [params.subtableId] - Optional subtable ID to filter by
-     * @param {string} [params.sortBy='relevance'] - Sort by field (relevance, newest, votes)
-     * @param {number} [params.page=1] - Page number
-     * @param {number} [params.limit=10] - Results per page
+     * Searches posts based on q parameters using the UserPostDetails view
+     * @param {string} q - Search q
+     * @param {Object} options - Search options
+     * @param {number} options.subtableId - Subtable ID
+     * @param {string} options.sortBy - Sort by column
+     * @param {string} options.time - Time range
+     * @param {number} options.limit - Limit number of results
+     * @param {number} options.offset - Offset for pagination
      * @returns {Promise<{posts: Array<UserPostDetails>, total: number}>} Search results and total count
+     * @param q
+     * @param options
      */
-    async searchPosts(query, options = {}) {
-        const { subtableId, sortBy = 'relevance', page = 1, limit = 50 } = options;
-        const offset = (page - 1) * limit;
-        
-        try {
-            // Ensure query is a string
-            const searchQuery = typeof query === 'object' ? query.query : query;
-            
-            console.log('[UserPostDetailsDAO:searchPosts] Building query with params:', { 
-                query: searchQuery, 
-                subtableId, 
-                sortBy, 
-                page, 
-                limit, 
-                offset 
-            });
+    async searchPosts(q, options = {}) {
+        const {
+            subtableId,
+            sortBy = 'relevance',
+            time = 'all',
+            limit = 10,
+            offset = 0
+        } = options;
 
-            // First get the total count
-            const countQuery = postgresInstance(this.viewName)
+        try {
+            if (typeof q !== 'string') {
+                throw new Error('Search query `q` must be a string');
+            }
+
+            // Escape LIKE wildcards within the query itself
+            const escapeLikePattern = (s) => s.replace(/[%_]/g, '\\$&');
+            const escapedQuery = escapeLikePattern(q);
+            // Further escape potential regex/special chars - adjust if using more complex search
+            const searchQuery = escapedQuery.replace(/[!@#$%^&*(),.?":{}|<>]/g, '\\$&');
+
+            // --- Define a function to apply the time filter ---
+            const applyTimeFilter = (queryBuilder) => {
+                switch (time) {
+                    case 'day':
+                        queryBuilder.where('postCreatedAt', '>=', postgresInstance.raw("CURRENT_TIMESTAMP - interval '1 day'"));
+                        break;
+                    case 'week':
+                        queryBuilder.where('postCreatedAt', '>=', postgresInstance.raw("CURRENT_TIMESTAMP - interval '7 days'"));
+                        break;
+                    case 'month':
+                        queryBuilder.where('postCreatedAt', '>=', postgresInstance.raw("CURRENT_TIMESTAMP - interval '1 month'"));
+                        break;
+                    case 'year':
+                        queryBuilder.where('postCreatedAt', '>=', postgresInstance.raw("CURRENT_TIMESTAMP - interval '1 year'"));
+                        break;
+                    case 'all':
+                    default:
+                        break;
+                }
+            };
+
+            // --- Build and Execute Count Query ---
+            const countQueryBase = postgresInstance(this.viewName)
                 .where('isRemoved', false)
                 .where(function() {
                     this.where('title', 'ILIKE', `%${searchQuery}%`)
@@ -389,43 +416,65 @@ class UserPostDetailsDAO {
                 });
 
             if (subtableId) {
-                countQuery.where('subtableId', subtableId);
+                countQueryBase.where('subtableId', subtableId);
             }
+            applyTimeFilter(countQueryBase); // Apply time filter to count query
 
-            const [{ total }] = await countQuery.count('* as total');
+            const [{total}] = await countQueryBase.count('* as total');
 
-            // Then get the actual results with relevance scoring
-            const searchResults = await postgresInstance(this.viewName)
+            // --- Build Main Search Query ---
+            let searchResultsQuery = postgresInstance(this.viewName)
                 .select('*')
                 .where('isRemoved', false)
                 .where(function() {
                     this.where('title', 'ILIKE', `%${searchQuery}%`)
                         .orWhere('body', 'ILIKE', `%${searchQuery}%`);
-                })
-                .modify(function(queryBuilder) {
-                    if (subtableId) {
-                        queryBuilder.where('subtableId', subtableId);
-                    }
-                })
-                .orderByRaw(`
-                    CASE 
-                        WHEN "title" ILIKE ? THEN 3
-                        WHEN "title" ILIKE ? THEN 2
-                        WHEN "body" ILIKE ? THEN 1
-                        ELSE 0
-                    END DESC,
-                    "postCreatedAt" DESC
-                `, [`${searchQuery}`, `%${searchQuery}%`, `%${searchQuery}%`])
-                .limit(limit)
-                .offset(offset);
+                });
 
+            if (subtableId) {
+                searchResultsQuery.where('subtableId', subtableId);
+            }
+            applyTimeFilter(searchResultsQuery); // Apply time filter to results query
+
+            // --- Apply Sorting ---
+            switch (sortBy) {
+                case 'newest':
+                    searchResultsQuery = searchResultsQuery.orderBy('postCreatedAt', 'desc');
+                    break;
+                case 'votes':
+                    // Highest votes first, then newest as tie-breaker
+                    searchResultsQuery = searchResultsQuery
+                        .orderBy('voteCount', 'desc')
+                        .orderBy('postCreatedAt', 'desc');
+                    break;
+                case 'relevance':
+                default:
+                    // Relevance Score: Exact title > Partial title > Partial body, then newest
+                    searchResultsQuery = searchResultsQuery.orderByRaw(`
+                        CASE
+                            WHEN "title" ILIKE ? THEN 3
+                            WHEN "title" ILIKE ? THEN 2
+                            WHEN "body"  ILIKE ? THEN 1
+                            ELSE 0
+                        END DESC,
+                        "postCreatedAt" DESC
+                    `, [`${searchQuery}`, `%${searchQuery}%`, `%${searchQuery}%`]); // Parameters passed safely
+                    break;
+            }
+
+            // --- Apply Pagination & Execute ---
+            searchResultsQuery = searchResultsQuery.limit(limit).offset(offset);
+            const searchResults = await searchResultsQuery;
+
+            // --- Map results and return ---
             return {
                 posts: searchResults.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null),
-                total: parseInt(total)
+                total: parseInt(total, 10) || 0 // Ensure total is a non-negative integer
             };
+
         } catch (error) {
-            console.error('[UserPostDetailsDAO:searchPosts] Error:', error);
-            throw error;
+            console.error(`[UserPostDetailsDAO:searchPosts] Error searching for query "${q}" with options ${JSON.stringify(options)}:`, error);
+            throw error; // Re-throw the error for upstream handling
         }
     }
 }

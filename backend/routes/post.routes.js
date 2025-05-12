@@ -14,7 +14,7 @@ router.post('/:postId/vote', isAuthenticated, PostController.castVote);
 router.post('/', isAuthenticated, PostController.createPost);
 //router.put('/:postId', isAuthenticated, PostController.updatePost);
 router.put('/:postId', isAuthenticated, (req, res) => {
-    const body = req.body; // hoặc req.query.action
+    const body = req.body; // hoặc req.q.action
     if(body.body ===""){
         console.log("action xóa");
         return PostController.deletePost(req, res);

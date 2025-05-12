@@ -9,10 +9,10 @@ class Subtable {
      * @param {string | null} subtableId - The unique identifier (UUID), null if new.
      * @param {string} name - The unique name of the subtable (e.g., 'VietnamDevs'). Required.
      * @param {string | null} [description=null] - A description of the subtable.
-     * @param {string | null} [creatorUserId=null] - The UUID of the RegisteredUser who created the subtable. << CHANGED
-     * @param {string | null} [icon=null] - URL for the subtable's icon image.
-     * @param {string | null} [banner=null] - URL for the subtable's banner image.
-     * @param {number} [memberCount=0] - The number of members (defaults to 1 in DB on creation).
+     * @param {string | null} [creatorUserId=null] - The UUID of the RegisteredUser who created the subtable.
+     * @param {string | null} [icon=null] - URL or UUID for the subtable's icon image.
+     * @param {string | null} [banner=null] - URL or UUID for the subtable's banner image.
+     * @param {number} [memberCount=0] - The number of members.
      * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
      */
     constructor(subtableId, name, description = null, creatorUserId = null, icon = null, banner = null, memberCount = 0, createdAt = null) {
@@ -25,9 +25,6 @@ class Subtable {
         /** @type {string | null} */
         this.description = description;
 
-        /** @type {Date | null} */
-        this.createdAt = createdAt instanceof Date ? createdAt : (createdAt ? new Date(createdAt) : null); // Ensure Date object
-
         /** @type {string | null} */
         this.creatorUserId = creatorUserId;
 
@@ -38,13 +35,17 @@ class Subtable {
         this.banner = banner;
 
         /** @type {number} */
+        // Ensure memberCount is a number, potentially using calculated subscriber_count.
         this.memberCount = Number(memberCount) || 0;
+
+        /** @type {Date | null} */
+        // Ensure createdAt is a Date object.
+        this.createdAt = createdAt instanceof Date ? createdAt : (createdAt ? new Date(createdAt) : null);
     }
 
     /**
      * Converts a database row object into a Subtable instance.
-     * Assumes the database row keys match the constructor parameter names (or are mapped accordingly).
-     * Specifically, expects `creatorUserId` from the database row now.
+     * Handles potential snake_case column names from the database.
      * @param {Object} row - The database row object (e.g., from node-postgres query result).
      * @returns {Subtable | null} A Subtable instance or null if no row provided.
      */
@@ -53,19 +54,23 @@ class Subtable {
             return null;
         }
 
-        // Ensure correct mapping from DB column name (e.g., 'creatorUserId' or 'creator_user_id')
-        // If your DB driver returns snake_case, map it here:
+        // Handle potential snake_case and provide fallbacks
+        const subtableIdFromRow = row.subtableId || row.subtable_id;
         const creatorUserIdFromRow = row.creatorUserId || row.creator_user_id;
+        const createdAtFromRow = row.createdAt || row.created_at;
+        // Use calculated subscriber_count from search query if available, otherwise fallback to memberCount column
+        const memberCountFromRow = row.subscriber_count ?? (row.memberCount || row.member_count);
 
+        // Pass arguments in the correct order matching the constructor
         return new Subtable(
-            row.subtableId || row.subtable_id, // Allow for snake_case from DB
+            subtableIdFromRow,
             row.name,
             row.description,
-            row.createdAt || row.created_at, // Allow for snake_case
-            creatorUserIdFromRow,           // << CHANGED property access
+            creatorUserIdFromRow,
             row.icon,
             row.banner,
-            row.memberCount || row.member_count  // Allow for snake_case
+            memberCountFromRow,
+            createdAtFromRow
         );
     }
 }

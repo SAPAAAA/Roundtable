@@ -15,7 +15,7 @@ class SubtableService {
     /**
      * Constructor for SubtableService.
      * @param {SubtableDAO} subtableDao - Data Access Object for subtables.
-     * @param {UserPostDetailsDAO} userPostDetailsDao - DAO for the user_post_details view/query.
+     * @param {UserPostDetailsDAO} userPostDetailsDao - DAO for the user_post_details view/q.
      * @param {UserProfileDAO} userProfileDao - DAO for user profiles.
      */
     constructor(subtableDao, userPostDetailsDao, userProfileDao, subscriptionDao, moderatorDao) {
@@ -198,20 +198,20 @@ class SubtableService {
     }
 
     /**
-     * Searches subtables based on query parameters
-     * @param {string} query - Search query string
+     * Searches subtables based on q parameters
+     * @param {string} q - Search q string
      * @param {object} options - Search options
      * @param {number} [options.limit=25] - Maximum number of results
      * @param {number} [options.offset=0] - Number of results to skip
-     * @returns {Promise<Array<Subtable>>} Array of matching subtables
-     * @throws {BadRequestError} If query is invalid
+     * @returns {Promise<{communities: Array<Subtable>}>} Array of matching subtables
+     * @throws {BadRequestError} If q is invalid
      * @throws {InternalServerError} For unexpected errors
      */
-    async searchSubtables(query, options = {}) {
+    async searchSubtables(q, options = {}) {
         try {
             // Validate input
-            if (!query || typeof query !== 'string' || query.trim() === '') {
-                throw new BadRequestError('Search query is required and must be a non-empty string');
+            if (!q || typeof q !== 'string' || q.trim() === '') {
+                throw new BadRequestError('Search q is required and must be a non-empty string');
             }
 
             const { limit = 25, offset = 0 } = options;
@@ -224,13 +224,15 @@ class SubtableService {
                 throw new BadRequestError('Invalid offset parameter');
             }
 
-            console.log('[SubtableService:searchSubtables] Searching with params:', { query, limit, offset });
 
             // Get search results from DAO
-            const results = await this.subtableDao.searchSubtables(query.trim(), { limit, offset });
+            const results = await this.subtableDao.searchSubtables(q.trim(), {limit, offset});
+
             console.log('[SubtableService:searchSubtables] Search results:', results);
 
-            return results;
+            return {
+                communities: results,
+            }
         } catch (error) {
             console.error('[SubtableService:searchSubtables] Error details:', {
                 message: error.message,
