@@ -82,18 +82,22 @@ export default function PostOptions(props) {
                 </Button>
                 {
                     checkYourPost && (
-                       <>
                         <Button mainClass="edit-post-btn w-100" type="button" justifyContent="start" rounded={false} padding={2}
                                 onClick={handleUpdatePost}>
                             <Icon addClass="me-2" name="pencil" size="15px"/>
                             <span>Cập nhật</span>
                         </Button>
-                        <Button mainClass="delete-post-btn w-100"  justifyContent="start" rounded={false} padding={2}
-                                type="submit">
+                       
+                       
+                    )
+                }
+                {
+                    checkYourPost && (
+                        <Button mainClass="delete-post-btn w-100" type="submit" justifyContent="start" rounded={false} padding={2}
+                                onClick={handleUpdatePost}>
                             <Icon addClass="me-2" name="trash" size="15px"/>
                             <span>Xóa</span>
                         </Button>
-                       </>
                     )
                     
                 }
