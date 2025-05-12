@@ -37,7 +37,7 @@ export default function PostDetailedView() {
     
     // --- Update state when loader data changes ---
     useEffect(() => {
-        if(user && author) // Ensure user and author are defined before comparison
+        if(user?.userId && author?.userId) // Ensure user and author are defined before comparison
         {
             if(user.userId === author.userId) { // Check if the post is from the current user
                 console.log("Ktcc",checkYourPost)
@@ -109,21 +109,23 @@ export default function PostDetailedView() {
     const isLoading = navigation.state === "loading" || revalidator.state === "loading";
 
     // Use the isLoading flag derived above
-    if (isLoading && !post) { // Show full loading indicator only if post data isn't available yet
-        return <div className="p-3">Loading post details...</div>;
-    }
+    // if (isLoading && !post) { // Show full loading indicator only if post data isn't available yet
+    //     return <div className="p-3">Loading post details...</div>;
+    // }
 
 
-    // Handle cases where loader failed or returned no essential data
-    if (!post || !subtable || !author) {
-        // Check if it's loading, otherwise show error
-        if (isLoading) {
-            return <div className="p-3">Loading post details...</div>; // Still loading essentials
-        }
-        // If not loading and data is missing, show error.
-        console.error("Essential post data missing:", {post, subtable, author});
-        return <div className="p-3 text-danger">Failed to load essential post details. Please try refreshing.</div>;
-    }
+    // // Handle cases where loader failed or returned no essential data
+    // if (!post || !subtable || !author) {
+    //     // Check if it's loading, otherwise show error
+    //     if (isLoading) {
+    //         return <div className="p-3">Loading post details...</div>; // Still loading essentials
+    //     }
+    //     // If not loading and data is missing, show error.
+    //     console.error("Essential post data missing:", {post, subtable, author});
+    //     return <div className="p-3 text-danger">Failed to load essential post details. Please try refreshing.</div>;
+    // }
+
+    const isMissingData = !post || !subtable || !author;
 
     const [updatePost, setUpdatePost] = useState(false); // State to check if the post is from the current user
     const handleUpdatePost = () => {
@@ -135,6 +137,12 @@ export default function PostDetailedView() {
 
 
     return (
+    <>
+    {isLoading && !post ? (
+                <div className="p-3">Loading post details...</div>
+            ) : isMissingData ? (
+                <div className="p-3 text-danger">Failed to load essential post details. Please try refreshing.</div>
+            ) : (
         <>
             {/* --- Post Details --- */}
             <div className="post-detailed-container card p-3 my-3">
@@ -213,6 +221,8 @@ export default function PostDetailedView() {
                     <div className="text-muted px-3 pb-3 fs-8">No comments yet.</div>
                 )}
             </div>
-        </>
+        </>)}
+    </>
+         
     );
 }
