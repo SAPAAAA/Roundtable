@@ -56,7 +56,7 @@ function structureComments(commentsRaw) {
 class PostService {
     /**
      * Constructor for PostService.
-     * @param {object} postDao - Data Access Object for posts.
+     * @param {object} postDao - Data Access Object for posts (used only for creating posts).
      * @param {object} voteDao - Data Access Object for votes.
      * @param {object} userPostDetailsDao - DAO for the user_post_details view/query.
      * @param {object} userCommentDetailsDao - DAO for the user_comment_details view/query.
@@ -65,7 +65,7 @@ class PostService {
      * @param {object} subscriptionDao - DAO for subscriptions.
      */
     constructor(
-        postDao,
+        postDao, // Keep for createPost
         voteDao,
         userPostDetailsDao,
         userCommentDetailsDao,
@@ -73,8 +73,7 @@ class PostService {
         subtableDao,
         subscriptionDao
     ) {
-        // Assign DAOs to instance properties
-        this.postDao = postDao;
+        this.postDao = postDao; // Keep for createPost
         this.voteDao = voteDao;
         this.userPostDetailsDao = userPostDetailsDao;
         this.userCommentDetailsDao = userCommentDetailsDao;
@@ -259,9 +258,8 @@ class PostService {
                 throw new Error('Invalid limit');
             }
 
-            // Get search results from DAO
-            const { posts, total } = await this.postDao.searchPosts({
-                query,
+            // Get search results from UserPostDetailsDAO
+            const { posts, total } = await this.userPostDetailsDao.searchPosts(query, {
                 subtableId,
                 sortBy,
                 page,
@@ -273,13 +271,13 @@ class PostService {
             if (userId) {
                 postsWithVotes = await Promise.all(
                     posts.map(async (post) => {
-                        const vote = await this.voteDao.getByUserAndPost(userId, post.post_id);
+                        const vote = await this.voteDao.getByUserAndPost(userId, post.postId);
                         return {
                             ...post,
                             userVote: vote ? {
-                                voteType: vote.vote_type,
-                                createdAt: vote.created_at,
-                                updatedAt: vote.updated_at
+                                voteType: vote.voteType,
+                                createdAt: vote.createdAt,
+                                updatedAt: vote.updatedAt
                             } : null
                         };
                     })
