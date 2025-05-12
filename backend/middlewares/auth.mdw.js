@@ -9,7 +9,7 @@ import voteService from "#services/vote.service.js";
  * If authenticated, redirects or sends an error.
  */
 export const isNotAuthenticated = (req, res, next) => {
-    if (req.session && req.session.userId) {
+    if (req.session && req.session.principalId) {
         console.log('[Middleware/isNotAuthenticated] Denying access: User already logged in (userId:', req.session.userId, ')');
         return res.status(HTTP_STATUS.FORBIDDEN).json({
             success: false,
@@ -24,7 +24,7 @@ export const isNotAuthenticated = (req, res, next) => {
  * If not authenticated, redirects or sends an error.
  */
 export const isAuthenticated = (req, res, next) => {
-    if (req.session && req.session.userId) {
+    if (req.session && req.session.principalId) {
         console.log('[Middleware/isAuthenticated] Access granted for userId:', req.session.userId);
         return next();
     }
