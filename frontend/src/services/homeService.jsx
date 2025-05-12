@@ -8,6 +8,7 @@ class HomeService {
         //console.log("Gọi API home (service frontend):", baseUrl);
        
         const response = await sendApiRequest(baseUrl, {method: 'GET'});
+        console.log("Gọi API home (service frontend):", baseUrl, response);
         
         if (!response.success) {
             throw new Error(`Không thể lấy dữ liệu trang chủ: ${response.status} ${response.statusText}`);
