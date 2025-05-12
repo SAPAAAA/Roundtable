@@ -159,14 +159,13 @@ class UserPostDetailsDAO {
                     query = query.limit(limit);
                 }
             }
-     
 
             const viewRows = await query;
             let posts = viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
 
+            let now = new Date();
             // Xử lý trường hợp timePreference = '3months' cho cả Hot và Top
             if (timePreference === '3months') {
-                const now = new Date();
                 const threeMonthsAgo = new Date(now);
                 threeMonthsAgo.setMonth(now.getMonth() - 3);
                 
