@@ -7,6 +7,7 @@ import postDetailLoader from "#features/posts/loaders/postDetailLoader.jsx";
 import createPostLoader from "#features/posts/loaders/createPostLoader.jsx";
 import createPostAction from "#features/posts/actions/createPostAction.jsx";
 import updatePostAction from "#features/posts/actions/updatePostAction.jsx";
+import managePostAction from "#features/posts/actions/managePostAction.jsx";
 
 const PostDetailView = lazy(() => import('#features/posts/pages/PostDetailedView/PostDetailedView'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
@@ -35,7 +36,7 @@ function postRoutes() {
         },
         {
             path:"/comments/:postId/update",
-            action: updatePostAction, // Assuming you have an action for updating posts
+            action: managePostAction, // Assuming you have an action for updating posts
         }
     ]
 }
