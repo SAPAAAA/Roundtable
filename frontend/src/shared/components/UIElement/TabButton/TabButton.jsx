@@ -1,5 +1,5 @@
 import React from "react";
-import './myprofile.css';
+import './TabButton.css';
 
 function TabButton({label, active, onClick}) {
     return (

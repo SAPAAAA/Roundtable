@@ -1,5 +1,5 @@
-import React, {useState} from "react";
-import './myprofile.css';
+import React,{useState} from "react";
+import './Tabs.css';
 import TabButton from "../TabButton/TabButton";
 
 function Tabs({onTabChange}) {
