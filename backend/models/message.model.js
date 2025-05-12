@@ -23,34 +23,34 @@ class Message {
      * Creates an instance of Message.
      * @param {string | null} messageId - The unique identifier (UUID), null if new.
      * @param {string | null} parentMessageId - UUID of the message being replied to, null if not a reply.
-     * @param {string | null} senderUserId - UUID of the sender (RegisteredUser), null if deleted/system.
-     * @param {string | null} recipientUserId - UUID of the recipient (RegisteredUser), null if deleted.
+     * @param {string | null} senderPrincipalId - UUID of the sender's Principal, null if deleted/system.
+     * @param {string | null} recipientPrincipalId - UUID of the recipient's Principal, null if deleted.
      * @param {string} body - The content of the message. Required.
-     * @param {MessageType} [messageType='direct'] - The type category of the message.
+     * @param {MessageTypeEnum} [messageType='direct'] - The type category of the message.
      * @param {Date | null} [createdAt=null] - Timestamp of creation (set by DB default).
      * @param {boolean} [isRead=false] - Whether the recipient has marked the message as read.
      * @param {boolean} [senderDeleted=false] - Whether the sender has soft-deleted the message.
      * @param {boolean} [recipientDeleted=false] - Whether the recipient has soft-deleted the message.
      */
     constructor(
-        messageId, parentMessageId, senderUserId, recipientUserId, body,
-        messageType = 'direct', // Added messageType with default
+        messageId, parentMessageId, senderPrincipalId, recipientPrincipalId, body,
+        messageType = MessageTypeEnum.DIRECT,
         createdAt = null, isRead = false, senderDeleted = false, recipientDeleted = false
     ) {
         /** @type {string | null} */
         this.messageId = messageId;
         /** @type {string | null} */
-        this.parentMessageId = parentMessageId; // Added parentMessageId
+        this.parentMessageId = parentMessageId;
         /** @type {string | null} */
-        this.senderUserId = senderUserId;
+        this.senderPrincipalId = senderPrincipalId; // UPDATED
         /** @type {string | null} */
-        this.recipientUserId = recipientUserId;
+        this.recipientPrincipalId = recipientPrincipalId; // UPDATED
         /** @type {string} */
         this.body = body;
-        /** @type {MessageType} */
-        this.messageType = messageType; // Added messageType
+        /** @type {MessageTypeEnum} */
+        this.messageType = messageType;
         /** @type {Date | null} */
-        this.createdAt = createdAt ? new Date(createdAt) : null; // Ensure Date object
+        this.createdAt = createdAt ? new Date(createdAt) : null;
         /** @type {boolean} */
         this.isRead = isRead;
         /** @type {boolean} */
@@ -58,15 +58,12 @@ class Message {
         /** @type {boolean} */
         this.recipientDeleted = recipientDeleted;
 
-        // Basic validation
         if (!this.body) {
             throw new Error("Message body cannot be empty.");
         }
-        // Validate messageType if needed
-        const validTypes = ['direct', 'system', 'moderator_communication', 'admin_communication'];
-        if (!validTypes.includes(this.messageType)) {
-            console.warn(`Invalid messageType provided: ${this.messageType}. Defaulting to 'direct'.`);
-            this.messageType = 'direct'; // Or throw an error
+        if (!Object.values(MessageTypeEnum).includes(this.messageType)) {
+            console.warn(`Invalid messageType provided: ${this.messageType}. Defaulting to '${MessageTypeEnum.DIRECT}'.`);
+            this.messageType = MessageTypeEnum.DIRECT;
         }
     }
 
@@ -81,11 +78,11 @@ class Message {
         }
         return new Message(
             row.messageId,
-            row.parentMessageId, // Added mapping
-            row.senderUserId,
-            row.recipientUserId,
+            row.parentMessageId,
+            row.senderPrincipalId,
+            row.recipientPrincipalId,
             row.body,
-            row.messageType,     // Added mapping
+            row.messageType,
             row.createdAt,
             row.isRead,
             row.senderDeleted,

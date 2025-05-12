@@ -11,9 +11,9 @@ export default function ChatSidebar(props) {
             <ul className="chat-list list-unstyled"> {/* Use list-unstyled from Bootstrap */}
                 {chats.map((chat) => (
                     <li
-                        key={chat.partnerId}
-                        className={`chat-list-item ${chat.partnerId === selectedPartnerId ? 'active' : ''}`}
-                        onClick={() => onSelectChat(chat.partnerId)}
+                        key={chat.partnerPrincipalId}
+                        className={`chat-list-item ${chat.partnerPrincipalId === selectedPartnerId ? 'active' : ''}`}
+                        onClick={() => onSelectChat(chat.partnerPrincipalId)}
                     >
                         <span className="chat-user-name">{chat.partnerDisplayName}</span>
                         {chat.unreadCount > 0 && (

@@ -10,8 +10,8 @@ router.use(isAuthenticated);
 
 // Define chat routes
 router.get('/partners', ChatController.getConversationPartnersPreview);
-router.get('/:partnerUserId/messages', ChatController.getMessages);
+router.get('/:partnerPrincipalId/messages', ChatController.getMessages);
 router.post('/messages', ChatController.sendMessage);
-router.post('/:partnerUserId/messages/read', ChatController.markMessagesAsRead);
+router.post('/:partnerPrincipalId/messages/read', ChatController.markMessagesAsRead);
 
 export default router;

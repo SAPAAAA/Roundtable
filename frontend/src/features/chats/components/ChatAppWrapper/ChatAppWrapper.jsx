@@ -82,16 +82,16 @@ export default function ChatAppWrapper(props) {
     }, [isOpen, activePartnerId, readMessages]); // Add wrapperRef? No, ref object is stable.
 
 
-    const handleSelectChat = (partnerUserId) => {
-        console.log("Selected Chat Partner ID:", partnerUserId);
-        setActivePartnerId(partnerUserId);
-        if (partnerUserId) {
+    const handleSelectChat = (partnerPrincipalId) => {
+        console.log("Selected Chat Partner ID:", partnerPrincipalId);
+        setActivePartnerId(partnerPrincipalId);
+        if (partnerPrincipalId) {
             // Fetch messages if not already loaded (optional, depends on your logic)
-            if (!messages[partnerUserId] || messages[partnerUserId].length === 0) {
-                fetchMessages(partnerUserId);
+            if (!messages[partnerPrincipalId] || messages[partnerPrincipalId].length === 0) {
+                fetchMessages(partnerPrincipalId);
             }
             // Mark as read immediately on selection as well
-            readMessages(partnerUserId);
+            readMessages(partnerPrincipalId);
         }
     };
 
@@ -111,7 +111,7 @@ export default function ChatAppWrapper(props) {
         toggleChatVisibility();
     };
 
-    const selectedPartner = conversationPartners.find(p => p.partnerId === activePartnerId);
+    const selectedPartner = conversationPartners.find(p => p.partnerPrincipalId === activePartnerId);
     const messagesForSelectedChat = messages[activePartnerId] || [];
 
     const wrapperClasses = `
@@ -161,7 +161,7 @@ export default function ChatAppWrapper(props) {
                             messages={messagesForSelectedChat}
                             onSendMessage={handleSendMessage}
                             onClose={handleCloseChat}
-                            currentUserUserId={user?.userId}
+                            currentUserPrincipalId={user?.principalId}
                         />
                     )
                 ) : (

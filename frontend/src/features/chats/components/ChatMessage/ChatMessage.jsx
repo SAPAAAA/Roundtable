@@ -11,7 +11,7 @@ import './ChatMessage.css';
  * @param {boolean} props.isSent - True if the message was sent by the current user, false otherwise.
  */
 export default function ChatMessage(props) {
-    const {senderUserId, currentUserUserId, senderDisplayName, text, isSent} = props;
+    const {senderPrincipalId, currentUserPrincipalId, senderDisplayName, text, isSent} = props;
 
     const messageClass = isSent
         ? 'chatbox-message sent align-self-end'

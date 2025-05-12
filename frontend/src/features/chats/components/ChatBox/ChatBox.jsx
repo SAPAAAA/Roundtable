@@ -12,7 +12,7 @@ export default function ChatBox(props) {
         messages = [],
         onClose,
         onSendMessage,
-        currentUserUserId // Receive current user ID
+        currentUserPrincipalId // Receive current user ID
     } = props;
     const [inputValue, setInputValue] = useState(''); // State for the input field
 
@@ -69,11 +69,11 @@ export default function ChatBox(props) {
                 {messages.map((msg) => (
                     <ChatMessage
                         key={msg.messageId}
-                        senderUserId={msg.senderProfile.userId} // Pass sender ID
-                        currentUserUserId={currentUserUserId} // Pass current user ID
+                        senderPrincipalId={msg.senderProfile.principalId} // Pass sender ID
+                        currentUserPrincipalId={currentUserPrincipalId} // Pass current user ID
                         senderDisplayName={msg.senderProfile.displayName} // Pass if available
                         text={msg.body}
-                        isSent={msg.senderProfile.userId === currentUserUserId} // Comparison logic
+                        isSent={msg.senderProfile.principalId === currentUserPrincipalId} // Comparison logic
                     />
                 ))}
                 {messages.length === 0 && (

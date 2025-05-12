@@ -65,6 +65,7 @@ class AuthController {
             const user = await this.authService.login(username, password);
 
             req.session.userId = user.userId;
+            req.session.principalId = user.principalId;
             req.session.save((err) => {
                 if (err) {
                     console.error('[AuthController.login] Critical: Error saving session:', err);

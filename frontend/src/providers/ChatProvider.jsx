@@ -16,7 +16,7 @@ const ChatProvider = ({children}) => {
     const [error, setError] = useState(null);
 
     const fetchConversations = useCallback(async () => {
-        if (!user?.userId) {
+        if (!user?.principalId) {
             setIsLoadingConversations(false);
             setConversationPartners([]);
             setTotalUnreadMessages(0);
@@ -40,38 +40,38 @@ const ChatProvider = ({children}) => {
         }
     }, [user]);
 
-    const fetchMessages = useCallback(async (partnerUserId) => {
-        if (!partnerUserId || !user?.userId) {
+    const fetchMessages = useCallback(async (partnerPrincipalId) => {
+        if (!partnerPrincipalId || !user?.principalId) {
             return;
         }
         setIsLoadingMessages(true);
         setError(null);
         try {
-            const fetchedMessages = await chatService.getMessages(partnerUserId);
+            const fetchedMessages = await chatService.getMessages(partnerPrincipalId);
             const validMessages = fetchedMessages || [];
             setMessages(prev => ({
                 ...prev,
-                [partnerUserId]: validMessages,
+                [partnerPrincipalId]: validMessages,
             }));
             setLoadedConversations(prev => {
-                if (prev.has(partnerUserId)) {
+                if (prev.has(partnerPrincipalId)) {
                     return prev;
                 }
                 const newSet = new Set(prev);
-                newSet.add(partnerUserId);
+                newSet.add(partnerPrincipalId);
                 return newSet;
             });
-            console.log(`Messages fetched and marked as loaded for ${partnerUserId}`);
+            console.log(`Messages fetched and marked as loaded for ${partnerPrincipalId}`);
         } catch (err) {
-            console.error(`Error fetching messages for ${partnerUserId}:`, err);
-            setError(`Failed to load messages for partner ${partnerUserId}.`);
-            setMessages(prev => ({...prev, [partnerUserId]: []}));
+            console.error(`Error fetching messages for ${partnerPrincipalId}:`, err);
+            setError(`Failed to load messages for partner ${partnerPrincipalId}.`);
+            setMessages(prev => ({...prev, [partnerPrincipalId]: []}));
             setLoadedConversations(prev => {
-                if (prev.has(partnerUserId)) {
+                if (prev.has(partnerPrincipalId)) {
                     return prev;
                 }
                 const newSet = new Set(prev);
-                newSet.add(partnerUserId);
+                newSet.add(partnerPrincipalId);
                 return newSet;
             });
         } finally {
@@ -79,16 +79,16 @@ const ChatProvider = ({children}) => {
         }
     }, [user]);
 
-    const readMessages = useCallback(async (partnerUserId) => {
-        if (!partnerUserId || !user?.userId) {
-            console.warn(`[ChatProvider] readMessages: Called without partnerUserId (${partnerUserId}) or user (${user?.userId}).`);
+    const readMessages = useCallback(async (partnerPrincipalId) => {
+        if (!partnerPrincipalId || !user?.principalId) {
+            console.warn(`[ChatProvider] readMessages: Called without partnerPrincipalId (${partnerPrincipalId}) or user (${user?.principalId}).`);
             return;
         }
 
         // Find the partner and check their current unread count *before* any updates
-        const partnerIndex = conversationPartners.findIndex(p => p.partnerId === partnerUserId);
+        const partnerIndex = conversationPartners.findIndex(p => p.partnerPrincipalId === partnerPrincipalId);
         if (partnerIndex === -1) {
-            console.warn(`[ChatProvider] readMessages: Partner ${partnerUserId} not found in state.`);
+            console.warn(`[ChatProvider] readMessages: Partner ${partnerPrincipalId} not found in state.`);
             return; // Partner doesn't exist in our list
         }
         const partnerToUpdate = conversationPartners[partnerIndex];
@@ -96,12 +96,12 @@ const ChatProvider = ({children}) => {
 
         // Only proceed if there were actually unread messages for this partner
         if (unreadCountForThisPartner <= 0) {
-            console.log(`[ChatProvider] readMessages: No unread messages for partner ${partnerUserId}, skipping update.`);
+            console.log(`[ChatProvider] readMessages: No unread messages for partner ${partnerPrincipalId}, skipping update.`);
             // Ensure local state is 0 if it wasn't already (e.g., if backend updated first)
             if (partnerToUpdate.unreadCount !== 0) {
                 setConversationPartners(prevPartners =>
                     prevPartners.map(p =>
-                        p.partnerId === partnerUserId ? {...p, unreadCount: 0} : p
+                        p.partnerPrincipalId === partnerPrincipalId ? {...p, unreadCount: 0} : p
                     )
                 );
             }
@@ -113,22 +113,22 @@ const ChatProvider = ({children}) => {
 
         // Create the next state for partners *before* setting it
         const nextPartnersState = originalPartners.map(partner =>
-            partner.partnerId === partnerUserId ? {...partner, unreadCount: 0} : partner
+            partner.partnerPrincipalId === partnerPrincipalId ? {...partner, unreadCount: 0} : partner
         );
 
         // Update the partner list state
         setConversationPartners(nextPartnersState);
-        console.log(`[ChatProvider] readMessages: Optimistically set partner ${partnerUserId}'s unreadCount to 0.`);
+        console.log(`[ChatProvider] readMessages: Optimistically set partner ${partnerPrincipalId}'s unreadCount to 0.`);
 
         // **API Call**
         try {
-            const success = await chatService.markMessagesAsRead(partnerUserId);
+            const success = await chatService.markMessagesAsRead(partnerPrincipalId);
             if (success) {
-                console.log(`[ChatProvider] readMessages: API call successful for partner ${partnerUserId}.`);
+                console.log(`[ChatProvider] readMessages: API call successful for partner ${partnerPrincipalId}.`);
 
                 // --- Recalculate Total Unread AFTER successful API call ---
                 const newTotalUnread = nextPartnersState.reduce((acc, partner) => {
-                    // console.log(`[ChatProvider] Recalculating: Partner ${partner.partnerId}, Unread: ${partner.unreadCount || 0}`); // Optional detailed log
+                    // console.log(`[ChatProvider] Recalculating: Partner ${partner.partnerPrincipalId}, Unread: ${partner.unreadCount || 0}`); // Optional detailed log
                     return acc + (partner.unreadCount || 0);
                 }, 0);
 
@@ -137,53 +137,53 @@ const ChatProvider = ({children}) => {
 
             } else {
                 // API call failed, but didn't throw an error (e.g., returned { success: false })
-                throw new Error(`API failed to mark messages as read for partner ${partnerUserId}.`);
+                throw new Error(`API failed to mark messages as read for partner ${partnerPrincipalId}.`);
             }
         } catch (err) {
             // API call failed (threw an error or we threw one above)
-            console.error(`[ChatProvider] readMessages: API Error for partner ${partnerUserId}:`, err);
+            console.error(`[ChatProvider] readMessages: API Error for partner ${partnerPrincipalId}:`, err);
             setError("Failed to update read status on the server.");
 
             // **Revert Optimistic Partner Update**
-            console.log(`[ChatProvider] readMessages: Reverting optimistic partner update for partner ${partnerUserId}.`);
+            console.log(`[ChatProvider] readMessages: Reverting optimistic partner update for partner ${partnerPrincipalId}.`);
             setConversationPartners(originalPartners);
         }
     }, [conversationPartners, user]);
 
     const addMessage = useCallback((newMessage) => {
-        if (!newMessage?.messageId || !newMessage?.senderProfile?.userId || !newMessage?.recipientProfile?.userId || !user?.userId) {
+        if (!newMessage?.messageId || !newMessage?.senderProfile?.principalId || !newMessage?.recipientProfile?.principalId || !user?.principalId) {
             console.warn("[ChatProvider] addMessage: Attempted to add invalid message or user not logged in:", newMessage);
             return;
         }
 
-        const isSender = newMessage.senderProfile.userId === user.userId;
-        const otherUserId = isSender ? newMessage.recipientProfile.userId : newMessage.senderProfile.userId;
+        const isSender = newMessage.senderProfile.principalId === user.principalId;
+        const otherPrincipalId = isSender ? newMessage.recipientProfile.principalId : newMessage.senderProfile.principalId;
         const otherUserProfile = isSender ? newMessage.recipientProfile : newMessage.senderProfile;
 
-        console.log("[ChatProvider] addMessage: Processing message for conversation with user ID:", otherUserId);
+        console.log("[ChatProvider] addMessage: Processing message for conversation with user ID:", otherPrincipalId);
 
-        if (!otherUserId) {
+        if (!otherPrincipalId) {
             console.warn("[ChatProvider] Could not determine other user ID for incoming message", newMessage);
             return;
         }
 
         // *** ALWAYS Update the messages state FIRST ***
         setMessages(prev => {
-            const existing = prev[otherUserId] || [];
+            const existing = prev[otherPrincipalId] || [];
             if (existing.some(msg => msg.messageId === newMessage.messageId)) {
-                console.log(`[ChatProvider] Message ${newMessage.messageId} already exists for ${otherUserId}, skipping add.`);
+                console.log(`[ChatProvider] Message ${newMessage.messageId} already exists for ${otherPrincipalId}, skipping add.`);
                 return prev;
             }
             const updated = [...existing, newMessage].sort(
                 (a, b) => new Date(a.messageCreatedAt).getTime() - new Date(b.messageCreatedAt).getTime()
             );
-            console.log(`[ChatProvider] Added message ${newMessage.messageId} to conversation ${otherUserId}'s message list.`);
-            return {...prev, [otherUserId]: updated};
+            console.log(`[ChatProvider] Added message ${newMessage.messageId} to conversation ${otherPrincipalId}'s message list.`);
+            return {...prev, [otherPrincipalId]: updated};
         });
 
         // --- Determine if total unread count needs incrementing based on CURRENT state ---
         let shouldIncrementTotalUnread = false;
-        if (otherUserId !== activePartnerId && !isSender) {
+        if (otherPrincipalId !== activePartnerId && !isSender) {
             shouldIncrementTotalUnread = true; // Increment if incoming and chat is not active
         }
         console.log(`[ChatProvider] Should increment total unread? ${shouldIncrementTotalUnread}`);
@@ -192,7 +192,7 @@ const ChatProvider = ({children}) => {
         setConversationPartners(prevPartners => {
             let partnerExists = false;
             const updatedPartners = prevPartners.map(p => {
-                if (p.partnerId === otherUserId) {
+                if (p.partnerPrincipalId === otherPrincipalId) {
                     partnerExists = true;
                     return {
                         ...p,
@@ -203,16 +203,16 @@ const ChatProvider = ({children}) => {
                         lastMessageSnippet: newMessage.body.substring(0, 30) + (newMessage.body.length > 30 ? '...' : ''),
                         lastMessageTime: newMessage.messageCreatedAt,
                         lastMessageTimestamp: newMessage.messageCreatedAt,
-                        unreadCount: (otherUserId !== activePartnerId && !isSender) ? ((p.unreadCount || 0) + 1) : (p.unreadCount || 0),
+                        unreadCount: (otherPrincipalId !== activePartnerId && !isSender) ? ((p.unreadCount || 0) + 1) : (p.unreadCount || 0),
                     };
                 }
                 return p;
             });
 
             if (!partnerExists) {
-                console.log(`[ChatProvider] Partner ${otherUserId} not found in list, adding new entry.`);
+                console.log(`[ChatProvider] Partner ${otherPrincipalId} not found in list, adding new entry.`);
                 const newPartner = {
-                    partnerId: otherUserId,
+                    partnerPrincipalId: otherPrincipalId,
                     partnerDisplayName: `${otherUserProfile.displayName || 'Unknown User'}`,
                     firstName: otherUserProfile.firstName || 'Unknown',
                     lastName: otherUserProfile.lastName || 'User',
@@ -220,7 +220,7 @@ const ChatProvider = ({children}) => {
                     lastMessageSnippet: newMessage.body.substring(0, 30) + (newMessage.body.length > 30 ? '...' : ''),
                     lastMessageTime: newMessage.messageCreatedAt,
                     lastMessageTimestamp: newMessage.messageCreatedAt,
-                    unreadCount: (otherUserId !== activePartnerId && !isSender) ? 1 : 0,
+                    unreadCount: (otherPrincipalId !== activePartnerId && !isSender) ? 1 : 0,
                 };
                 updatedPartners.push(newPartner);
             }
@@ -238,7 +238,7 @@ const ChatProvider = ({children}) => {
         if (shouldIncrementTotalUnread) {
             console.log(`[ChatProvider] Incrementing total unread count (outside partner update).`);
             // Check against the *previous* partner state to ensure we only increment if the count actually increased
-            const oldPartnerState = conversationPartners.find(p => p.partnerId === otherUserId);
+            const oldPartnerState = conversationPartners.find(p => p.partnerPrincipalId === otherPrincipalId);
             const oldUnreadCount = oldPartnerState?.unreadCount || 0;
             const newUnreadCount = oldUnreadCount + 1; // Predicted new count
 
@@ -252,15 +252,15 @@ const ChatProvider = ({children}) => {
     }, [user, activePartnerId, conversationPartners]); // Added conversationPartners dependency
 
 
-    const sendMessage = useCallback(async (recipientUserId, body) => {
-        if (!recipientUserId || !body.trim() || !user?.userId) {
+    const sendMessage = useCallback(async (recipientPrincipalId, body) => {
+        if (!recipientPrincipalId || !body.trim() || !user?.principalId) {
             console.error("[ChatProvider] sendMessage: Missing recipient ID or message body.");
             setError("Cannot send message: Missing recipient or body.");
             return null;
         }
         setError(null);
         try {
-            const sentMessage = await chatService.sendMessage(recipientUserId, body);
+            const sentMessage = await chatService.sendMessage(recipientPrincipalId, body);
             console.log("[ChatProvider] Message sent successfully via API:", sentMessage);
             if (sentMessage) {
                 addMessage(sentMessage);
@@ -277,28 +277,28 @@ const ChatProvider = ({children}) => {
         }
     }, [addMessage, user]);
 
-    const handleSetActivePartnerId = useCallback((partnerUserId) => {
-        console.log("[ChatProvider] Setting active partner ID:", partnerUserId);
-        setActivePartnerId(partnerUserId);
+    const handleSetActivePartnerId = useCallback((partnerPrincipalId) => {
+        console.log("[ChatProvider] Setting active partner ID:", partnerPrincipalId);
+        setActivePartnerId(partnerPrincipalId);
 
-        if (partnerUserId) {
-            const needsFetching = !loadedConversations.has(partnerUserId) || !messages[partnerUserId]?.length;
+        if (partnerPrincipalId) {
+            const needsFetching = !loadedConversations.has(partnerPrincipalId) || !messages[partnerPrincipalId]?.length;
             if (needsFetching) {
-                console.log(`[ChatProvider] Fetching messages for newly active partner: ${partnerUserId}`);
-                fetchMessages(partnerUserId);
+                console.log(`[ChatProvider] Fetching messages for newly active partner: ${partnerPrincipalId}`);
+                fetchMessages(partnerPrincipalId);
             } else {
-                console.log(`[ChatProvider] Messages for ${partnerUserId} already loaded or present.`);
+                console.log(`[ChatProvider] Messages for ${partnerPrincipalId} already loaded or present.`);
             }
 
-            const partner = conversationPartners.find(p => p.partnerId === partnerUserId);
+            const partner = conversationPartners.find(p => p.partnerPrincipalId === partnerPrincipalId);
             if (partner && (partner.unreadCount || 0) > 0) {
-                console.log(`[ChatProvider] Marking messages as read for active partner: ${partnerUserId}`);
-                readMessages(partnerUserId);
+                console.log(`[ChatProvider] Marking messages as read for active partner: ${partnerPrincipalId}`);
+                readMessages(partnerPrincipalId);
             } else {
-                console.log(`[ChatProvider] No unread messages to mark for ${partnerUserId}, or partner not found.`);
+                console.log(`[ChatProvider] No unread messages to mark for ${partnerPrincipalId}, or partner not found.`);
                 if (partner) {
                     setConversationPartners(prevPartners => prevPartners.map(p =>
-                        p.partnerId === partnerUserId ? {...p, unreadCount: 0} : p
+                        p.partnerPrincipalId === partnerPrincipalId ? {...p, unreadCount: 0} : p
                     ));
                 }
             }
@@ -318,7 +318,7 @@ const ChatProvider = ({children}) => {
     }, []);
 
     useEffect(() => {
-        if (user?.userId) {
+        if (user?.principalId) {
             console.log("[ChatProvider] User detected, fetching initial conversations.");
             fetchConversations();
         } else {
@@ -326,7 +326,7 @@ const ChatProvider = ({children}) => {
             clearChatState();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.userId]); // Depend ONLY on userId
+    }, [user?.principalId]); // Depend ONLY on principalId
 
     const value = useMemo(() => ({
         conversationPartners,

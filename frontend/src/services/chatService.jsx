@@ -23,43 +23,43 @@ class ChatService {
 
     /**
      * Fetches messages for a specific chat partner.
-     * @param {string} partnerUserId - The ID of the other user in the conversation.
+     * @param {string} partnerPrincipalId - The ID of the other user in the conversation.
      * @returns {Promise<Array<object>>} - Array of message objects.
      */
-    async getMessages(partnerUserId) {
-        if (!partnerUserId) {
-            console.warn("getMessages called without partnerUserId");
+    async getMessages(partnerPrincipalId) {
+        if (!partnerPrincipalId) {
+            console.warn("getMessages called without partnerPrincipalId");
             return [];
         }
         try {
-            const url = `/api/chats/${encodeURIComponent(partnerUserId)}/messages`;
+            const url = `/api/chats/${encodeURIComponent(partnerPrincipalId)}/messages`;
             const response = await sendApiRequest(url, {method: 'GET'});
             if (response.success && Array.isArray(response.data)) {
                 return response.data;
             }
-            console.warn(`Unexpected response structure for getMessages(${partnerUserId}):`, response);
+            console.warn(`Unexpected response structure for getMessages(${partnerPrincipalId}):`, response);
             return [];
         } catch (error) {
-            console.error(`Error fetching messages for partner ${partnerUserId}:`, error);
+            console.error(`Error fetching messages for partner ${partnerPrincipalId}:`, error);
             return [];
         }
     }
 
     /**
      * Sends a new direct message.
-     * @param {string} recipientUserId - The ID of the user receiving the message.
+     * @param {string} recipientPrincipalId - The ID of the user receiving the message.
      * @param {string} body - The message content.
      * @returns {Promise<object | null>} - The created message object or null on failure.
      */
-    async sendMessage(recipientUserId, body) {
-        if (!recipientUserId || !body) {
-            console.error("sendMessage requires recipientUserId and body.");
+    async sendMessage(recipientPrincipalId, body) {
+        if (!recipientPrincipalId || !body) {
+            console.error("sendMessage requires recipientPrincipalId and body.");
             throw new Error("Recipient and message body are required.");
         }
         try {
             const response = await sendApiRequest('/api/chats/messages', {
                 method: 'POST',
-                body: {recipientUserId, body},
+                body: {recipientPrincipalId: recipientPrincipalId, body},
             });
             if (response.success && response.data?.message) {
                 return response.data.message;
@@ -72,17 +72,17 @@ class ChatService {
         }
     }
 
-    async markMessagesAsRead(partnerUserId) {
-        if (!partnerUserId) {
-            console.warn("markMessagesAsRead called without partnerUserId");
+    async markMessagesAsRead(partnerPrincipalId) {
+        if (!partnerPrincipalId) {
+            console.warn("markMessagesAsRead called without partnerPrincipalId");
             return false;
         }
         try {
-            const url = `/api/chats/${encodeURIComponent(partnerUserId)}/messages/read`;
+            const url = `/api/chats/${encodeURIComponent(partnerPrincipalId)}/messages/read`;
             const response = await sendApiRequest(url, {method: 'POST'});
             return response.success;
         } catch (error) {
-            console.error(`Error marking messages as read for partner ${partnerUserId}:`, error);
+            console.error(`Error marking messages as read for partner ${partnerPrincipalId}:`, error);
             return false;
         }
     }

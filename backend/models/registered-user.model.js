@@ -58,7 +58,7 @@ class RegisteredUser {
         // Assuming row.status directly contains 'active', 'suspended', or 'banned'
         return new RegisteredUser(
             row.userId,
-            row.principal_fk, // Matching the SQL schema column name 'principal_fk'
+            row.principalId, // Matching the SQL schema column name 'principal_fk'
             row.karma,
             row.isVerified,
             row.status,
