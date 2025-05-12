@@ -1,6 +1,6 @@
-import HTTP_STATUS from '#constants/httpStatus.js';
+import HTTP_STATUS from '#constants/http-status.js';
 import userService from '#services/user.service.js';
-import { BadRequestError, InternalServerError } from '#errors/AppError.js';
+import {BadRequestError, InternalServerError} from '#errors/AppError.js';
 
 class UserController {
     /**

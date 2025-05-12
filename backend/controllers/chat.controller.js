@@ -18,12 +18,7 @@ class ChatController {
      * @param {import('express').Response} res
      */
     getConversationPartnersPreview = async (req, res) => {
-        const {userId, principalId} = req.session; // Assumes isAuthenticated middleware adds userId
-
-        // Middleware should handle this, but double-check
-        if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
-        }
+        const {principalId} = req.session;
 
         try {
             // Options can be parsed from req.query if needed for pagination/sorting partners
@@ -39,7 +34,7 @@ class ChatController {
                 data: conversationPartners,
             });
         } catch (error) {
-            console.error(`[ChatController:getConversationPartnersPreview] Error for userId ${userId}:`, error.message);
+            console.error(`[ChatController:getConversationPartnersPreview] Error for user ${principalId}:`, error.message);
             if (error instanceof BadRequestError) { // e.g., invalid options from service
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
@@ -62,12 +57,9 @@ class ChatController {
      * @param {import('express').Response} res
      */
     getMessages = async (req, res) => {
-        const {userId, principalId} = req.session;
+        const {principalId} = req.session;
         const {partnerPrincipalId} = req.params;
 
-        if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
-        }
         // Basic check for partnerId presence, service does more validation
         if (!partnerPrincipalId) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -90,7 +82,7 @@ class ChatController {
                 data: messages,
             });
         } catch (error) {
-            console.error(`[ChatController:getMessages] Error between ${userId} and ${partnerPrincipalId}:`, error.message);
+            console.error(`[ChatController:getMessages] Error between ${principalId} and ${partnerPrincipalId}:`, error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
@@ -118,12 +110,9 @@ class ChatController {
      * @param {import('express').Response} res
      */
     sendMessage = async (req, res) => {
-        const {userId, principalId} = req.session; // Sender is the logged-in user
+        const {principalId} = req.session; // Sender is the logged-in user
         const {recipientPrincipalId, body} = req.body;
 
-        if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
-        }
         // Basic validation, service does more thorough checks
         if (!recipientPrincipalId || !body) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -142,7 +131,7 @@ class ChatController {
                 data: {message: createdMessage} // Return the detailed created message
             });
         } catch (error) {
-            console.error(`[ChatController:sendMessage] Error from ${userId} to ${recipientUserId}:`, error.message);
+            console.error(`[ChatController:sendMessage] Error from sender ${principalId} to recipient ${recipientPrincipalId}:`, error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
@@ -170,12 +159,9 @@ class ChatController {
      * @param {import('express').Response} res
      */
     markMessagesAsRead = async (req, res) => {
-        const {userId, principalId} = req.session;
+        const {principalId} = req.session;
         const {partnerPrincipalId} = req.params; // ID of the *other* user in the chat
 
-        if (!userId) {
-            return res.status(HTTP_STATUS.UNAUTHORIZED).json({success: false, message: 'Authentication required.'});
-        }
         if (!partnerPrincipalId) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: 'Partner user ID is required.'});
         }
@@ -188,7 +174,7 @@ class ChatController {
                 data: {count: count}
             });
         } catch (error) {
-            console.error(`[ChatController:markMessagesAsRead] Error for reader ${userId} from partner ${partnerPrincipalId}:`, error.message);
+            console.error(`[ChatController:markMessagesAsRead] Error for reader ${principalId} and partner ${partnerPrincipalId}:`, error.message);
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
