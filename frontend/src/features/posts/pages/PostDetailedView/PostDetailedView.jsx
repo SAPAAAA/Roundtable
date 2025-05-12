@@ -71,6 +71,14 @@ export default function PostDetailedView() {
         // Dependencies ensure this effect runs when loading states change or data potentially updates
     }, [navigation.state, revalidator.state, initialData, revalidator.data]);
 
+    useEffect(() => {
+        if (!post?.postId) return;
+        const KEY = 'recentViewedPosts';
+        const viewed = JSON.parse(localStorage.getItem(KEY) || '[]');
+        const updated = [post.postId, ...viewed.filter(id => id !== post.postId)]
+                        .slice(0, 10);
+        localStorage.setItem(KEY, JSON.stringify(updated));
+      }, [post.postId]);
 
     // Callback triggered by WriteComment after successful submission
     const handleCommentPosted = useCallback(() => {

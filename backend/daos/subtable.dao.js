@@ -154,6 +154,61 @@ class SubtableDAO {
             throw error;
         }
     }
+
+    /**
+     * Searches subtables based on query parameters
+     * @param {string} query - Search query string
+     * @param {object} options - Search options
+     * @param {number} [options.limit=25] - Maximum number of results
+     * @param {number} [options.offset=0] - Number of results to skip
+     * @returns {Promise<Array<Subtable>>} Array of matching subtables
+     * @throws {Error} Throws database errors
+     */
+    async searchSubtables(query, options = {}) {
+        const { limit = 25, offset = 0 } = options;
+        
+        try {
+            console.log('[SubtableDAO:searchSubtables] Building query with params:', { query, limit, offset });
+
+            const searchResults = await postgresInstance('Subtable')
+                .select(
+                    'Subtable.*',
+                    postgresInstance.raw('COUNT(DISTINCT p."postId") as post_count'),
+                    postgresInstance.raw('COUNT(DISTINCT s."subscriptionId") as subscriber_count'),
+                    postgresInstance.raw(`
+                        CASE 
+                            WHEN "Subtable"."name" ILIKE ? THEN 3
+                            WHEN "Subtable"."name" ILIKE ? THEN 2
+                            WHEN "Subtable"."description" ILIKE ? THEN 1
+                            ELSE 0
+                        END as relevance_score
+                    `, [`${query}`, `%${query}%`, `%${query}%`])
+                )
+                .leftJoin('Post as p', function() {
+                    this.on('Subtable.subtableId', '=', 'p.subtableId');
+                })
+                .leftJoin('Subscription as s', 'Subtable.subtableId', '=', 's.subtableId')
+                .where(function() {
+                    this.where('Subtable.name', 'ILIKE', `%${query}%`)
+                        .orWhere('Subtable.description', 'ILIKE', `%${query}%`);
+                })
+                .groupBy([
+                    'Subtable.subtableId',
+                    'Subtable.name',
+                    'Subtable.description',
+                    'Subtable.createdAt'
+                ])
+                .orderBy('relevance_score', 'desc')
+                .orderBy('Subtable.name', 'asc')
+                .limit(limit)
+                .offset(offset);
+
+            return searchResults.map(row => Subtable.fromDbRow(row));
+        } catch (error) {
+            console.error('[SubtableDAO:searchSubtables] Error details:', error);
+            throw error;
+        }
+    }
 }
 
 export default new SubtableDAO();

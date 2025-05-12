@@ -5,6 +5,9 @@ import {isAuthenticated} from "#middlewares/auth.mdw.js";
 
 const router = express.Router();
 
+router.get('/search', PostController.searchPosts);
+router.get('/recent', PostController.getRecentPosts);
+router.post('/by-ids', PostController.getPostsByIds);
 router.get('/:postId', PostController.getPostDetails);
 router.post('/:postId/comments', isAuthenticated, CommentController.addComment);
 router.post('/:postId/vote', isAuthenticated, PostController.castVote);

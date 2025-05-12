@@ -352,6 +352,82 @@ class UserPostDetailsDAO {
         console.log(`[UserPostDetailsDAO] Prepared query options:`, result);
         return result;
     }
+
+    /**
+     * Searches posts based on query parameters using the UserPostDetails view
+     * @param {object} params - Search parameters
+     * @param {string} params.query - Search query
+     * @param {string} [params.subtableId] - Optional subtable ID to filter by
+     * @param {string} [params.sortBy='relevance'] - Sort by field (relevance, newest, votes)
+     * @param {number} [params.page=1] - Page number
+     * @param {number} [params.limit=10] - Results per page
+     * @returns {Promise<{posts: Array<UserPostDetails>, total: number}>} Search results and total count
+     */
+    async searchPosts(query, options = {}) {
+        const { subtableId, sortBy = 'relevance', page = 1, limit = 50 } = options;
+        const offset = (page - 1) * limit;
+        
+        try {
+            // Ensure query is a string
+            const searchQuery = typeof query === 'object' ? query.query : query;
+            
+            console.log('[UserPostDetailsDAO:searchPosts] Building query with params:', { 
+                query: searchQuery, 
+                subtableId, 
+                sortBy, 
+                page, 
+                limit, 
+                offset 
+            });
+
+            // First get the total count
+            const countQuery = postgresInstance(this.viewName)
+                .where('isRemoved', false)
+                .where(function() {
+                    this.where('title', 'ILIKE', `%${searchQuery}%`)
+                        .orWhere('body', 'ILIKE', `%${searchQuery}%`);
+                });
+
+            if (subtableId) {
+                countQuery.where('subtableId', subtableId);
+            }
+
+            const [{ total }] = await countQuery.count('* as total');
+
+            // Then get the actual results with relevance scoring
+            const searchResults = await postgresInstance(this.viewName)
+                .select('*')
+                .where('isRemoved', false)
+                .where(function() {
+                    this.where('title', 'ILIKE', `%${searchQuery}%`)
+                        .orWhere('body', 'ILIKE', `%${searchQuery}%`);
+                })
+                .modify(function(queryBuilder) {
+                    if (subtableId) {
+                        queryBuilder.where('subtableId', subtableId);
+                    }
+                })
+                .orderByRaw(`
+                    CASE 
+                        WHEN "title" ILIKE ? THEN 3
+                        WHEN "title" ILIKE ? THEN 2
+                        WHEN "body" ILIKE ? THEN 1
+                        ELSE 0
+                    END DESC,
+                    "postCreatedAt" DESC
+                `, [`${searchQuery}`, `%${searchQuery}%`, `%${searchQuery}%`])
+                .limit(limit)
+                .offset(offset);
+
+            return {
+                posts: searchResults.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null),
+                total: parseInt(total)
+            };
+        } catch (error) {
+            console.error('[UserPostDetailsDAO:searchPosts] Error:', error);
+            throw error;
+        }
+    }
 }
 
 export default new UserPostDetailsDAO();

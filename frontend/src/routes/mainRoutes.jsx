@@ -9,6 +9,7 @@ import getCommentRoutesConfig from "./commentRoutes.jsx";
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
 const Home = lazy(() => import('#pages/Home/HomeContent/HomeContent'));
 const CreatePost = lazy(() => import('#features/posts/pages/CreatePost/CreatePost'));
+const Search = lazy(() => import('#pages/Search/Search'));
 
 const post =
     {
@@ -144,6 +145,10 @@ function mainRoutes() {
             {
                 index: true,
                 element: <Home/>
+            },
+            {
+                path: "search",
+                element: <Search/>,
             },
             ...getSubtableRoutesConfig(),
             ...getPostRoutesConfig(),

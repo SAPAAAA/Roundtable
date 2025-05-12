@@ -118,6 +118,37 @@ class SubtableController {
         }
     }
 
+    /**
+     * Handles GET /s/search
+     * Searches for subtables based on query parameters.
+     * @param {import('express').Request} req - Express request object.
+     * @param {import('express').Response} res - Express response object.
+     */
+    searchSubtables = async (req, res) => {
+        try {
+            const { query, limit, offset } = req.query;
+            const searchResults = await this.subtableService.searchSubtables(query, { limit, offset });
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Search completed successfully.',
+                data: searchResults
+            });
+        } catch (error) {
+            console.error('[SubtableController:searchSubtables] Error:', error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: error.message });
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while searching subtables."
+            });
+        }
+    };
 
     /**
      * Handles POST /s

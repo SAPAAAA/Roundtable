@@ -196,6 +196,55 @@ class SubtableService {
             return createdSubtable; // Now this will correctly return the subtable
         });
     }
+
+    /**
+     * Searches subtables based on query parameters
+     * @param {string} query - Search query string
+     * @param {object} options - Search options
+     * @param {number} [options.limit=25] - Maximum number of results
+     * @param {number} [options.offset=0] - Number of results to skip
+     * @returns {Promise<Array<Subtable>>} Array of matching subtables
+     * @throws {BadRequestError} If query is invalid
+     * @throws {InternalServerError} For unexpected errors
+     */
+    async searchSubtables(query, options = {}) {
+        try {
+            // Validate input
+            if (!query || typeof query !== 'string' || query.trim() === '') {
+                throw new BadRequestError('Search query is required and must be a non-empty string');
+            }
+
+            const { limit = 25, offset = 0 } = options;
+
+            // Validate numeric parameters
+            if (isNaN(Number(limit)) || Number(limit) < 1) {
+                throw new BadRequestError('Invalid limit parameter');
+            }
+            if (isNaN(Number(offset)) || Number(offset) < 0) {
+                throw new BadRequestError('Invalid offset parameter');
+            }
+
+            console.log('[SubtableService:searchSubtables] Searching with params:', { query, limit, offset });
+
+            // Get search results from DAO
+            const results = await this.subtableDao.searchSubtables(query.trim(), { limit, offset });
+            console.log('[SubtableService:searchSubtables] Search results:', results);
+
+            return results;
+        } catch (error) {
+            console.error('[SubtableService:searchSubtables] Error details:', {
+                message: error.message,
+                stack: error.stack,
+                code: error.code,
+                detail: error.detail
+            });
+
+            if (error instanceof AppError) {
+                throw error;
+            }
+            throw new InternalServerError('An error occurred while searching subtables');
+        }
+    }
 }
 
 // Inject dependencies when creating the instance

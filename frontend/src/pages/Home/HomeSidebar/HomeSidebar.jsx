@@ -1,64 +1,69 @@
-import React, {useCallback, useEffect} from 'react'; // Removed useState, added useCallback
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import './HomeSidebar.css';
 import Identifier from "#shared/components/UIElement/Identifier/Identifier";
 import useSidebar from "#hooks/useSidebar.jsx";
-
-// Define the sidebar-specific posts data
-const posts = [
-    // ... (posts array remains the same)
-    {
-        id: 1,
-        subtable: "vozforums",
-        title: "các bác nghĩ sao về việc bạn gái đi chơi về khuya, sau 2h",
-        upvotes: 64,
-        comments: 125
-    },
-    {id: 2, subtable: "PcBuild", title: "The collection is expanding", upvotes: 931, comments: 55},
-    {
-        id: 3,
-        subtable: "vozforums",
-        title: "Không rõ mình trả lời phỏng vấn ổn không. Mọi người có đi phỏng vấn chỗ...",
-        upvotes: 3,
-        comments: 7
-    },
-    {id: 4, subtable: "Genshin_Impact", title: "Will you pull for Varesa?", upvotes: 8100, comments: 1400},
-    {id: 5, subtable: "vozforums", title: "Mình cần lời khuyên cho mối quan hệ", upvotes: 34, comments: 51},
-];
+import { sendApiRequest } from '#utils/apiClient';
 
 export default function HomeSidebarContent() {
-    const {setSidebarParts} = useSidebar();
+    const { setSidebarParts } = useSidebar();
+    const [recentPosts, setRecentPosts] = useState([]);
 
     const clearSidebarContent = useCallback(() => {
-        setSidebarParts({header: null, body: null});
+        localStorage.removeItem('recentViewedPosts');
+        setSidebarParts({ header: null, body: null });
     }, [setSidebarParts]);
 
-    const headerContent = (
+    useEffect(() => {
+        async function load() {
+            try {
+                const ids = JSON.parse(localStorage.getItem('recentViewedPosts') || '[]');
+                if (ids.length === 0) {
+                    setRecentPosts([]);
+                    return;
+                }
+
+                const response = await sendApiRequest('/api/posts/by-ids', {
+                    method: 'POST',
+                    body: { postIds: ids }
+                });
+
+                if (response.success) {
+                    setRecentPosts(response.data);
+                } else {
+                    console.error("Failed to load recent posts:", response.message);
+                }
+            } catch (error) {
+                console.error("Failed to load recent posts:", error);
+            }
+        }
+        load();
+    }, []);
+
+    const headerContent = useMemo(() => (
         <>
             <h3>Recent Posts</h3>
-            <button
-                className="clear-btn"
-                onClick={clearSidebarContent} // Call the clear function on click
-            >
+            <button className="clear-btn" onClick={clearSidebarContent}>
                 Clear
             </button>
         </>
-    );
+    ), [clearSidebarContent]);
 
-    const bodyContent = (
+    const bodyContent = useMemo(() => (
         <div className="right-sidebar__posts">
-            {posts.map((post) => (
-                <div className="post-item" key={post.id}>
-                    <Identifier type="subtable" namespace={post.subtable}/>
+            {recentPosts.map((post) => (
+                <div className="post-item" key={post.postId}>
+                    <div className="post-item__subtable">
+                        s/{post.subtable?.name || post.subtable?.title || post.subtable?.namespace}
+                    </div>
                     <div className="post-item__title">{post.title}</div>
                     <div className="post-item__info">
-                        <span>{post.upvotes} upvotes</span> •{" "}
-                        <span>{post.comments} comments</span>
+                        <span>{post.voteCount} upvotes</span> •{" "}
+                        <span>{post.commentCount} comments</span>
                     </div>
                 </div>
             ))}
         </div>
-    );
-
+    ), [recentPosts]);
 
     useEffect(() => {
         setSidebarParts({
@@ -69,8 +74,7 @@ export default function HomeSidebarContent() {
         return () => {
             setSidebarParts(null);
         };
-    }, [setSidebarParts]);
+    }, [setSidebarParts, headerContent, bodyContent]);
 
-    // This component doesn't render anything itself
     return null;
 }

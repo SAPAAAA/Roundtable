@@ -381,6 +381,8 @@ CREATE INDEX idx_moderatorlog_subtableid ON "ModeratorLog"("subtableId");
 CREATE INDEX idx_moderatorlog_moderatoruserid ON "ModeratorLog"("moderatorUserId");
 CREATE INDEX idx_adminlog_adminid ON "AdminLog"("adminId");
 CREATE INDEX idx_media_uploaderuserid ON "Media"("uploaderUserId");
+CREATE INDEX idx_post_title_trgm ON "Post" USING gin (to_tsvector('english', "title"));
+CREATE INDEX idx_post_body_trgm ON "Post" USING gin (to_tsvector('english', "body"));
 
 
 -- STEP 7: Create Views

@@ -1,4 +1,4 @@
-import React from 'react'; // Removed useEffect, useRef, useState
+import React, {useState} from 'react'; // Removed useEffect, useRef, useState
 import './Header.css';
 import Button from '#shared/components/UIElement/Button/Button';
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
@@ -17,7 +17,7 @@ export default function Header(props) {
     const navigate = useNavigate();
     const {unreadCount: notificationUnreadCount} = useNotifications();
     const {totalUnreadMessages: chatUnreadCount} = useChat();
-
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleMenuItemClick = (action) => {
         if (action) {
@@ -35,6 +35,12 @@ export default function Header(props) {
         await logout();
         // Removed setShowPopover(false) - PopoverMenu handles closing
     }
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) return;
+        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    };
 
     // --- Define the Trigger Element for the Popover ---
     const avatarTrigger = (
@@ -94,19 +100,23 @@ export default function Header(props) {
                         id="header-search-bar"
                         role="search"
                         style={{maxWidth: "500px", minWidth: "40%"}}
+                        onSubmit={handleSearch}
                     >
                         <input
                             className="form-control w-100 rounded-pill"
                             type="search"
                             placeholder="Search"
                             aria-label="Search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <button className="btn btn-outline-light"
-                                type="submit"
-                                style={{display: "none"}}
+                        {/* <button 
+                            className="btn btn-outline-light position-absolute end-0 me-2"
+                            type="submit"
+                            style={{display: "block"}}
                         >
                             Search
-                        </button>
+                        </button> */}
                     </form>
 
                     {/* Right Nav Items */}

@@ -60,19 +60,29 @@ class Post {
      */
     static fromDbRow(row) {
         if (!row) return null;
-        return new Post(
-            row.postId,
-            row.subtableId,
-            row.authorUserId,
-            row.title,
-            row.body,
-            row.createdAt ? new Date(row.createdAt) : null,
-            row.updatedAt ? new Date(row.updatedAt) : null,
-            row.voteCount,
-            row.commentCount,
-            row.isLocked,
-            row.isRemoved
-        );
+        return {
+            postId: row.postId,
+            subtableId: row.subtableId,
+            authorUserId: row.authorUserId,
+            title: row.title,
+            body: row.body,
+            createdAt: row.createdAt ? new Date(row.createdAt) : null,
+            updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+            voteCount: row.voteCount,
+            commentCount: row.commentCount,
+            isLocked: row.isLocked,
+            isRemoved: row.isRemoved,
+            // Joined subtable fields
+            subtableName: row.subtableName,
+            subtableIcon: row.subtableIcon,
+            subtableBanner: row.subtableBanner,
+            subtableDescription: row.subtableDescription,
+            subtableMemberCount: row.subtableMemberCount,
+            subtableCreatedAt: row.subtableCreatedAt ? new Date(row.subtableCreatedAt) : null,
+            subtableCreatorUserId: row.subtableCreatorUserId,
+            // Joined author field
+            authorUsername: row.authorUsername
+        };
     }
 }
 

@@ -23,6 +23,7 @@ import subtableRoutes from "#routes/subtable.routes.js";
 import notificationRoutes from "#routes/notification.routes.js";
 import chatRoutes from "#routes/chat.routes.js";
 import homeRoutes from "#routes/home.routes.js";
+import userRoutes from "#routes/user.routes.js";
 
 // Listeners
 import '#listeners/notification.listener.js';
@@ -97,6 +98,26 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/s',subtableRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/home', homeRoutes);
+app.use('/api/users', userRoutes);
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+    console.error('[Global Error Handler]', err);
+    
+    // Set default status code and message
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'An unexpected error occurred';
+    
+    // Set content type to JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Send JSON response
+    res.status(statusCode).json({
+        success: false,
+        message: message,
+        error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
 
 // --- WebSocket Server Setup ---
 const server = http.createServer(app);

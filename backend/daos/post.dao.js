@@ -161,6 +161,104 @@ class PostDAO {
         }
     }
 
+    /**
+     * Searches posts based on query parameters
+     * @param {object} params - Search parameters
+     * @param {string} params.query - Search query
+     * @param {string} [params.subtableId] - Optional subtable ID to filter by
+     * @param {string} [params.sortBy='relevance'] - Sort by field (relevance, newest, votes)
+     * @param {number} [params.page=1] - Page number
+     * @param {number} [params.limit=10] - Results per page
+     * @returns {Promise<{posts: Array, total: number}>} Search results and total count
+     */
+    async searchPosts(query, options = {}) {
+        const { subtableId, sortBy = 'relevance', page = 1, limit = 50 } = options;
+        const offset = (page - 1) * limit;
+        
+        try {
+            // Ensure query is a string
+            const searchQuery = typeof query === 'object' ? query.query : query;
+            
+            console.log('[PostDAO:searchPosts] Building query with params:', { 
+                query: searchQuery, 
+                subtableId, 
+                sortBy, 
+                page, 
+                limit, 
+                offset 
+            });
+
+            // First get the total count
+            const countQuery = postgresInstance('Post as p')
+                .where('p.isRemoved', false)
+                .where(function() {
+                    this.where('p.title', 'ILIKE', `%${searchQuery}%`)
+                        .orWhere('p.body', 'ILIKE', `%${searchQuery}%`);
+                });
+
+            if (subtableId) {
+                countQuery.where('p.subtableId', subtableId);
+            }
+
+            const [{ total }] = await countQuery.count('* as total');
+
+            // Then get the actual results
+            const searchResults = await postgresInstance('Post as p')
+                .select(
+                    'p.*',
+                    'a.username as authorUsername',
+                    's.name as subtableName',
+                    's.icon as subtableIcon',
+                    's.banner as subtableBanner',
+                    's.description as subtableDescription',
+                    's.memberCount as subtableMemberCount',
+                    's.createdAt as subtableCreatedAt',
+                    's.creatorUserId as subtableCreatorUserId',
+                    postgresInstance.raw(`
+                        CASE 
+                            WHEN "p"."title" ILIKE ? THEN 3
+                            WHEN "p"."title" ILIKE ? THEN 2
+                            WHEN "p"."body" ILIKE ? THEN 1
+                            ELSE 0
+                        END as relevance_score
+                    `, [`${searchQuery}`, `%${searchQuery}%`, `%${searchQuery}%`])
+                )
+                .leftJoin('RegisteredUser as u', 'p.authorUserId', '=', 'u.userId')
+                .leftJoin('Principal as pr', 'u.principalId', '=', 'pr.principalId')
+                .leftJoin('Account as a', 'pr.accountId', '=', 'a.accountId')
+                .leftJoin('Subtable as s', 'p.subtableId', '=', 's.subtableId')
+                .where('p.isRemoved', false)
+                .where(function() {
+                    this.where('p.title', 'ILIKE', `%${searchQuery}%`)
+                        .orWhere('p.body', 'ILIKE', `%${searchQuery}%`);
+                })
+                .modify(function(queryBuilder) {
+            if (subtableId) {
+                        queryBuilder.where('p.subtableId', subtableId);
+            }
+                })
+                .orderBy('relevance_score', 'desc')
+                .orderBy('p.createdAt', 'desc')
+                .limit(limit)
+                .offset(offset);
+
+            const totalPages = Math.ceil(parseInt(total) / limit);
+
+            return {
+                posts: searchResults.map(row => Post.fromDbRow(row)),
+                pagination: {
+                    total: parseInt(total),
+                    page,
+                    limit,
+                    totalPages
+                }
+            };
+        } catch (error) {
+            console.error('[PostDAO:searchPosts] Error details:', error);
+            throw error;
+        }
+    }
+
     // Increment/Decrement methods for voteCount/commentCount are likely unnecessary
     // as they are handled by database triggers based on Vote/Comment insertions/deletions.
 }
