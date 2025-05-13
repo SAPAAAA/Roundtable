@@ -1,6 +1,6 @@
 import React from "react";
 import '../myprofile.css';
-import SettingRow from "../SettingRow/SettingRow";
+import SettingRow from "#features/users/components/SettingRow/SettingRow";
 
 function Setting() {
     return (

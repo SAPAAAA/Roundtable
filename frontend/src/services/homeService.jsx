@@ -11,7 +11,7 @@ class HomeService {
         if (!response.success) {
             throw new Error(`Không thể lấy dữ liệu trang chủ: ${response.status} ${response.statusText}`);
         }
-        
+
         return response.data;
     }    
 }

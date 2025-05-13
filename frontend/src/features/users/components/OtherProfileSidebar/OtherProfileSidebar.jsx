@@ -1,7 +1,6 @@
 import React, {useEffect} from "react";
 import '../myprofile.css';
 import UserInfor from "#features/users/components/UserInfor/UserInfor";
-import Setting from "#features/users/components/Setting/Setting";
 import useSidebar from '#hooks/useSidebar.jsx';
 
 function ProfileSideBar({imgUrl, name, postKarma, commentKarma, createdDay}) {
@@ -27,10 +26,11 @@ function ProfileSideBar({imgUrl, name, postKarma, commentKarma, createdDay}) {
                 </div>,
             footer:
                 <div>
-                    <Setting/>
+                    <button className="button-8 me-2" role="button">Follow</button>
+                    <button className="button-8" role="button">Block</button>
                 </div>
         })
-    } , [imgUrl, name, postKarma, commentKarma, createdDay, setSidebarParts])
+    }, [imgUrl, name, postKarma, commentKarma, createdDay, setSidebarParts])
     return (
         <div></div>
     );
