@@ -1,21 +1,51 @@
 // services/comment.service.js
 
 // --- Imports ---
-import CommentDAO from "#daos/comment.dao.js"; // Import the DAO to be injected
+import commentDao from "#daos/comment.dao.js";
+import userCommentDetailsDao from "#daos/user-comment-details.dao.js";
+import voteDap from "#daos/vote.dao.js";
 import Comment from "#models/comment.model.js";
 import {postgresInstance} from "#db/postgres.js";
 import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError,} from "#errors/AppError.js"; // Import necessary error types
-import EventBus from '#core/event-bus.js'; // Import EventBus if needed for notifications
+import eventBus from '#core/event-bus.js';
 
 
 class CommentService {
     /**
      * Constructor for CommentService.
      * @param {object} commentDao - Data Access Object for comments.
+     * @param {object} userCommentDetailsDao - Data Access Object for user comment details.
+     * @param {object} voteDao - Data Access Object for votes.
+     * @param {object} eventBus - EventBus instance for emitting events.
      */
-    constructor(commentDao) {
+    constructor(commentDao, userCommentDetailsDao, voteDao, eventBus) {
+
         this.commentDao = commentDao;
-        this.eventBus = EventBus;
+        this.userCommentDetailsDao = userCommentDetailsDao;
+        this.voteDao = voteDao;
+        this.eventBus = eventBus;
+    }
+
+    async getComments(userId, {filterBy, sortBy, order, limit, offset}) {
+        const comments = await this.userCommentDetailsDao.getComments({filterBy, sortBy, order, limit, offset});
+
+        if (!userId) {
+            return comments;
+        }
+
+        return await Promise.all(
+            comments.map(async (comment) => {
+                const vote = await this.voteDao.getByUserAndComment(userId, comment.commentId);
+                return {
+                    ...comment,
+                    userVote: vote ? {
+                        voteType: vote.voteType,
+                        createdAt: vote.createdAt,
+                        updatedAt: vote.updatedAt
+                    } : null
+                };
+            })
+        );
     }
 
     /**
@@ -209,4 +239,4 @@ class CommentService {
     }
 }
 
-export default new CommentService(CommentDAO);
+export default new CommentService(commentDao, userCommentDetailsDao, voteDap, eventBus);

@@ -40,9 +40,7 @@ class ChatService {
         }
         try {
             console.log('userExists:', userExists);
-            const conversationPartners = await this.messageDAO.getConversationPartnersPreviewData(userExists.principalId, options);
-            console.log('sth:', conversationPartners);
-            return conversationPartners;
+            return await this.messageDAO.getConversationPartnersPreviewData(userExists.principalId, options);
         } catch (error) {
             console.error(`[ChatService:getConversationPartnersPreviewData] Error for user ${principalId}:`, error);
             if (error instanceof AppError) {

@@ -51,6 +51,26 @@ class VoteService {
             throw error;
         }
     }
+
+    async getUpvotedItemsByUserId(userId) {
+        try {
+            const url = `/api/votes?voterUserId=${userId}&voteType=UPVOTE`;
+            return await sendApiRequest(url, {method: 'GET'});
+        } catch (error) {
+            console.error("Error fetching upvoted items:", error);
+            throw error;
+        }
+    }
+
+    async getDownvotedItemsByUserId(userId) {
+        try {
+            const url = `/api/votes?voterUserId=${userId}&voteType=DOWNVOTE`;
+            return await sendApiRequest(url, {method: 'GET'});
+        } catch (error) {
+            console.error("Error fetching downvoted items:", error);
+            throw error;
+        }
+    }
 }
 
 export default new VoteService();

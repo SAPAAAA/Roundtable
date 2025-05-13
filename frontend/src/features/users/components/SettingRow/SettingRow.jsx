@@ -1,23 +1,39 @@
+// src/features/users/components/SettingRow/SettingRow.jsx
 import React from "react";
-import '../myprofile.css';
+import Button from "#shared/components/UIElement/Button/Button";
+import Icon from "#shared/components/UIElement/Icon/Icon";
+import './SettingRow.css'; // We'll create this new CSS file
 
-function SettingRow({imgUrl, title, describe, buttonContent}) {
+// Define a mapping for titles to icon names (update these with your actual icon names)
+const iconMap = {
+    "Profile": "pencil",
+    "Account": "settings"
+};
+
+function SettingRow({title, describe, buttonContent, onClick}) {
+    const iconName = iconMap[title] || "circle_half"; // Default icon if no specific one is mapped
+
     return (
-        <tr>
-            <td style={{width: "30px"}}>
-                <img src={imgUrl} alt={title} className="icon_img"/>
-            </td>
-            <td>
-                <div className="profile-info">
-                    <h3>{title}</h3>
-                    <p>{describe}</p>
-                </div>
-            </td>
-            <td style={{width: "50px"}}>
-                <button className="button-8" role="button">{buttonContent}</button>
-            </td>
-        </tr>
+        <div className="setting-row-item d-flex align-items-center">
+            <div className="setting-row-icon-container me-3">
+                <Icon name={iconName} size="20px" addClass="setting-icon"/>
+            </div>
+            <div className="setting-row-info flex-grow-1">
+                <h3 className="setting-row-title">{title}</h3>
+                {describe && <p className="setting-row-describe">{describe}</p>}
+            </div>
+            {buttonContent && (
+                <Button
+                    mainClass="setting-row-button ms-auto" // ms-auto will push it to the right
+                    addClass="btn-sm"
+                    outline={{color: "primary"}} // Example style, adjust as needed
+                    onClick={onClick} // Pass onClick to the button
+                >
+                    {buttonContent}
+                </Button>
+            )}
+        </div>
     );
 }
 
-export default SettingRow
+export default SettingRow;

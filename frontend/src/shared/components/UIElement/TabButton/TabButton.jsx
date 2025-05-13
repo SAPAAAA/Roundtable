@@ -1,13 +1,22 @@
+// src/shared/components/UIElement/TabButton/TabButton.jsx
 import React from "react";
-import './TabButton.css';
 
-function TabButton({label, active, onClick}) {
+function TabButton({label, active, onClick, tabKey, disabled = false, href = "#"}) {
+    const buttonClasses = `flex-sm-fill text-sm-center nav-link ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`;
+
     return (
-        <button
-            className={`tab-button${active ? ' active' : ''}`}
-            onClick={onClick}>
+        <a
+            className={buttonClasses}
+            onClick={onClick}
+            href={href} // It's good practice for nav links to have hrefs
+            role="tab"
+            aria-selected={active}
+            aria-current={active ? "page" : undefined}
+            aria-disabled={disabled ? "true" : undefined}
+            data-tab-key={tabKey}
+        >
             {label}
-        </button>
+        </a>
     );
-};
+}
 export default TabButton;

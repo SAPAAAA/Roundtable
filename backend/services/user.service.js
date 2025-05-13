@@ -1,9 +1,11 @@
 import RegisteredUserDao from '#daos/registered-user.dao.js';
+import UserProfileDao from '#daos/user-profile.dao.js';
 import {BadRequestError} from "#errors/AppError.js";
 
 class UserService {
-    constructor(userDao) {
-        this.userDao = userDao;
+    constructor(registeredUserDao, userProfileDao) {
+        this.registeredUserDao = registeredUserDao;
+        this.userProfileDao = userProfileDao;
     }
 
     /**
@@ -29,7 +31,7 @@ class UserService {
             }
 
             // Get search results from DAO
-            const results = await this.userDao.searchUsers(q, {limit});
+            const results = await this.registeredUserDao.searchUsers(q, {limit});
 
             return {
                 users: results
@@ -39,6 +41,25 @@ class UserService {
             throw error;
         }
     }
+
+    async getUserProfile(userId) {
+        try {
+            // Validate input
+            if (!userId) {
+                throw new BadRequestError('Missing user ID');
+            }
+
+            // Get user profile from DAO
+            const userProfile = await this.userProfileDao.getByUserId(userId);
+
+            return {
+                user: userProfile
+            };
+        } catch (error) {
+            console.error('[UserService:getUserProfile] Error:', error);
+            throw error;
+        }
+    }
 }
 
-export default new UserService(RegisteredUserDao); 
+export default new UserService(RegisteredUserDao, UserProfileDao);

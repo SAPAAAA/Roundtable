@@ -11,8 +11,8 @@ router.post('/by-ids', PostController.getPostsByIds);
 router.get('/:postId', PostController.getPostDetails);
 router.post('/:postId/comments', isAuthenticated, CommentController.addComment);
 router.post('/:postId/vote', isAuthenticated, PostController.castVote);
+router.get('/', PostController.getPosts);
 router.post('/', isAuthenticated, PostController.createPost);
-//router.put('/:postId', isAuthenticated, PostController.updatePost);
 router.put('/:postId', isAuthenticated, (req, res) => {
     const body = req.body; // hoặc req.q.action
     if(body.body ===""){

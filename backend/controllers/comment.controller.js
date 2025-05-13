@@ -18,6 +18,35 @@ class CommentController {
         this.notificationService = injectedNotificationService;
     }
 
+    getComments = async (req, res) => {
+        try {
+            const {order, sortBy, limit, offset, ...filterBy} = req.query;
+            const {userId} = req.session;
+            const comments = await this.commentService.getComments(userId, {
+                filterBy,
+                order,
+                sortBy,
+                limit,
+                offset
+            });
+            return res.status(HTTP_STATUS.OK).json({success: true, data: {comments}});
+        } catch (error) {
+            console.error(`[CommentController:getComments] Error for postId ${req.params?.postId}:`, error.message);
+            // ... (error handling as before) ...
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while getting comments.'
+            });
+        }
+    }
+
     /**
      * Handles POST /posts/:postId/comments
      * Adds a top-level comment to a post.

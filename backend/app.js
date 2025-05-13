@@ -24,7 +24,6 @@ import notificationRoutes from "#routes/notification.routes.js";
 import chatRoutes from "#routes/chat.routes.js";
 import homeRoutes from "#routes/home.routes.js";
 import userRoutes from "#routes/user.routes.js";
-import profileRoutes from "#routes/profile.routes.js";
 
 // Listeners
 import '#listeners/notification.listener.js';
@@ -100,7 +99,6 @@ app.use('/api/s',subtableRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/home', homeRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/Profile', profileRoutes);
 
 
 // Global error handling middleware

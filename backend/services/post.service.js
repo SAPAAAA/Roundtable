@@ -53,6 +53,7 @@ function structureComments(commentsRaw) {
 
     return structuredComments;
 }
+
 class PostService {
     /**
      * Constructor for PostService.
@@ -82,6 +83,52 @@ class PostService {
         this.subtableDao = subtableDao;
         this.subscriptionDao = subscriptionDao;
     }
+
+    /**
+     * Retrieves a list of posts based on the provided filters and sorts.
+     * @param {string} userId - The ID of the user requesting the posts.
+     * @param {object} filterBy - Filters for querying posts (e.g., authorId, subtableId).
+     * @param {string} sortBy - The column to sort by (e.g., 'createdAt', 'voteCount').
+     * @param {string} order - The order to sort by (e.g., 'asc', 'desc').
+     * @param {number} limit - The maximum number of posts to return.
+     * @param {number} offset - The number of posts to skip.
+     * @returns {Promise<Array<object>>} - A list of posts with user vote status.
+     */
+    async getPosts(userId, {filterBy, sortBy, order, limit, offset}) {
+        try {
+            console.log('Fetching posts with userId:', userId, 'filterBy:', filterBy, 'sortBy:', sortBy, 'order:', order, 'limit:', limit, 'offset:', offset);
+
+            const posts = await this.userPostDetailsDao.getPosts({
+                filterBy,
+                sortBy,
+                order,
+                limit,
+                offset,
+            });
+
+            if (!userId) {
+                return posts;
+            }
+
+            return await Promise.all(
+                posts.map(async (post) => {
+                    const vote = await this.voteDao.getByUserAndPost(userId, post.postId);
+                    return {
+                        ...post,
+                        userVote: vote ? {
+                            voteType: vote.voteType,
+                            createdAt: vote.createdAt,
+                            updatedAt: vote.updatedAt
+                        } : null
+                    };
+                })
+            );
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            throw error;
+        }
+    }
+
 
     /**
      * Retrieves all necessary data for the detailed post view, including user vote status.
@@ -228,9 +275,10 @@ class PostService {
             }
         });
     }
+
     async updatePost(postId, postData) {
         const {body} = postData;
-        console.log("PostService.updatePost called", { postId, body });
+        console.log("PostService.updatePost called", {postId, body});
         // 1. Validate input
         if (!postId || !body) {
             const error = new Error('Invalid input data for updating a post. Missing required fields.');
@@ -417,9 +465,10 @@ class PostService {
             throw error;
         }
     }
+
     async deletePost(postId, postData) {
-        const {body,authorUserId} = postData;
-        console.log("PostService.deletePost called", { postId, body, authorUserId });
+        const {body, authorUserId} = postData;
+        console.log("PostService.deletePost called", {postId, body, authorUserId});
         // 1. Validate input
         if (!postId) {
             const error = new Error('Invalid input data for deleting a post. Missing required fields.');
@@ -440,7 +489,7 @@ class PostService {
         return await postgresInstance.transaction(async (transaction) => {
             try {
                 // Use the DAO passed in the constructor
-                const deletedPost = await this.postDao.updateDelete(postId,{body,authorUserId}, transaction);
+                const deletedPost = await this.postDao.updateDelete(postId, {body, authorUserId}, transaction);
                 console.log(`Post deleted successfully with ID: ${deletedPost.postId}`);
                 return deletedPost;
             } catch (error) {

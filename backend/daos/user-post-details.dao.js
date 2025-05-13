@@ -15,6 +15,61 @@ class UserPostDetailsDAO {
     constructor() {
         this.viewName = 'UserPostDetails'; // IMPORTANT: Replace with your actual VIEW name
     }
+
+    /**
+     * Retrieves posts from the UserPostDetails view based on various criteria.
+     * This method is used by PostService.getPosts().
+     * @param {object} options - Filtering, sorting, and pagination options.
+     * @param {object} [options.filterBy={}] - Filter criteria for the query.
+     * @param {string} [options.sortBy='postCreatedAt'] - Field to sort by. Valid options: 'postCreatedAt', 'voteCount', 'commentCount'.
+     * @param {string} [options.order='desc'] - Sort order ('asc' or 'desc').
+     * @param {number} [options.limit=25] - Maximum number of posts to return.
+     * @param {number} [options.offset=0] - Number of posts to skip (for pagination).
+     * @returns {Promise<Array<object>>} A promise that resolves to an array of post detail objects from the view.
+     * @throws {Error} If there's an error during database interaction.
+     */
+    async getPosts({
+                       filterBy = {},
+                       sortBy = 'postCreatedAt',
+                       order = 'desc',
+                       limit = 25,
+                       offset = 0,
+                   }) {
+        try {
+            const query = postgresInstance(this.viewName)
+                .select('*');
+
+            // Apply filters
+            if (filterBy && typeof filterBy === 'object' && Object.keys(filterBy).length > 0) {
+                query.where(filterBy);
+            }
+
+            // Validate and apply sorting
+            const validSortByFields = ['postCreatedAt', 'voteCount', 'commentCount'];
+            const validatedSortBy = validSortByFields.includes(sortBy) ? sortBy : 'postCreatedAt';
+            const validatedOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toLowerCase() : 'desc';
+
+            query.orderBy(validatedSortBy, validatedOrder);
+
+            // Apply pagination
+            if (typeof limit === 'number' && limit > 0) {
+                query.limit(limit);
+            }
+            if (typeof offset === 'number' && offset >= 0) {
+                query.offset(offset);
+            }
+
+            const posts = await query;
+            console.log('[UserPostDetailsDAO:getPosts] Fetched posts:', posts.length);
+            return posts.map(row => UserPostDetails.fromDbRow(row));
+
+        } catch (error) {
+            console.error('[UserPostDetailsDAO:getPosts] Error fetching posts:', error);
+            throw error; // Re-throw to be handled by the calling service
+        }
+    }
+
+
     /**
      * Fetches detailed post information for a single post by its ID from the VIEW.
      * @param {string} postId - The UUID of the post.

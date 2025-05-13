@@ -67,6 +67,24 @@ class CommentService {
             throw error;
         }
     }
+
+    /**
+     * Fetches comments for a specific user.
+     * @param {string} userId - The ID of the user whose comments are to be fetched.
+     * @param {object} [options={}] - Optional query parameters (e.g., limit, sortBy).
+     * @returns {Promise<object>} - The full API response object.
+     */
+    async getCommentsByUserId(userId, options = {}) {
+        const queryParams = new URLSearchParams(options);
+        // Ensure 'authorId' or the correct backend parameter is used for filtering
+        queryParams.set('authorUserId', userId);
+
+        // Use the API endpoint for fetching comments, filtered by authorId
+        const baseUrl = `/api/comments?${queryParams.toString()}`;
+        console.log(`CommentService: Fetching user's comments from ${baseUrl}`);
+        return await sendApiRequest(baseUrl, {method: 'GET'});
+    }
+
 }
 
 export default new CommentService();

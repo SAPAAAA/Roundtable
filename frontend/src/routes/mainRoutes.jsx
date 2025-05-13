@@ -1,6 +1,6 @@
 import React, {lazy} from 'react';
 import getPostRoutesConfig from "./postRoutes.jsx";
-import getProfileRoutesConfig from "./profileRoutes.jsx";
+import getUserRoutesConfig from "./userRoutes.jsx";
 import getNotificationRoutesConfig from "./notificationRoutes.jsx";
 import getSubtableRoutesConfig from './subtableRoutes';
 import getCommentRoutesConfig from "./commentRoutes.jsx";
@@ -28,7 +28,7 @@ function mainRoutes() {
             ...getPostRoutesConfig(),
             ...getCommentRoutesConfig(),
             ...getNotificationRoutesConfig(),
-            ...getProfileRoutesConfig(),
+            ...getUserRoutesConfig(),
         ],
     };
 }

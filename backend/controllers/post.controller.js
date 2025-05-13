@@ -15,6 +15,35 @@ class PostController {
         this.voteService = injectedVoteService; // Make sure VoteService is injected
     }
 
+    getPosts = async (req, res) => {
+        try {
+            const {order, sortBy, limit, offset, ...filterBy} = req.query;
+            const {userId} = req.session; // Can be null if user is not logged in
+
+            const posts = await this.postService.getPosts(userId, {
+                filterBy,
+                sortBy,
+                order,
+                limit,
+                offset,
+            });
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: {posts},
+            });
+        } catch (error) {
+            console.error('[PostController:getPosts] Error:', error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while fetching posts.'
+            });
+        }
+    }
+
     /**
      * Handles GET /posts/:postId
      * Retrieves and returns post details as JSON.

@@ -17,7 +17,6 @@ class UserMessageDetailsDAO {
     constructor() {
         this.viewName = 'UserMessageDetails'; // Ensure this matches your actual VIEW name in the DB
     }
-
     /**
      * Fetches a single detailed message by its ID from the "UserMessageDetails" view.
      * @param {string} messageId - The UUID of the message.

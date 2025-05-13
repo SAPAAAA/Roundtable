@@ -14,6 +14,49 @@ import UserCommentDetails from '#models/user-comment-details.model.js';
  * DAO for interacting with the "UserCommentDetails" database VIEW.
  */
 class UserCommentDetailsDAO {
+    constructor() {
+        this.viewName = 'UserCommentDetails';
+    }
+
+    async getComments({
+                          filterBy = {},
+                          sortBy = 'commentCreatedAt',
+                          order = 'desc',
+                          limit = 25,
+                          offset = 0,
+                      }) {
+        try {
+            const query = postgresInstance(this.viewName)
+
+            // Apply filters:
+            if (filterBy && typeof filterBy === 'object' && Object.keys(filterBy).length > 0) {
+                query.where(filterBy);
+            }
+
+            // Validate and apply sorting:
+            const validSortByFields = ['commentCreatedAt', 'voteCount'];
+            const validatedSortBy = validSortByFields.includes(sortBy) ? sortBy : 'commentCreatedAt';
+            const validatedOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toLowerCase() : 'desc';
+
+            query.orderBy(validatedSortBy, validatedOrder);
+
+            // Apply pagination
+            if (typeof limit === 'number' && limit > 0) {
+                query.limit(limit);
+            }
+            if (typeof offset === 'number' && offset >= 0) {
+                query.offset(offset);
+            }
+
+            const comments = await query;
+            return comments.map(row => UserCommentDetails.fromDbRow(row));
+
+        } catch (error) {
+            console.error('[UserCommentDetailsDAO:getComments] Error fetching comments:', error);
+            throw error; // Re-throw to be handled by the calling service
+        }
+    }
+
 
     /**
      * Fetches comments (with author details) for a specific post from the VIEW.
@@ -38,7 +81,7 @@ class UserCommentDetailsDAO {
         const order = finalOptions.order.toLowerCase() === 'desc' ? 'desc' : 'asc';
 
         // Use "UserCommentDetails" as the view name
-        let query = postgresInstance('UserCommentDetails')
+        let query = postgresInstance(this.viewName)
             .select('*') // Select all columns from the view
             .where({postId: postId});
 

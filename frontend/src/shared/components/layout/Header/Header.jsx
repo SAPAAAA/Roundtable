@@ -184,7 +184,7 @@ export default function Header(props) {
                                         trigger={avatarTrigger}
                                         position="bottom-end"
                                     >
-                                        <Link href="/profile"
+                                        <Link href={`/user/${user.userId}`}
                                               className="avatar-link"> {/* Ensure this path matches your profile route */}
                                             <div className="d-flex flex-row gap-2 align-items-center px-2 py-2">
                                                 <div className="d-flex align-items-center justify-content-center">

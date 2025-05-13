@@ -1,27 +1,34 @@
+// src/features/users/components/Setting/Setting.jsx
 import React from "react";
-import '../myprofile.css';
 import SettingRow from "#features/users/components/SettingRow/SettingRow";
+import './Setting.css';
 
 function Setting() {
+    // Example onClick handlers (you'd implement actual logic)
+    const handleEditProfile = () => {
+        console.log("Edit Profile Clicked");
+        // Navigate or open modal for profile customization
+    };
+
+    const handleManageAccount = () => {
+        console.log("Manage Account Clicked");
+        // Navigate or open modal for account settings
+    };
+
     return (
-        <div className="setting">
-            <h3>Setting</h3>
-            <table>
+        <div className="setting-container"> {/* Changed from .setting to avoid table-specific CSS */}
+            <h3 className="setting-main-title mb-2">User Settings</h3>
+            {/* Removed table, directly rendering SettingRow components */}
+            <div className="setting-rows-list"> {/* Wrapper for rows, similar to list-group */}
                 <SettingRow
-                    imgUrl="https://images.icon-icons.com/2120/PNG/512/user_account_person_avatar_icon_131248.png"
-                    title="Change avatar"
+                    title="Profile"
                     describe="Customize your profile"
-                    buttonContent="change"
+                    buttonContent="Edit"
+                    onClick={handleEditProfile}
                 />
-                <SettingRow
-                    imgUrl="https://images.icon-icons.com/3361/PNG/512/books_tags_labels_book_mark_banner_tag_label_bookmark_icon_210817.png"
-                    title="Change banner"
-                    describe="Customize your profile"
-                    buttonContent="change"
-                />
-            </table>
+            </div>
         </div>
     );
 }
 
-export default Setting
+export default Setting;

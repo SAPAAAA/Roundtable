@@ -60,7 +60,7 @@ class PostDAO {
      * @returns {Promise<Post | null>} The updated Post instance, or null if not found.
      */
     async update(postId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         // Only allow specific fields to be updated via this method
         const allowedUpdates = {};
         if (updateData.title !== undefined) allowedUpdates.title = updateData.title;
@@ -97,7 +97,7 @@ class PostDAO {
      * @returns {Promise<Post | null>} The updated Post instance, or null if not found.
      */
     async updateDelete(postId, updateData, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         // Only allow specific fields to be updated via this method
         const allowedUpdates = {};
         if (typeof updateData.body === 'string') allowedUpdates.body = updateData.body;
@@ -134,7 +134,7 @@ class PostDAO {
      * @returns {Promise<number>} The number of rows deleted (0 or 1).
      */
     async hardDelete(postId, trx = null) {
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         try {
             const deletedCount = await queryBuilder('Post')
                 .where({postId})
