@@ -6,6 +6,8 @@ import VoteController from "#controllers/vote.controller.js";
 
 const router = express.Router();
 
+router.get('/', VoteController.getVotedItems);
+
 router.patch(
     '/:voteId',
     isAuthenticated,

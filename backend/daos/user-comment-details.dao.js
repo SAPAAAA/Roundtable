@@ -126,7 +126,7 @@ class UserCommentDetailsDAO {
      * @returns {Promise<UserCommentDetails | null>} - A promise resolving to a UserCommentDetails instance or null if not found.
      */
     async getByCommentId(commentId) {
-        const query = postgresInstance('"UserCommentDetails"')
+        const query = postgresInstance(this.viewName)
             .select('*')
             .where({commentId: commentId})
             .first(); // Use .first() to get a single object or undefined

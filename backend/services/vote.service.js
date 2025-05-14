@@ -2,16 +2,181 @@
 import Vote from "#models/vote.model.js";
 import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 import {postgresInstance} from "#db/postgres.js";
-import VoteDAO from "#daos/vote.dao.js"; // Import the DAO
+import voteDAO from "#daos/vote.dao.js";
+import userCommentDetailsDao from "#daos/user-comment-details.dao.js";
+import userPostDetailsDao from "#daos/user-post-details.dao.js";
 
 class VoteService {
     /**
      * Constructor for VoteService.
      * Accepts the VoteDAO as a dependency.
      * @param {VoteDAO} voteDao - Data Access Object for votes.
+     * @param {UserPostDetailsDAO} userPostDetailsDao - Data Access Object for user post details.
+     * @param {UserCommentDetailsDAO} userCommentDetailsDao - Data Access Object for user comment details.
      */
-    constructor(voteDao) {
+    constructor(voteDao, userPostDetailsDao, userCommentDetailsDao) {
         this.voteDao = voteDao;
+        this.userCommentDetailsDao = userCommentDetailsDao;
+        this.userPostDetailsDao = userPostDetailsDao;
+    }
+
+    /**
+     * Retrieves all items (posts and/or comments) voted on by a specific user.
+     * The response is structured into separate posts and comments arrays, each item including the user's vote.
+     *
+     * @param {string} userId - The ID of the user whose voted items are to be fetched.
+     * @param {Object} [options={}] - Filtering and sorting options.
+     * @param {'posts' | 'comments' | 'mixed'} [options.itemType='mixed'] - Type of items to retrieve.
+     * @param {'upvote' | 'downvote'} [options.voteType='upvote'] - Filter by vote type.
+     * @param {string} [options.sortBy='voteCreatedAt'] - Sort by 'voteCreatedAt', 'itemCreatedAt', 'itemVoteCount', 'itemTitle'.
+     * @param {'asc' | 'desc'} [options.order='desc'] - Sort order.
+     * @returns {Promise<{data: {posts: Array<PostWithUserVote>, comments: Array<CommentWithUserVote>}, total: number}>}
+     * A promise that resolves to the structured data and the total count of vote records.
+     * @throws {BadRequestError} If userId is not provided.
+     * @throws {AppError} Propagates errors from the DAO layer.
+     */
+    async getVotedItems(userId, options = {}) {
+        if (!userId) {
+            throw new BadRequestError("User ID is required to fetch voted items.");
+        }
+
+        const voteRefOptions = {
+            itemType: options.itemType,
+            voteType: options.voteType,
+            sortBy: 'voteCreatedAt', // DAO sorts vote references by this for initial fetch
+            order: options.order || 'desc',
+            limit: null, // Fetch all vote references that match
+            offset: 0,
+        };
+
+        try {
+            const {voteRecords, total} = await this.voteDao.getVotedItemReferences(userId, voteRefOptions);
+
+            if (total === 0 || !voteRecords || voteRecords.length === 0) {
+                return {data: {posts: [], comments: []}, total: 0};
+            }
+
+            let allDecoratedItems = []; // Temp array to hold items with details before final sort & split
+            const resolvedItemTypeFromOptions = this.voteDao._prepareQueryOptions(voteRefOptions).itemType;
+            const queriedVoteType = this.voteDao._prepareQueryOptions(voteRefOptions).voteType;
+
+
+            for (const record of voteRecords) {
+                let itemDetail = null;
+                let actualItemType = null; // 'post' or 'comment'
+                let itemCreatedAt = null;
+                let itemVoteCount = 0;
+                let itemTitle = null;
+
+                // This is the vote data that caused this item to be in the list
+                const userVoteData = {
+                    voteType: queriedVoteType,
+                    createdAt: record.voteCreatedAt,
+                    // No 'updatedAt' available for a Vote record itself from the DB schema
+                };
+
+                if (record.postId && (resolvedItemTypeFromOptions === 'posts' || resolvedItemTypeFromOptions === 'mixed')) {
+                    itemDetail = await this.userPostDetailsDao.getByPostId(record.postId);
+                    if (itemDetail && itemDetail.postId) {
+                        actualItemType = 'post';
+                        itemCreatedAt = itemDetail.postCreatedAt;
+                        itemVoteCount = itemDetail.voteCount;
+                        itemTitle = itemDetail.title;
+                    }
+                } else if (record.commentId && (resolvedItemTypeFromOptions === 'comments' || resolvedItemTypeFromOptions === 'mixed')) {
+                    itemDetail = await this.userCommentDetailsDao.getByCommentId(record.commentId);
+                    if (itemDetail && itemDetail.commentId) {
+                        actualItemType = 'comment';
+                        itemCreatedAt = itemDetail.commentCreatedAt;
+                        itemVoteCount = itemDetail.voteCount;
+                    }
+                }
+
+                if (itemDetail && actualItemType) {
+                    allDecoratedItems.push({
+                        _internalItemType: actualItemType, // Used for splitting later
+                        details: itemDetail,
+                        userVote: userVoteData,
+                        // Hoist properties for sorting
+                        _itemCreatedAtSort: itemCreatedAt,
+                        _itemVoteCountSort: itemVoteCount,
+                        _itemTitleSort: itemTitle,
+                        _voteCreatedAtSort: record.voteCreatedAt, // From the vote record itself
+                    });
+                }
+            }
+
+            // Sort all decorated items if a sort criteria other than the default (voteCreatedAt from DAO) is specified
+            const sortBy = options.sortBy || 'voteCreatedAt'; // Default to voteCreatedAt if not specified
+            const sortOrder = voteRefOptions.order;
+
+            // Note: voteRecords were already sorted by voteCreatedAt.
+            // This explicit sort here is for other criteria or to ensure order after async detail fetching if needed.
+            allDecoratedItems.sort((a, b) => {
+                let valA, valB;
+                switch (sortBy) {
+                    case 'itemCreatedAt':
+                        valA = new Date(a._itemCreatedAtSort);
+                        valB = new Date(b._itemCreatedAtSort);
+                        break;
+                    case 'itemVoteCount':
+                        valA = a._itemVoteCountSort;
+                        valB = b._itemVoteCountSort;
+                        break;
+                    case 'itemTitle':
+                        valA = a._itemTitleSort || '';
+                        valB = b._itemTitleSort || '';
+                        if (typeof valA === 'string' && typeof valB === 'string') {
+                        } else if (valA && !valB) return sortOrder === 'asc' ? -1 : 1;
+                        else if (!valA && valB) return sortOrder === 'asc' ? 1 : -1;
+                        else if (!valA && !valB) { // both titles are null/empty (e.g., two comments)
+                            valA = new Date(a._voteCreatedAtSort); // fallback to vote time
+                            valB = new Date(b._voteCreatedAtSort);
+                        }
+                        break;
+                    case 'voteCreatedAt':
+                    default:
+                        valA = new Date(a._voteCreatedAtSort);
+                        valB = new Date(b._voteCreatedAtSort);
+                        break;
+                }
+
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                if (typeof valA === 'string' && typeof valB === 'string' && valA !== valB) {
+                    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                return 0;
+            });
+
+            // Split into posts and comments arrays
+            const votedPosts = [];
+            const votedComments = [];
+
+            for (const decoratedItem of allDecoratedItems) {
+                const finalPayload = {
+                    ...decoratedItem.details, // Spread the actual post/comment details
+                    userVote: decoratedItem.userVote,
+                };
+                if (decoratedItem._internalItemType === 'post') {
+                    votedPosts.push(finalPayload);
+                } else if (decoratedItem._internalItemType === 'comment') {
+                    votedComments.push(finalPayload);
+                }
+            }
+
+            return {
+                posts: votedPosts,
+                comments: votedComments,
+                total: total, // Total count of original vote records matching the criteria
+            };
+        } catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            console.error(`[VoteService:getVotedItems] Error for user ${userId} with options ${JSON.stringify(options)}:`, error.message, error.stack);
+            throw new InternalServerError("An error occurred while fetching voted items.");
+        }
     }
 
     /**
@@ -231,4 +396,4 @@ class VoteService {
 
 }
 
-export default new VoteService(VoteDAO); // Inject DAO
+export default new VoteService(voteDAO, userPostDetailsDao, userCommentDetailsDao);

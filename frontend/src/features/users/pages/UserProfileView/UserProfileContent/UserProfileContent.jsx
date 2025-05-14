@@ -226,8 +226,12 @@ function UserProfileContent({activeTab, userIdToView, isOwnProfile, currentUser}
         ? "You do not have permission to view this content."
         : `No ${activeTab.toLowerCase()} items found.`;
 
-    if (loading) return <LoadingSpinner message={`Loading ${activeTab}...`} addClass="my-3"/>; // Changed wrapperclassName to addClass
-    if (error && error !== "Access denied.") return <div className="alert alert-danger my-3">{error}</div>;
+    if (loading) {
+        return <LoadingSpinner message={`Loading ${activeTab}...`} addClass="my-3"/>;
+    } // Changed wrapperclassName to addClass
+    if (error && error !== "Access denied.") {
+        return <div className="alert alert-danger my-3">{error}</div>;
+    }
 
     if (tabData.itemType === 'mixed') {
         return (

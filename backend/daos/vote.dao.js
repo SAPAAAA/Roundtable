@@ -4,6 +4,132 @@ import Vote, {VoteTypeEnum} from '#models/vote.model.js';
 import {BadRequestError, ConflictError} from "#errors/AppError.js"; // Import for specific errors
 
 class VoteDAO {
+    constructor() {
+        this.tableName = 'Vote'; // Name of your votes table in the database
+    }
+
+    /**
+     * Prepares and validates query options for fetching vote records.
+     * @private
+     * @param {GetVotedItemReferencesOptions} [options={}] - Raw options object.
+     * @returns {Required<GetVotedItemReferencesOptions>} Fully prepared options with defaults.
+     */
+    _prepareQueryOptions(options = {}) {
+        const defaults = {
+            voteType: 'upvote',
+            itemType: 'mixed',
+            sortBy: 'voteCreatedAt',
+            order: 'desc',
+            limit: null,
+            offset: 0,
+        };
+        const combinedOptions = {...defaults, ...options};
+
+        const validatedVoteType = ['upvote', 'downvote'].includes(combinedOptions.voteType?.toLowerCase())
+            ? combinedOptions.voteType.toLowerCase()
+            : defaults.voteType;
+
+        const validatedItemType = ['posts', 'comments', 'mixed'].includes(combinedOptions.itemType?.toLowerCase())
+            ? combinedOptions.itemType.toLowerCase()
+            : defaults.itemType;
+
+        const validatedSortBy = combinedOptions.sortBy === 'voteCreatedAt'
+            ? 'voteCreatedAt'
+            : defaults.sortBy;
+
+        const validatedOrder = ['asc', 'desc'].includes(combinedOptions.order?.toLowerCase())
+            ? combinedOptions.order.toLowerCase()
+            : defaults.order;
+
+        const validatedLimit = combinedOptions.limit === null || (Number.isInteger(Number(combinedOptions.limit)) && Number(combinedOptions.limit) > 0)
+            ? (combinedOptions.limit === null ? null : Number(combinedOptions.limit))
+            : defaults.limit;
+
+        const validatedOffset = (Number.isInteger(Number(combinedOptions.offset)) && Number(combinedOptions.offset) >= 0)
+            ? Number(combinedOptions.offset)
+            : defaults.offset;
+
+        return {
+            voteType: validatedVoteType,
+            itemType: validatedItemType,
+            sortBy: validatedSortBy,
+            order: validatedOrder,
+            limit: validatedLimit,
+            offset: validatedOffset,
+        };
+    }
+
+    /**
+     * Retrieves vote records (references to posts/comments) for a specific user.
+     * These records indicate what the user voted on, but not the full details of those items.
+     * @param {string} userId - The UUID of the user whose vote records are to be fetched.
+     * @param {GetVotedItemReferencesOptions} [options={}] - Options for filtering, sorting, and limiting.
+     * @returns {Promise<{voteRecords: Array<VoteReference>, total: number}>}
+     * A promise that resolves to an object containing the vote records and the total count of such records
+     * matching the criteria (before limit/offset).
+     * @throws {Error} If userId is not provided or a database error occurs.
+     */
+    async getVotedItemReferences(userId, options = {}) {
+        if (!userId) {
+            throw new Error('User ID is required to fetch voted item references.');
+        }
+
+        const preparedOptions = this._prepareQueryOptions(options);
+        const {
+            voteType,
+            itemType,
+            sortBy,
+            order,
+            limit,
+            offset
+        } = preparedOptions;
+
+        try {
+            let countQueryBase = postgresInstance(this.tableName)
+                .where({voterUserId: userId, voteType: voteType});
+
+            let dataQueryBase = postgresInstance(this.tableName)
+                .select('postId', 'commentId', 'createdAt as voteCreatedAt')
+                .where({voterUserId: userId, voteType: voteType});
+
+            // Apply itemType filter to both queries using correct Knex methods
+            if (itemType === 'posts') {
+                countQueryBase.whereNotNull('postId').whereNull('commentId');
+                dataQueryBase.whereNotNull('postId').whereNull('commentId');
+            } else if (itemType === 'comments') {
+                countQueryBase.whereNotNull('commentId').whereNull('postId');
+                dataQueryBase.whereNotNull('commentId').whereNull('postId');
+            }
+
+            const [{total: totalCount}] = await countQueryBase.count('* as total');
+            const total = parseInt(totalCount, 10) || 0;
+
+            if (total === 0) {
+                return {voteRecords: [], total: 0};
+            }
+
+            if (sortBy === 'voteCreatedAt') {
+                dataQueryBase.orderBy('createdAt', order);
+            }
+
+            if (limit !== null) {
+                dataQueryBase.limit(limit);
+            }
+            if (offset > 0) {
+                dataQueryBase.offset(offset);
+            }
+
+            const voteRecords = await dataQueryBase;
+
+            console.log(`[UserVoteDAO:getVotedItemReferences] Fetched ${voteRecords.length} vote records for user ${userId} with options: ${JSON.stringify(preparedOptions)}`);
+            return {voteRecords, total};
+
+        } catch (error) {
+            console.error(`[UserVoteDAO:getVotedItemReferences] Error fetching vote records for user ${userId}:`, error);
+            throw error;
+        }
+    }
+
 
     /**
      * Creates a new vote record in the database.
@@ -25,7 +151,7 @@ class VoteDAO {
         }
 
         try {
-            const insertedRows = await queryBuilder('Vote')
+            const insertedRows = await queryBuilder(this.tableName)
                 .insert(insertData)
                 .returning('*');
 
@@ -52,7 +178,7 @@ class VoteDAO {
     async getById(voteId, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            const voteRow = await queryBuilder('Vote').where({voteId}).first();
+            const voteRow = await queryBuilder(this.tableName).where({voteId}).first();
             return Vote.fromDbRow(voteRow); // Handles null row
         } catch (error) {
             console.error(`[VoteDAO] Error finding vote by ID (${voteId}):`, error);
@@ -71,7 +197,7 @@ class VoteDAO {
     async getByUserAndPost(voterUserId, postId, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            const voteRow = await queryBuilder('Vote')
+            const voteRow = await queryBuilder(this.tableName)
                 .where({voterUserId: voterUserId, postId: postId})
                 .first();
             return Vote.fromDbRow(voteRow);
@@ -92,7 +218,7 @@ class VoteDAO {
     async getByUserAndComment(voterUserId, commentId, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            const voteRow = await queryBuilder('Vote')
+            const voteRow = await queryBuilder(this.tableName)
                 .where({voterUserId: voterUserId, commentId: commentId})
                 .first();
             return Vote.fromDbRow(voteRow);
@@ -128,7 +254,7 @@ class VoteDAO {
      */
     async getVotesByCommentId(commentId) {
         try {
-            const voteRows = await postgresInstance('Vote').where({commentId});
+            const voteRows = await postgresInstance(this.tableName).where({commentId});
             return voteRows.map(row => Vote.fromDbRow(row));
         } catch (error) {
             console.error(`[VoteDAO] Error finding votes by comment ID (${commentId}):`, error);
@@ -156,7 +282,7 @@ class VoteDAO {
         const allowedUpdates = {voteType: updates.voteType};
 
         try {
-            const updatedRows = await queryBuilder('Vote')
+            const updatedRows = await queryBuilder(this.tableName)
                 .where({voteId})
                 .update(allowedUpdates)
                 .returning('*');
@@ -181,7 +307,7 @@ class VoteDAO {
     async delete(voteId, trx = null) {
         const queryBuilder = trx || postgresInstance;
         try {
-            return await queryBuilder('Vote')
+            return await queryBuilder(this.tableName)
                 .where({voteId})
                 .del();
         } catch (error) {

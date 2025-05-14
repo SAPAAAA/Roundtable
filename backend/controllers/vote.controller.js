@@ -11,6 +11,70 @@ class VoteController {
         this.voteService = injectedVoteService;
     }
 
+
+    /**
+     * Handles GET /votes
+     * Retrieves all votes for the authenticated user.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    getVotedItems = async (req, res) => {
+        try {
+            const {
+                voterUserId, // User whose voted items we want to see
+                voteType,    // 'UPVOTE' or 'DOWNVOTE' (case-insensitive from query)
+                itemType,    // Optional: 'posts', 'comments', 'mixed'
+                sortBy,      // Optional: 'voteCreatedAt', 'itemCreatedAt', 'itemVoteCount', 'itemTitle'
+                order        // Optional: 'asc', 'desc'
+            } = req.query;
+
+            if (!voterUserId) {
+                throw new BadRequestError('Query parameter "voterUserId" is required.');
+            }
+            if (!voteType) {
+                throw new BadRequestError('Query parameter "voteType" is required.');
+            }
+
+            // Validate and normalize voteType
+            const normalizedVoteType = voteType.toLowerCase();
+            if (normalizedVoteType !== 'upvote' && normalizedVoteType !== 'downvote') {
+                throw new BadRequestError('Invalid "voteType". Must be "UPVOTE" or "DOWNVOTE".');
+            }
+
+            const serviceOptions = {
+                itemType: itemType, // Service/DAO will handle defaults if undefined
+                voteType: normalizedVoteType,
+                sortBy: sortBy,     // Service/DAO will handle defaults if undefined
+                order: order,       // Service/DAO will handle defaults if undefined
+                // No pagination parameters as per prior request (service/DAO will fetch all)
+            };
+
+            const result = await voteService.getVotedItems(voterUserId, serviceOptions);
+
+            return res.status(200).json({
+                success: true,
+                message: `Successfully fetched ${normalizedVoteType}d items by user ${voterUserId}.`,
+                data: result
+            });
+        } catch (error) {
+            console.error(`[VoteController:getVotedItems] Error for user ${voterUserId}:`, error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while fetching the votes.'
+            });
+        }
+    }
+
     /**
      * Handles PATCH /votes/:voteId
      * Updates an existing vote after ownership check.
