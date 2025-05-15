@@ -14,7 +14,7 @@ export default async function action({ request, params }) {
     
 
     try {
-        const response = await postService.updatePost({
+        const response = await postService.deletePost({
             body: "", // Assuming API expects 'body' for content
             authorUserId: "", // Assuming API expects 'authorUserId' for content
         }, postId); // Pass the postId to the updatePost method

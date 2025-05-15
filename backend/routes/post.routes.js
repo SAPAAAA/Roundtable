@@ -13,17 +13,7 @@ router.post('/:postId/comments', isAuthenticated, CommentController.addComment);
 router.post('/:postId/vote', isAuthenticated, PostController.castVote);
 router.get('/', PostController.getPosts);
 router.post('/', isAuthenticated, PostController.createPost);
-router.put('/:postId', isAuthenticated, (req, res) => {
-    const body = req.body; // hoặc req.q.action
-    if(body.body ===""){
-        console.log("action xóa");
-        return PostController.deletePost(req, res);
-    }
-    else {
-        console.log("action sửa");
-        return PostController.updatePost(req, res);
-    }
-    
-});
+router.delete('/:postId', isAuthenticated, PostController.deletePost);
+router.patch('/:postId', isAuthenticated, PostController.updatePost);
 
 export default router;

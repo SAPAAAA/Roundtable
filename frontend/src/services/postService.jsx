@@ -30,7 +30,16 @@ class PostService {
     async updatePost(data,postId) {
         console.log("PostService updatePost called", { data, postId });
         const baseUrl = `/api/posts/${postId}`
-        const response = await sendApiRequest(baseUrl, {method: 'PUT', body: data});
+        const response = await sendApiRequest(baseUrl, {method: 'PATCH', body: data});
+        if (!response.success) {
+            throw new Error(`Failed to update post : ${response.status} ${response.statusText}`);
+        }
+        return response;
+    }
+    async deletePost(data,postId) {
+        console.log("PostService updatePost called", { data, postId });
+        const baseUrl = `/api/posts/${postId}`
+        const response = await sendApiRequest(baseUrl, {method: 'DELETE', body: data});
         if (!response.success) {
             throw new Error(`Failed to update post : ${response.status} ${response.statusText}`);
         }

@@ -93,8 +93,7 @@ export default function PostOptions(props) {
                 }
                 {
                     checkYourPost && (
-                        <Button mainClass="delete-post-btn w-100" type="submit" justifyContent="start" rounded={false} padding={2}
-                                onClick={handleUpdatePost}>
+                        <Button mainClass="delete-post-btn w-100" type="submit" justifyContent="start" rounded={false} padding={2}>
                             <Icon addClass="me-2" name="trash" size="15px"/>
                             <span>Xóa</span>
                         </Button>
