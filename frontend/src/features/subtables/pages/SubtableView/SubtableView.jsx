@@ -9,6 +9,14 @@ import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
 
+const BACKEND_URL = 'http://localhost:5000';  //change if host is different
+const getFullImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    // Ensure there's a slash between BACKEND_URL and the path
+    return BACKEND_URL + (url.startsWith('/') ? url : '/' + url);
+};
+
 export default function SubtableView() {
     // --- Hooks ---
     const {detailsData, postsData, loaderError} = useLoaderData();
@@ -45,8 +53,12 @@ export default function SubtableView() {
     // --- Extract Data ---
     const subtableInfo = detailsData;
     const subtableDisplayName = subtableInfo?.name || subtableNameFromParams || "Subtable";
-    const subtableAvatar = subtableInfo?.icon;
-    const subtableBanner = subtableInfo?.banner;
+    const subtableAvatar = getFullImageUrl(subtableInfo?.icon);
+    const subtableBanner = getFullImageUrl(subtableInfo?.banner);
+
+    console.log('subtableInfo:', subtableInfo);
+    console.log('subtableBanner:', subtableBanner);
+    console.log('subtableAvatar:', subtableAvatar);
 
     // --- Prepare Posts Data using Destructuring (Keeping 'body') ---
     const posts = isLoading ? [] : (postsData || []).map((item) => {
