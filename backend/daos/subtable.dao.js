@@ -35,8 +35,28 @@ class SubtableDAO {
      */
     async getByName(name) {
         try {
-            const subtableRow = await postgresInstance(this.tableName).where({name}).first();
-            return Subtable.fromDbRow(subtableRow);
+            const subtableRow = await postgresInstance(this.tableName)
+                .select(
+                    'Subtable.*',
+                    'icon_media.url as icon_url',
+                    'banner_media.url as banner_url'
+                )
+                .leftJoin('Media as icon_media', 'Subtable.icon', '=', 'icon_media.mediaId')
+                .leftJoin('Media as banner_media', 'Subtable.banner', '=', 'banner_media.mediaId')
+                .where('Subtable.name', name)
+                .first();
+
+            if (!subtableRow) {
+                return null;
+            }
+
+            // Replace media IDs with actual URLs
+            const subtable = Subtable.fromDbRow(subtableRow);
+            if (subtable) {
+                subtable.icon = subtableRow.icon_url;
+                subtable.banner = subtableRow.banner_url;
+            }
+            return subtable;
         } catch (error) {
             console.error(`[SubtableDAO] Error finding subtable by name (${name}):`, error);
             throw error;
