@@ -418,7 +418,6 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                 fetcher={fetcher}
                 mainClass="create-subtable-form-content"
                 encType="multipart/form-data"
-                onSubmit={handleSubmit}
                 noValidate
             >
                 {message && (
@@ -426,8 +425,13 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                         {message.text}
                     </div>
                 )}
-                {currentStep === 1 && renderStep1()}
-                {currentStep === 2 && renderStep2()}
+                {/* Always render both steps, but only show the current one */}
+                <div style={{display: currentStep === 1 ? 'block' : 'none'}}>
+                    {renderStep1()}
+                </div>
+                <div style={{display: currentStep === 2 ? 'block' : 'none'}}>
+                    {renderStep2()}
+                </div>
             </Form>
         </Modal>
     );
