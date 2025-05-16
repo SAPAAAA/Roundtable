@@ -9,6 +9,7 @@ import Subtable from "#models/subtable.model.js";
 import Subscription from "#models/subscription.model.js";
 import Moderator from "#models/moderator.model.js";
 import {postgresInstance} from "#db/postgres.js";
+import mediaService from './media.service.js';
 
 
 class SubtableService {
@@ -125,7 +126,9 @@ class SubtableService {
     /**
      * Creates a new subtable.
      * @param {string} creatorUserId - The ID of the user creating the subtable.
-     * @param {object} subtableData - Data for the new subtable { name, description, icon, banner }.
+     * @param {object} subtableData - Data for the new subtable { name, description, iconFile, bannerFile }.
+     * @param {Object} [subtableData.iconFile] - The uploaded icon file from multer.
+     * @param {Object} [subtableData.bannerFile] - The uploaded banner file from multer.
      * @returns {Promise<Subtable>} The newly created subtable.
      * @throws {BadRequestError} For invalid input.
      * @throws {NotFoundError} If creator user doesn't exist.
@@ -137,7 +140,8 @@ class SubtableService {
         if (!creatorUserId || !subtableData || !subtableData.name) {
             throw new BadRequestError("Invalid input for creating a subtable.");
         }
-        // 2. Check if creator user exists (using userProfileDao) -> NotFoundError
+
+        // 2. Check if creator user exists
         try {
             const userExists = await this.userProfileDao.getByUserId(creatorUserId);
             if (!userExists) {
@@ -149,52 +153,58 @@ class SubtableService {
             }
             throw new InternalServerError("Failed to verify user existence.");
         }
-        // 3. Validate icon and banner files (Assuming this is handled or not critical for this error)
-        const {name, description, iconFile, bannerFile} = subtableData; // iconFile and bannerFile are not used in provided snippet for creation logic but kept for consistency
 
-        return await postgresInstance.transaction(async (transaction) => {
-            let createdSubtable; // Declare createdSubtable here, in the transaction's scope
+        const {name, description, iconFile, bannerFile} = subtableData;
 
-            try {
-                const subtable = new Subtable(null, name, description, creatorUserId);
-                createdSubtable = await this.subtableDao.create(subtable, transaction); // Assign to the outer scoped variable
-                if (!createdSubtable || !createdSubtable.subtableId) { // Defensive check
-                    throw new InternalServerError("Subtable creation returned invalid data.");
-                }
-            } catch (error) {
-                console.error('[SubtableService:createSubtable] Error during subtableDao.create:', error);
-                if (error instanceof ConflictError || error instanceof AppError) { // Handle AppErrors explicitly
-                    throw error;
-                }
-                throw new InternalServerError("Failed to create subtable entity.");
+        // 3. Process file uploads and create media records
+        let iconMediaId = null;
+        let bannerMediaId = null;
+
+        try {
+            // Create media records for uploaded files
+            if (iconFile) {
+                const iconMedia = await mediaService.createMediaRecord(creatorUserId, iconFile);
+                iconMediaId = iconMedia.mediaId;
+            }
+            if (bannerFile) {
+                const bannerMedia = await mediaService.createMediaRecord(creatorUserId, bannerFile);
+                bannerMediaId = bannerMedia.mediaId;
             }
 
-            // 5. Create a subscription for the creator user
-            const subscription = new Subscription(null, creatorUserId, createdSubtable.subtableId); // Now createdSubtable is accessible
-            try {
-                await this.subscriptionDao.create(subscription, transaction); // Pass transaction
-            } catch (error) {
-                console.error(`[SubtableService:createSubtable] Error creating subscription for user ${creatorUserId} to subtable ${createdSubtable.subtableId}:`, error);
-                if (error instanceof AppError) {
+            // 4. Create the subtable with media IDs
+            const subtable = new Subtable(
+                null,
+                name,
+                description,
+                creatorUserId,
+                iconMediaId, // Store media ID instead of file path
+                bannerMediaId, // Store media ID instead of file path
+                0 // Initial member count
+            );
+
+            // 5. Save to database within a transaction
+            return await postgresInstance.transaction(async (trx) => {
+                try {
+                    const createdSubtable = await this.subtableDao.create(subtable, trx);
+                    return createdSubtable;
+                } catch (error) {
+                    // If subtable creation fails, clean up any created media records
+                    if (iconMediaId) {
+                        await mediaService.deleteMedia(iconMediaId).catch(console.error);
+                    }
+                    if (bannerMediaId) {
+                        await mediaService.deleteMedia(bannerMediaId).catch(console.error);
+                    }
                     throw error;
                 }
-                throw new InternalServerError("Failed to create subscription for the new subtable.");
+            });
+        } catch (error) {
+            console.error('[SubtableService] Error creating subtable:', error);
+            if (error instanceof AppError) {
+                throw error;
             }
-
-            // 6. Create a moderator entry for the creator
-            const moderator = new Moderator(creatorUserId, createdSubtable.subtableId);
-            try {
-                await this.moderatorDao.create(moderator, transaction); // Pass transaction
-            } catch (error) {
-                console.error(`[SubtableService:createSubtable] Error creating moderator for user ${creatorUserId} for subtable ${createdSubtable.subtableId}:`, error);
-                if (error instanceof ConflictError || error instanceof AppError) { // Handle AppErrors explicitly
-                    throw error;
-                }
-                throw new InternalServerError("Failed to assign creator as moderator for the new subtable.");
-            }
-
-            return createdSubtable; // Now this will correctly return the subtable
-        });
+            throw new InternalServerError('Failed to create subtable.');
+        }
     }
 
     /**
