@@ -1,7 +1,7 @@
 // backend/controllers/subtable.controller.js
 import HTTP_STATUS from '#constants/http-status.js';
 import subtableService from '#services/subtable.service.js';
-import {BadRequestError, ConflictError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Include potential errors from service
+import {BadRequestError, ConflictError, InternalServerError, NotFoundError, UnauthorizedError} from "#errors/AppError.js"; // Include potential errors from service
 
 class SubtableController {
     /**
@@ -151,56 +151,50 @@ class SubtableController {
     };
 
     /**
-     * Handles POST /s
      * Creates a new subtable.
-     * @param {import('express').Request} req - Express request object.
-     * @param {import('express').Response} res - Express response object.
+     * @param {import('express').Request} req - The request object.
+     * @param {import('express').Response} res - The response object.
+     * @param {import('express').NextFunction} next - The next middleware function.
      */
-    createSubtable = async (req, res) => {
+    createSubtable = async (req, res, next) => {
         try {
-            const {name, description, iconFile, bannerFile} = req.body;
-            console.log(`[SubtableController:createSubtable] Received request to create subtable with name: ${name}`);
-            const {userId} = req.session; // Creator is the logged-in user
-            if (!userId) { /* Handle unauthorized */
+            const creatorUserId = req.session?.userId;
+            if (!creatorUserId) {
+                throw new UnauthorizedError('User must be logged in to create a subtable.');
             }
-            const newSubtable = await this.subtableService.createSubtable(userId, {
+
+            // Sanitize name and description to ensure they are strings
+            let { name, description } = req.body;
+            if (Array.isArray(name)) name = name[0];
+            if (Array.isArray(description)) description = description[0];
+
+            const iconFile = req.files?.iconFile?.[0]; // Get first file from iconFile field
+            const bannerFile = req.files?.bannerFile?.[0]; // Get first file from bannerFile field
+
+            // Validate required fields
+            if (!name) {
+                throw new BadRequestError('Subtable name is required.');
+            }
+
+            // Create subtable with file uploads
+            const subtable = await this.subtableService.createSubtable(creatorUserId, {
                 name,
                 description,
                 iconFile,
                 bannerFile
             });
-            return res.status(HTTP_STATUS.CREATED).json({
+
+            res.status(201).json({
                 success: true,
-                message: "Subtable created successfully.",
-                data: {
-                    subtable: newSubtable
-                }
+                message: 'Subtable created successfully.',
+                data: subtable
             });
         } catch (error) {
-            // Handle BadRequestError, ConflictError, NotFoundError (for user), InternalServerError
-            if (error instanceof BadRequestError) {
-                return res.status(HTTP_STATUS.BAD_REQUEST).json({
-                    success: false,
-                    message: error.message
-                });
-            } else if (error instanceof ConflictError) {
-                return res.status(HTTP_STATUS.CONFLICT).json({
-                    success: false,
-                    message: error.message
-                });
-            } else if (error instanceof NotFoundError) {
-                return res.status(HTTP_STATUS.NOT_FOUND).json({
-                    success: false,
-                    message: error.message
-                });
-            } else {
-                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-                    success: false,
-                    message: "An unexpected error occurred."
-                });
-            }
+            next(error);
         }
     }
 }
 
-export default new SubtableController(subtableService);
+// Create and export a properly initialized instance
+const subtableController = new SubtableController(subtableService);
+export default subtableController;
