@@ -30,7 +30,10 @@ class SubtableService {
 
     async createSubtable(subtableData) {
         const baseUrl = '/api/s/';
-        const response = await sendApiRequest(baseUrl, {method: 'POST', body: subtableData});
+        const response = await sendApiRequest(baseUrl, {
+            method: 'POST',
+            body: subtableData // FormData will be handled correctly by sendApiRequest now
+        });
         if (!response.success) {
             throw new Error(`Failed to create subtable: ${response.status} ${response.statusText}`);
         }
