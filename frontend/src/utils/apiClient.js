@@ -5,7 +5,7 @@
  * @param {string} url - The endpoint URL.
  * @param {object} options - Fetch options.
  * @param {string} [options.method='GET'] - HTTP method.
- * @param {object|null} [options.body=null] - Request body (will be JSON stringified).
+ * @param {object|FormData|null} [options.body=null] - Request body (will be JSON stringified if not FormData).
  * @param {object} [options.headers={}] - Additional headers.
  * @returns {Promise<object>} - The JSON response data.
  * @throws {Error} - Throws an error with status and data on failure.
@@ -13,16 +13,26 @@
 export async function sendApiRequest(url, options = {}) {
     const {method = 'GET', body = null, headers = {}} = options;
 
+    // Determine if we're sending FormData
+    const isFormData = body instanceof FormData;
+
     try {
-        const response = await fetch(url, {
+        const requestOptions = {
             method,
-            body: body ? JSON.stringify(body) : null,
             headers: {
-                'Content-Type': 'application/json',
+                // Only set Content-Type if not FormData (browser will set it automatically for FormData)
+                ...(isFormData ? {} : {'Content-Type': 'application/json'}),
                 ...headers,
             },
             credentials: 'include',
-        });
+        };
+
+        // Handle body based on type
+        if (body) {
+            requestOptions.body = isFormData ? body : JSON.stringify(body);
+        }
+
+        const response = await fetch(url, requestOptions);
 
         // Try to parse JSON body even for errors, as it might contain details
         const responseData = await response.json();
