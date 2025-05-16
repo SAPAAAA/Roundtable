@@ -43,7 +43,8 @@ export default async function createSubtableAction({request}) {
         return {success: false, message: 'Banner file must be a JPEG or PNG image.'};
     }
 
-    const response = await subtableService.createSubtable({name, description, iconFile, bannerFile});
+    // Pass the FormData object directly to the service
+    const response = await subtableService.createSubtable(formData);
     if (response.success) {
         return {
             success: response.success,
