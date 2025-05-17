@@ -53,14 +53,14 @@ class SubtableService {
             credentials: 'include',
 
         })
+        const responseData = await response.json();
 
         //const response = await sendApiRequest(baseUrl, {method: 'POST', body: subtableData});
 
-        if (!response.ok) {
-            console.error('Error creating subtable:', response.status, response.statusText);
-            throw new Error(`Failed to create subtable: ${response.status} ${response.statusText}`);
+        if (!responseData.success) {
+            throw new Error(`Failed to fetch subtables: ${response.status} ${response.statusText}`);
         }
-        return response
+        return responseData
     }
     
 }
