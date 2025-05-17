@@ -13,16 +13,18 @@ function CreateProfile() {
     const navigation = useNavigation();
     const isSubmitting = navigation.state === 'submitting';
     const actionData = useActionData();
-    const location = useLocation(); //lấy profileId từ đây 
+    const location = useLocation();
 
-    // Lấy profileId từ location.state
     const profileId = location.state?.profileId;
 
-    // Thêm console.log để hiển thị profileId
-    // console.log('CreateProfile - profileId:', profileId);
-    // console.log('CreateProfile - location.state:', location.state);
-
-    const [formData, setFormData] = useState({})
+    const [formData, setFormData] = useState({
+        displayName: '',
+        bio: '',
+        location: '',
+        gender: '',
+        avatarFile: null,
+        bannerFile: null
+    });
     const [formErrors, setFormErrors] = useState({});
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [bannerPreview, setBannerPreview] = useState(null);
@@ -34,7 +36,6 @@ function CreateProfile() {
             [name]: value
         }));
 
-        // Xóa lỗi khi người dùng thay đổi giá trị
         if (formErrors[name]) {
             setFormErrors(prev => ({
                 ...prev,
@@ -48,16 +49,16 @@ function CreateProfile() {
         if (files && files[0]) {
             const file = files[0];
 
-            // Kiểm tra kích thước file (giới hạn 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert('Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 5MB.');
+                e.target.value = '';
                 return;
             }
 
-            // Kiểm tra loại file
             const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             if (!validImageTypes.includes(file.type)) {
                 alert('Chỉ chấp nhận file hình ảnh (JPEG, PNG, GIF, WEBP).');
+                e.target.value = '';
                 return;
             }
 
@@ -66,50 +67,36 @@ function CreateProfile() {
                 [name]: file
             }));
 
-            // Tạo URL preview cho file
             const fileUrl = URL.createObjectURL(file);
-            if (name === 'avatar') {
-                // Hủy URL cũ nếu có
+            if (name === 'avatarFile') {
                 if (avatarPreview) {
                     URL.revokeObjectURL(avatarPreview);
                 }
                 setAvatarPreview(fileUrl);
-            } else if (name === 'banner') {
-                // Hủy URL cũ nếu có
+            } else if (name === 'bannerFile') {
                 if (bannerPreview) {
                     URL.revokeObjectURL(bannerPreview);
                 }
                 setBannerPreview(fileUrl);
             }
+        } else {
+            if (name === 'avatarFile') {
+                if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+                setAvatarPreview(null);
+                setFormData(prev => ({...prev, avatarFile: null}));
+            } else if (name === 'bannerFile') {
+                if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+                setBannerPreview(null);
+                setFormData(prev => ({...prev, bannerFile: null}));
+            }
         }
-    };
-
-    const validateForm = () => {
-        const errors = {};
-        if (!formData.displayName.trim()) {
-            errors.displayName = 'Vui lòng nhập tên hiển thị';
-        }
-
-        // Thêm validation cho gender nếu bạn muốn nó là bắt buộc
-        if (!formData.gender) {
-            errors.gender = 'Vui lòng chọn giới tính';
-        }
-
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
     };
 
     const handleSkip = () => {
-        // Chuyển hướng trực tiếp đến trang đăng nhập
         navigate('/login');
     };
 
     useEffect(() => {
-        // // Thêm console.log trong useEffect để xem profileId khi component mount và khi nó thay đổi
-        // console.log('CreateProfile useEffect - profileId:', profileId);
-        // console.log('CreateProfile useEffect - location.state:', location.state);
-
-        // Redirect to create-profile page if verification is successful
         if (actionData && actionData.success) {
             navigate('/login');
         }
@@ -118,24 +105,20 @@ function CreateProfile() {
         }
     }, [actionData, navigate]);
 
+    useEffect(() => {
+        return () => {
+            if (avatarPreview) {
+                URL.revokeObjectURL(avatarPreview);
+            }
+            if (bannerPreview) {
+                URL.revokeObjectURL(bannerPreview);
+            }
+        };
+    }, [avatarPreview, bannerPreview]);
+
     return (
         <div className="create-profile-container">
             {isSubmitting && <LoadingSpinner message="Đang tạo hồ sơ..."/>}
-
-
-            {/* <div className="test-profile-id" style={{
-          position: 'fixed', 
-          top: '10px', 
-          right: '10px', 
-          background: '#f0f0f0', 
-          padding: '5px 10px', 
-          borderRadius: '5px',
-          border: '1px solid #ccc',
-          fontSize: '12px',
-          zIndex: 1000
-        }}>
-          ProfileID: {profileId || 'Không có'}
-        </div> */}
 
             <div className="create-profile-card">
                 <div className="create-profile-header">
@@ -148,8 +131,8 @@ function CreateProfile() {
                     method="post"
                     action="/create-profile"
                     mainClass="create-profile-form"
+                    encType="multipart/form-data"
                 >
-                    {/* Thêm input hidden để gán profileId */}
                     <input
                         type="hidden"
                         name="profileId"
@@ -161,30 +144,31 @@ function CreateProfile() {
                             id="displayName"
                             name="displayName"
                             label="Tên hiển thị"
-                            placeholder="Nhập tên hiển thị"
-                            value={formData.displayName}
+                            placeholder=" "
+                            value={formData.displayName || ''}
                             onChange={handleChange}
                             isInvalid={!!formErrors.displayName}
                             feedback={formErrors.displayName}
-                            addon={<Icon name="user" size="16"/>}
+                            addonBefore={<Icon name="user" size="16"/>}
                             required
                             disabled={isSubmitting}
                         />
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="bio" className="form-label">Giới thiệu</label>
-                        <textarea
+                        <Input
+                            type="textarea"
                             id="bio"
                             name="bio"
-                            className={`form-control ${formErrors.bio ? 'is-invalid' : ''}`}
-                            placeholder="Giới thiệu ngắn về bạn"
-                            value={formData.bio}
+                            label="Giới thiệu"
+                            placeholder=" "
+                            value={formData.bio || ''}
                             onChange={handleChange}
+                            isInvalid={!!formErrors.bio}
+                            feedback={formErrors.bio}
                             rows="3"
                             disabled={isSubmitting}
-                        ></textarea>
-                        {formErrors.bio && <div className="invalid-feedback">{formErrors.bio}</div>}
+                        />
                     </div>
 
                     <div className="form-group">
@@ -192,12 +176,12 @@ function CreateProfile() {
                             id="location"
                             name="location"
                             label="Vị trí"
-                            placeholder="Nhập vị trí của bạn"
-                            value={formData.location}
+                            placeholder=" "
+                            value={formData.location || ''}
                             onChange={handleChange}
                             isInvalid={!!formErrors.location}
                             feedback={formErrors.location}
-                            addon={<Icon name="location" size="16"/>}
+                            addonBefore={<Icon name="location" size="16"/>}
                             disabled={isSubmitting}
                         />
                     </div>
@@ -208,7 +192,7 @@ function CreateProfile() {
                             id="gender"
                             name="gender"
                             className={`form-control ${formErrors.gender ? 'is-invalid' : ''}`}
-                            value={formData.gender}
+                            value={formData.gender || ''}
                             onChange={handleChange}
                             disabled={isSubmitting}
                         >
@@ -228,58 +212,50 @@ function CreateProfile() {
 
                         <div className="media-item">
                             <h4>Ảnh đại diện</h4>
-                            <div className="file-input-container">
-                                <input
-                                    type="file"
-                                    id="avatar"
-                                    name="avatar"
-                                    className="file-input"
-                                    onChange={handleFileChange}
-                                    accept="image/*"
-                                    disabled={isSubmitting}
-                                />
-                                <label htmlFor="avatar" className="file-input-label">
-                                    Chọn ảnh đại diện
-                                </label>
-
-                                {avatarPreview ? (
-                                    <div className="image-preview">
-                                        <img src={avatarPreview} alt="Avatar preview" className="avatar-preview"/>
-                                    </div>
-                                ) : (
-                                    <div className="preview-placeholder">
-                                        Chưa có ảnh đại diện
-                                    </div>
-                                )}
-                            </div>
+                            <Input
+                                type="file"
+                                id="avatarFile"
+                                name="avatarFile"
+                                label="Chọn ảnh đại diện"
+                                showLabelForFile={false}
+                                onChange={handleFileChange}
+                                accept="image/*"
+                                disabled={isSubmitting}
+                                mainClass="file-input-label"
+                            />
+                            {avatarPreview ? (
+                                <div className="image-preview">
+                                    <img src={avatarPreview} alt="Avatar preview" className="avatar-preview"/>
+                                </div>
+                            ) : (
+                                <div className="preview-placeholder">
+                                    Chưa có ảnh đại diện
+                                </div>
+                            )}
                         </div>
 
                         <div className="media-item">
                             <h4>Ảnh bìa</h4>
-                            <div className="file-input-container">
-                                <input
-                                    type="file"
-                                    id="banner"
-                                    name="banner"
-                                    className="file-input"
-                                    onChange={handleFileChange}
-                                    accept="image/*"
-                                    disabled={isSubmitting}
-                                />
-                                <label htmlFor="banner" className="file-input-label">
-                                    Chọn ảnh bìa
-                                </label>
-
-                                {bannerPreview ? (
-                                    <div className="image-preview">
-                                        <img src={bannerPreview} alt="Banner preview" className="banner-preview"/>
-                                    </div>
-                                ) : (
-                                    <div className="preview-placeholder">
-                                        Chưa có ảnh bìa
-                                    </div>
-                                )}
-                            </div>
+                            <Input
+                                type="file"
+                                id="bannerFile"
+                                name="bannerFile"
+                                label="Chọn ảnh bìa"
+                                showLabelForFile={false}
+                                onChange={handleFileChange}
+                                accept="image/*"
+                                disabled={isSubmitting}
+                                mainClass="file-input-label"
+                            />
+                            {bannerPreview ? (
+                                <div className="image-preview">
+                                    <img src={bannerPreview} alt="Banner preview" className="banner-preview"/>
+                                </div>
+                            ) : (
+                                <div className="preview-placeholder">
+                                    Chưa có ảnh bìa
+                                </div>
+                            )}
                         </div>
                     </div>
 

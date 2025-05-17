@@ -5,7 +5,7 @@ import RegisteredUserDAO from '#daos/registered-user.dao.js';
 import Message, {MessageTypeEnum} from '#models/message.model.js';
 import EventBus from '#core/event-bus.js';
 import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from '#errors/AppError.js';
-import {postgresInstance} from "#db/postgres.js";
+import {postgresInstance} from "#configs/postgres.config.js";
 
 class ChatService {
     /**

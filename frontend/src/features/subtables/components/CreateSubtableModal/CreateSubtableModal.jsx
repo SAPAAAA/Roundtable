@@ -1,5 +1,5 @@
 // src/features/subtables/components/CreateSubtableModal/CreateSubtableModal.jsx
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useFetcher, useNavigate} from 'react-router';
 
 import Modal from '#shared/components/UIElement/Modal/Modal';
@@ -19,7 +19,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
     const [currentStep, setCurrentStep] = useState(1);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [subtableType, setSubtableType] = useState('public');
+    const [subtableType, setSubtableType] = useState('public'); // Default or manage as needed
     const [isNSFW, setIsNSFW] = useState(false);
     const [message, setMessage] = useState(null);
     const [nameError, setNameError] = useState('');
@@ -30,8 +30,37 @@ export default function CreateSubtableModal({isOpen, onClose}) {
     const nameCharacterLimit = 20;
     const descriptionCharacterLimit = 500;
 
+    // Ref to track if the current actionData has already triggered success actions
+    const processedActionDataRef = useRef(null);
+
+    // Effect to reset modal state when it's opened or closed
     useEffect(() => {
         if (isOpen) {
+            setCurrentStep(1);
+            setName('');
+            setDescription('');
+            setSubtableType('public');
+            setIsNSFW(false);
+            setMessage(null); // Clear any previous success/error messages
+            setNameError('');
+            setDescriptionError('');
+
+            // Revoke old Object URLs and reset previews
+            if (iconPreview) URL.revokeObjectURL(iconPreview);
+            setIconPreview(null);
+            if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+            setBannerPreview(null);
+
+            // Reset file input fields visually
+            const iconInput = document.getElementById('subtable-icon-file');
+            if (iconInput) iconInput.value = '';
+            const bannerInput = document.getElementById('subtable-banner-file');
+            if (bannerInput) bannerInput.value = '';
+
+            processedActionDataRef.current = null; // Reset ref when modal opens
+
+        } else {
+            // Perform full cleanup when modal is closing
             setCurrentStep(1);
             setName('');
             setDescription('');
@@ -50,63 +79,44 @@ export default function CreateSubtableModal({isOpen, onClose}) {
             if (iconInput) iconInput.value = '';
             const bannerInput = document.getElementById('subtable-banner-file');
             if (bannerInput) bannerInput.value = '';
-        } else {
-            // Modal is closing: Perform full cleanup.
-            setCurrentStep(1);
-            setName('');
-            setDescription('');
-            setSubtableType('public');
-            setIsNSFW(false);
-            setMessage(null);
-            setNameError('');
-            setDescriptionError('');
-
-            if (iconPreview) {
-                URL.revokeObjectURL(iconPreview);
-                setIconPreview(null);
-            }
-            if (bannerPreview) {
-                URL.revokeObjectURL(bannerPreview);
-                setBannerPreview(null);
-            }
-
-            const iconInput = document.getElementById('subtable-icon-file');
-            if (iconInput) iconInput.value = '';
-            const bannerInput = document.getElementById('subtable-banner-file');
-            if (bannerInput) bannerInput.value = '';
+            // Optionally reset ref on close as well, though resetting on open is primary
+            // processedActionDataRef.current = null;
         }
-    }, [isOpen]);
+    }, [isOpen]); // Only re-run if isOpen changes
 
-    // Effect for cleaning up Object URLs when previews change or component unmounts.
+    // Effect for cleaning up Object URLs for previews when iconPreview/bannerPreview change or component unmounts
     useEffect(() => {
         const currentIconPreviewUrl = iconPreview;
         const currentBannerPreviewUrl = bannerPreview;
 
         return () => {
-            if (currentIconPreviewUrl) {
-                URL.revokeObjectURL(currentIconPreviewUrl);
-            }
-            if (currentBannerPreviewUrl) {
-                URL.revokeObjectURL(currentBannerPreviewUrl);
-            }
+            if (currentIconPreviewUrl) URL.revokeObjectURL(currentIconPreviewUrl);
+            if (currentBannerPreviewUrl) URL.revokeObjectURL(currentBannerPreviewUrl);
         };
     }, [iconPreview, bannerPreview]);
 
+    // Effect to handle data from the fetcher (actionData)
     useEffect(() => {
-        if (actionData) {
+        // Only process if actionData exists and is different from the last processed one
+        if (actionData && actionData !== processedActionDataRef.current) {
             if (actionData.success) {
                 setMessage({type: 'success', text: actionData.message || 'Cộng đồng đã được tạo thành công!'});
+
+                // Mark this actionData as processed to prevent re-triggering success actions
+                processedActionDataRef.current = actionData;
+
                 setTimeout(() => {
-                    onClose(); // Triggers state reset via the useEffect dependent on `isOpen`.
-                    const createdSubtable = actionData.subtable || actionData.data;
-                    const createdNameValue = createdSubtable?.name || name.trim();
+                    onClose(); // This will trigger the useEffect based on `isOpen` to reset state
+                    const createdSubtable = actionData.subtable || actionData.data; // Prefer actionData.subtable
+                    const createdNameValue = createdSubtable?.name || name.trim(); // Use actual created name or fallback
                     if (createdNameValue) {
                         navigate(`/s/${createdNameValue}`);
                     } else {
-                        navigate('/');
+                        navigate('/'); // Fallback navigation
                     }
                 }, 1500);
             } else {
+                // Handle error messages from actionData
                 let errorMessage = actionData.message || 'Không thể tạo cộng đồng.';
                 if (actionData.field === 'name') {
                     setNameError(errorMessage);
@@ -115,6 +125,8 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                 } else {
                     setMessage({type: 'danger', text: errorMessage});
                 }
+                // Mark this error actionData as processed as well
+                processedActionDataRef.current = actionData;
             }
         }
     }, [actionData, onClose, navigate, name]);
@@ -130,6 +142,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
         }
         if (message) setMessage(null);
         if (nameError) setNameError('');
+        processedActionDataRef.current = null; // Reset if user types, allowing new actionData to be processed
     };
 
     const handleDescriptionChange = (e) => {
@@ -137,12 +150,9 @@ export default function CreateSubtableModal({isOpen, onClose}) {
         if (newDescription.length <= descriptionCharacterLimit) {
             setDescription(newDescription);
         }
-        if (descriptionError) {
-            setDescriptionError('');
-        }
-        if (message) {
-            setMessage(null);
-        }
+        if (descriptionError) setDescriptionError('');
+        if (message) setMessage(null);
+        processedActionDataRef.current = null; // Reset if user types
     };
 
     const handleFileChange = (e) => {
@@ -152,24 +162,25 @@ export default function CreateSubtableModal({isOpen, onClose}) {
             const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             if (!validImageTypes.includes(file.type)) {
                 alert('Vui lòng chọn tệp hình ảnh hợp lệ (JPEG, PNG, GIF, WEBP).');
-                e.target.value = '';
+                e.target.value = ''; // Clear the input
                 return;
             }
             if (file.size > 5 * 1024 * 1024) { // 5MB limit
                 alert('Kích thước tệp quá lớn. Vui lòng chọn tệp nhỏ hơn 5MB.');
-                e.target.value = '';
+                e.target.value = ''; // Clear the input
                 return;
             }
             const fileUrl = URL.createObjectURL(file);
 
             if (inputName === 'iconFile') {
-                if (iconPreview) URL.revokeObjectURL(iconPreview); // Revoke old URL
+                if (iconPreview) URL.revokeObjectURL(iconPreview); // Revoke old URL before setting new one
                 setIconPreview(fileUrl);
             } else if (inputName === 'bannerFile') {
                 if (bannerPreview) URL.revokeObjectURL(bannerPreview); // Revoke old URL
                 setBannerPreview(fileUrl);
             }
         } else {
+            // Handle case where file selection is cancelled or cleared
             if (inputName === 'iconFile') {
                 if (iconPreview) URL.revokeObjectURL(iconPreview);
                 setIconPreview(null);
@@ -178,6 +189,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                 setBannerPreview(null);
             }
         }
+        processedActionDataRef.current = null; // Reset if files change
     };
 
     const validateStep1 = useCallback(() => {
@@ -200,9 +212,9 @@ export default function CreateSubtableModal({isOpen, onClose}) {
             isValid = false;
         }
 
-        if (description.length > descriptionCharacterLimit) {
+        if (description.length > descriptionCharacterLimit) { // Description is optional, only validate length if provided
             currentDescriptionError = `Mô tả không được vượt quá ${descriptionCharacterLimit} ký tự.`;
-            isValid = false;
+            isValid = false; // Or just show error but allow proceeding if description is optional
         }
 
         setNameError(currentNameError);
@@ -213,29 +225,33 @@ export default function CreateSubtableModal({isOpen, onClose}) {
     const handleNext = () => {
         if (validateStep1()) {
             setCurrentStep(2);
-            setMessage(null);
+            setMessage(null); // Clear messages when moving steps
         }
     };
 
     const handleBack = () => {
         setCurrentStep(1);
-        setMessage(null);
+        setMessage(null); // Clear messages when moving steps
     };
 
     const handleSubmit = (event) => {
+        // Clear previous messages before submitting
         setMessage(null);
+        setNameError('');
+        setDescriptionError('');
+        processedActionDataRef.current = null; // Allow actionData to be processed for this new submission
+
         const isStep1DataValid = validateStep1();
 
         if (!isStep1DataValid && currentStep === 2) {
-            setCurrentStep(1); // Force back to step 1 if data is invalid
+            // If on step 2 but step 1 data became invalid (e.g. devtools manipulation)
+            setCurrentStep(1); // Force back to step 1
+            event.preventDefault(); // Prevent form submission
+            return;
         } else if (currentStep === 1 && !isStep1DataValid) {
-            // Prevent submission from step 1 if data is invalid.
-            // The Form component itself might be prevented from submitting by the Button's disabled state.
-            console.warn("Submit called on Step 1 with invalid data.");
-        } else {
-            // Allow form submission
-            setNameError('');
-            setDescriptionError('');
+            // If on step 1 and data is invalid, prevent submission
+            event.preventDefault(); // Prevent form submission
+            return;
         }
     };
 
@@ -247,7 +263,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                     name="name"
                     type="text"
                     label="Tên cộng đồng"
-                    placeholder=" "
+                    placeholder=" " // For floating label
                     value={name}
                     onChange={handleNameChange}
                     required
@@ -289,6 +305,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
 
     const renderStep2 = () => (
         <>
+            {/* Hidden fields to carry over data from step 1 if needed by the form structure */}
             <input type="hidden" name="name" value={name}/>
             <input type="hidden" name="description" value={description}/>
 
@@ -341,6 +358,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                 </div>
             </div>
 
+            {/* Hidden input for subtableType if it's part of the form submission */}
             <input type="hidden" name="subtableType" value={subtableType}/>
 
             <div className="form-check form-switch mb-4 adult-content-switch">
@@ -389,9 +407,9 @@ export default function CreateSubtableModal({isOpen, onClose}) {
                             Quay lại
                         </Button>
                         <Button
-                            type="submit"
+                            type="submit" // This will trigger the Form's onSubmit, then the fetcher
                             addClass="btn-primary px-4 modal-button-custom"
-                            form="create-subtable-form"
+                            form="create-subtable-form" // Associates button with the form
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? 'Đang tạo...' : 'Tạo cộng đồng'}
@@ -413,7 +431,7 @@ export default function CreateSubtableModal({isOpen, onClose}) {
             <Form
                 id="create-subtable-form"
                 method="post"
-                action="/s"
+                action="/s" // Your API endpoint for creating subtables
                 preventNavigation={true}
                 fetcher={fetcher}
                 mainClass="create-subtable-form-content"

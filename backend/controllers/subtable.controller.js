@@ -54,10 +54,10 @@ class SubtableController {
      * @param {import('express').Request} req - Express request object.
      * @param {import('express').Response} res - Express response object.
      */
-    getSubtableDetails = async (req, res) => {
+    getSubtableDetailsByName = async (req, res) => {
         try {
             const {subtableName} = req.params;
-            const subtableDetails = await this.subtableService.getSubtableDetails(subtableName);
+            const subtableDetails = await this.subtableService.getSubtableDetailsByName(subtableName);
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
@@ -158,11 +158,15 @@ class SubtableController {
      */
     createSubtable = async (req, res) => {
         try {
-            const {name, description, iconFile, bannerFile} = req.body;
-            console.log(`[SubtableController:createSubtable] Received request to create subtable with name: ${name}`);
-            const {userId} = req.session; // Creator is the logged-in user
-            if (!userId) { /* Handle unauthorized */
+            const {name, description} = req.body;
+            let iconFile, bannerFile;
+            if (req.files) {
+                iconFile = req.files.iconFile ? req.files.iconFile[0] : null;
+                bannerFile = req.files.bannerFile ? req.files.bannerFile[0] : null;
             }
+
+            const {userId} = req.session;
+
             const newSubtable = await this.subtableService.createSubtable(userId, {
                 name,
                 description,

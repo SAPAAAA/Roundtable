@@ -1,54 +1,79 @@
-// src/utils/apiClient.js (Create this new file or add to an existing utility file)
-
 /**
  * Sends an API request.
  * @param {string} url - The endpoint URL.
  * @param {object} options - Fetch options.
  * @param {string} [options.method='GET'] - HTTP method.
- * @param {object|null} [options.body=null] - Request body (will be JSON stringified).
+ * @param {object|FormData|null} [options.body=null] - Request body. If FormData, Content-Type is omitted. Otherwise, JSON stringified.
  * @param {object} [options.headers={}] - Additional headers.
  * @returns {Promise<object>} - The JSON response data.
  * @throws {Error} - Throws an error with status and data on failure.
  */
 export async function sendApiRequest(url, options = {}) {
-    const {method = 'GET', body = null, headers = {}} = options;
+    const {method = 'GET', body = null, headers: customHeaders = {}} = options;
+
+    let requestBody = body;
+    // Start with custom headers provided, or an empty object if none.
+    let effectiveHeaders = {...customHeaders};
+
+    if (body) {
+        if (body instanceof FormData) {
+            // If body is FormData, browser sets Content-Type automatically with boundary.
+            // So, remove any Content-Type header that might have been manually set.
+            delete effectiveHeaders['Content-Type'];
+        } else {
+            // For non-FormData bodies, assume JSON unless Content-Type is set otherwise.
+            // Stringify the body.
+            requestBody = JSON.stringify(body);
+            // Set Content-Type to application/json if not already set to something else.
+            if (!effectiveHeaders['Content-Type']) {
+                effectiveHeaders['Content-Type'] = 'application/json';
+            }
+        }
+    }
 
     try {
         const response = await fetch(url, {
             method,
-            body: body ? JSON.stringify(body) : null,
-            headers: {
-                'Content-Type': 'application/json',
-                ...headers,
-            },
+            body: requestBody,
+            headers: effectiveHeaders,
             credentials: 'include',
         });
 
-        // Try to parse JSON body even for errors, as it might contain details
-        const responseData = await response.json();
-        console.log("responseData", responseData);
+        let responseData;
+        const responseContentType = response.headers.get('content-type');
+
+        if (responseContentType && responseContentType.includes('application/json')) {
+            responseData = await response.json();
+        } else {
+            // Handle non-JSON responses (e.g., text, or empty for 204)
+            // For empty responses (like 204 No Content), .text() is fine and returns empty string.
+            const textData = await response.text();
+            responseData = textData ? {message: textData, success: response.ok} : {success: response.ok};
+            if (response.status === 204 && !textData) { // Specifically handle 204 if you expect it
+                responseData = {success: true, status: 204, message: "Operation successful (No Content)"};
+            }
+        }
+        console.log("responseData from apiClient:", responseData);
+
 
         if (!response.ok) {
-            // Create a custom error object including status and response data
             const error = new Error(responseData.message || `Request failed with status ${response.status}`);
             error.status = response.status;
-            error.data = responseData; // Attach the parsed error response body
+            error.data = responseData; // Attach the parsed/constructed error response body
             throw error;
         }
 
-        // Return the parsed data on success
         return {
-            status: response.status,
+            status: response.status, // Add original status to success response
             ...responseData
-        }
+        };
 
     } catch (err) {
-        console.error(`API Request Error to ${url}:`, err);
-        // Ensure the error has a status if possible, default to 500
+        console.error(`API Request Error to ${url}:`, err.message, err.data || err);
+        // Ensure the error has a status if possible, default to 500 if not an HTTP error from fetch
         if (!err.status) {
             err.status = 500;
         }
-        // Re-throw the error so the calling function (e.g., router action) can handle it
-        throw err;
+        throw err; // Re-throw the error
     }
 }

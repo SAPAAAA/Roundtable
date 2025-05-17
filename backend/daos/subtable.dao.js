@@ -1,5 +1,5 @@
 // backend/daos/subtable.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Subtable from '#models/subtable.model.js';
 import {ConflictError} from "#errors/AppError.js";
 

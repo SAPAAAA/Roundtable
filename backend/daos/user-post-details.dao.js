@@ -1,5 +1,5 @@
 // backend/daos/user-post-details.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import UserPostDetails from '#models/user-post-details.model.js';
 
 /**

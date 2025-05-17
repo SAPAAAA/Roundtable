@@ -1,6 +1,6 @@
 // backend/daos/moderator.dao.js
 
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Moderator from '#models/moderator.model.js'; // Ensure this path is correct for your Moderator model
 import {ConflictError} from "#errors/AppError.js"; // Assuming NotFoundError might not be directly thrown from DAO based on example
 

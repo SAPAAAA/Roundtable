@@ -3,7 +3,7 @@ import NotificationDAO from '#daos/notification.dao.js';
 import UserPostDetailsDAO from "#daos/user-post-details.dao.js"; // Used for comment notifications
 import UserProfileDAO from "#daos/user-profile.dao.js"; // Used for user checks & triggerer info
 import Notification, {NotificationTypeEnum} from '#models/notification.model.js';
-import {postgresInstance} from "#db/postgres.js";
+import {postgresInstance} from "#configs/postgres.config.js";
 import EventBus from '#core/event-bus.js';
 import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 

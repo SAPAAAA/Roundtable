@@ -8,7 +8,7 @@ import RegisteredUserDao from "#daos/registered-user.dao.js";
 import SubtableDao from "#daos/subtable.dao.js";
 import SubscriptionDao from "#daos/subscription.dao.js";
 import Post from "#models/post.model.js";
-import {postgresInstance} from "#db/postgres.js"; // Assuming postgresInstance is correctly exported
+import {postgresInstance} from "#configs/postgres.config.js"; // Assuming postgresInstance is correctly exported
 
 /**
  * Helper function for structuring comments and adding user vote status.

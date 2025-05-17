@@ -1,5 +1,5 @@
 // backend/daos/registered-user.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import RegisteredUser from '#models/registered-user.model.js';
 
 class RegisteredUserDAO {

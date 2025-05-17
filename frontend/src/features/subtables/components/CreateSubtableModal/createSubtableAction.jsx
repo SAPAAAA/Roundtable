@@ -9,13 +9,6 @@ export default async function createSubtableAction({request}) {
     const description = formData.get('description');
     const iconFile = formData.get('iconFile');
     const bannerFile = formData.get('bannerFile');
-    // const subtableType = formData.get('subtableType');
-    // const isNSFW = formData.get('isNSFW') === 'on'; // Checkbox value is 'on' or null
-
-    console.log("createSubtableAction: name", name);
-    console.log("createSubtableAction: description", description);
-    console.log("createSubtableAction: iconFile", iconFile);
-    console.log("createSubtableAction: bannerFile", bannerFile);
 
     // Basic validation (can be more robust)
     if (!name || name.trim() === '') {

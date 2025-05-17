@@ -527,6 +527,23 @@ LEFT JOIN "Profile" recipient_p_profile ON recipient_p."profileId" = recipient_p
 LEFT JOIN "Media" recipient_avatar_media ON recipient_p_profile."avatar" = recipient_avatar_media."mediaId"
 LEFT JOIN "UserProfile" recipient_up ON m."recipientPrincipalId" = recipient_up."principalId";
 
+CREATE OR REPLACE VIEW "SubtableDetails" AS
+SELECT
+    s."subtableId",
+    s."name",
+    s."description",
+    s."createdAt" AS "subtableCreatedAt",
+    s."memberCount",
+    icon_media.url AS "icon",
+    banner_media.url AS "banner",
+    up."userId" AS "creatorUserId",
+    up."username" AS "creatorUsername",
+    up."displayName" AS "creatorDisplayName",
+    up."avatar" AS "creatorAvatar"
+FROM "Subtable" s
+LEFT JOIN "Media" icon_media ON s."icon" = icon_media."mediaId"
+LEFT JOIN "Media" banner_media ON s."banner" = banner_media."mediaId"
+LEFT JOIN "UserProfile" up ON s."creatorUserId" = up."userId";
 
 -- STEP 8: Insert Sample Data
 -- Insert Accounts

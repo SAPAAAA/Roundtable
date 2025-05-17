@@ -1,5 +1,5 @@
 // backend/daos/message.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Message from '#models/message.model.js';
 
 /**

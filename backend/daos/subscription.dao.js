@@ -1,5 +1,5 @@
 // dao/subscription.dao.js
-import {postgresInstance} from '#db/postgres.js'; // Assuming Knex instance is exported here
+import {postgresInstance} from '#configs/postgres.config.js'; // Assuming Knex instance is exported here
 import Subscription from '#models/subscription.model.js'; // Adjust path if needed
 
 /**

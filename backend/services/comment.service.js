@@ -5,7 +5,7 @@ import commentDao from "#daos/comment.dao.js";
 import userCommentDetailsDao from "#daos/user-comment-details.dao.js";
 import voteDap from "#daos/vote.dao.js";
 import Comment from "#models/comment.model.js";
-import {postgresInstance} from "#db/postgres.js";
+import {postgresInstance} from "#configs/postgres.config.js";
 import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError,} from "#errors/AppError.js"; // Import necessary error types
 import eventBus from '#core/event-bus.js';
 

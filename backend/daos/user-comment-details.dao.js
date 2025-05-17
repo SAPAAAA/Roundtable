@@ -1,4 +1,4 @@
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import UserCommentDetails from '#models/user-comment-details.model.js';
 
 /**

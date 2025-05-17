@@ -1,5 +1,5 @@
 // backend/daos/principal.dao.js
-import {postgresInstance} from "#db/postgres.js";
+import {postgresInstance} from "#configs/postgres.config.js";
 import Principal from "#models/principal.model.js";
 
 class PrincipalDAO {
@@ -25,6 +25,17 @@ class PrincipalDAO {
             return principalRow ? Principal.fromDbRow(principalRow) : null;
         } catch (error) {
             console.error(`[PrincipalDAO] Error fetching principal by Account ID ${accountId}:`, error);
+            throw error;
+        }
+    }
+
+    async getByProfileId(profileId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        try {
+            const principalRow = await queryBuilder(this.tableName).where({profileId}).first();
+            return principalRow ? Principal.fromDbRow(principalRow) : null;
+        } catch (error) {
+            console.error(`[PrincipalDAO] Error fetching principal by Profile ID ${profileId}:`, error);
             throw error;
         }
     }

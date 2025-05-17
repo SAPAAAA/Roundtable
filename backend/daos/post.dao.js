@@ -1,5 +1,5 @@
 // daos/post.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Post from '#models/post.model.js';
 
 class PostDAO {

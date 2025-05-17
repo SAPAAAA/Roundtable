@@ -1,5 +1,5 @@
 // backend/daos/notification.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Notification from '#models/notification.model.js';
 
 class NotificationDAO {

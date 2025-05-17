@@ -11,9 +11,9 @@ import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingS
 
 export default function SubtableView() {
     // --- Hooks ---
-    const {detailsData, postsData, loaderError} = useLoaderData();
-    console.log("SubtableView detailsData:", detailsData);
-    console.log("SubtableView postsData:", postsData);
+    const {subtableDetailsData, subtablePostsData, loaderError} = useLoaderData();
+    console.log("SubtableView subtableDetailsData:", subtableDetailsData);
+    console.log("SubtableView subtablePostsData:", subtablePostsData);
     console.log("SubtableView loaderError:", loaderError);
     const navigation = useNavigation();
     const {subtableName: subtableNameFromParams} = useParams();
@@ -22,7 +22,7 @@ export default function SubtableView() {
     const isLoading = navigation.state === 'loading';
 
     // --- Handle Loader Errors ---
-    if (loaderError && !detailsData) {
+    if (loaderError && !subtableDetailsData) {
         return (
             <div className="alert alert-danger m-3" role="alert">
                 Error loading subtable: {loaderError}
@@ -34,7 +34,7 @@ export default function SubtableView() {
     }
 
     // --- Handle Not Found ---
-    if (!isLoading && !detailsData) {
+    if (!isLoading && !subtableDetailsData) {
         return (
             <div className="alert alert-warning m-3" role="alert">
                 Could not find subtable "{subtableNameFromParams}".
@@ -43,13 +43,14 @@ export default function SubtableView() {
     }
 
     // --- Extract Data ---
-    const subtableInfo = detailsData;
+    const subtableInfo = subtableDetailsData;
+    console.log("SubtableView subtableInfo:", subtableInfo);
     const subtableDisplayName = subtableInfo?.name || subtableNameFromParams || "Subtable";
     const subtableAvatar = subtableInfo?.icon;
     const subtableBanner = subtableInfo?.banner;
 
     // --- Prepare Posts Data using Destructuring (Keeping 'body') ---
-    const posts = isLoading ? [] : (postsData || []).map((item) => {
+    const posts = isLoading ? [] : (subtablePostsData || []).map((item) => {
         // Destructure author, and collect the rest into postDetails
         // 'body' will now be part of postDetails if it exists on item
         const {author, ...postDetails} = item;
@@ -72,7 +73,7 @@ export default function SubtableView() {
 
     /*
     // Alternative mapping if PostCore strictly needs 'content':
-    const posts = isLoading ? [] : (postsData || []).map((item) => {
+    const posts = isLoading ? [] : (subtablePostsData || []).map((item) => {
         const { author, body, ...otherPostDetails } = item; // Extract body explicitly
         return {
             post: { ...otherPostDetails, content: body }, // Map body to content

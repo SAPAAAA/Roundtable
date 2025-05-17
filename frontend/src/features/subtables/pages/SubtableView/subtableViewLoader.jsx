@@ -16,37 +16,33 @@ export default async function subtableViewLoader({params}) {
     try {
         // Fetch details and posts concurrently
         console.log("Fetching details and posts for subtable:", subtableName);
-        const detailsResponse = await subtableService.getSubtableDetails(subtableName);
-        const postsResponse = await subtableService.getSubtablePosts(subtableName); // Use the correct function
+        const subtableDetailsResponse = await subtableService.getSubtableDetailsByName(subtableName);
+        const subtablePostsResponse = await subtableService.getSubtablePosts(subtableName); // Use the correct function
 
-        console.log("Details Response:", detailsResponse);
-        console.log("Posts Response:", postsResponse);
-
-        let detailsData = null;
-        let postsData = [];
+        let subtableDetailsData = null;
+        let subtablePostsData = [];
 
         // Process details response
-        if (detailsResponse.success && detailsResponse.data) {
+        if (subtableDetailsResponse.success && subtableDetailsResponse.data) {
             // Assuming details are nested like this based on previous component structure
-            detailsData = detailsResponse.data;
-            console.log("Details Data:", detailsData);
+            subtableDetailsData = subtableDetailsResponse.data;
         } else {
-            console.warn(`Loader Warning: Could not fetch valid details for subtable "${subtableName}".`, detailsResponse);
-            loaderError = (loaderError ? loaderError + '\n' : '') + (detailsResponse.message || `Failed to load details for ${subtableName}.`);
+            console.warn(`Loader Warning: Could not fetch valid details for subtable "${subtableName}".`, subtableDetailsResponse);
+            loaderError = (loaderError ? loaderError + '\n' : '') + (subtableDetailsResponse.message || `Failed to load details for ${subtableName}.`);
         }
 
         // Process posts response
-        if (postsResponse.success && Array.isArray(postsResponse.data)) {
-            postsData = postsResponse.data;
+        if (subtablePostsResponse.success && Array.isArray(subtablePostsResponse.data)) {
+            subtablePostsData = subtablePostsResponse.data;
         } else {
-            console.warn(`Loader Warning: Could not fetch valid posts for subtable "${subtableName}".`, postsResponse);
-            loaderError = (loaderError ? loaderError + '\n' : '') + (postsResponse.message || `Failed to load posts for ${subtableName}.`);
+            console.warn(`Loader Warning: Could not fetch valid posts for subtable "${subtableName}".`, subtablePostsResponse);
+            loaderError = (loaderError ? loaderError + '\n' : '') + (subtablePostsResponse.message || `Failed to load posts for ${subtableName}.`);
         }
 
         // Return fetched data and any accumulated errors
         return {
-            detailsData, // Should contain { name, icon, banner, ... }
-            postsData,   // Should be an array like [{ post: {...}, author: {...} }, ...] or similar
+            subtableDetailsData, // Should contain { name, icon, banner, ... }
+            subtablePostsData,   // Should be an array like [{ post: {...}, author: {...} }, ...] or similar
             loaderError
         };
 

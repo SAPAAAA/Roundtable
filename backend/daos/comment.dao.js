@@ -1,5 +1,5 @@
 // daos/comment.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Comment from '#models/comment.model.js';
 
 class CommentDAO {

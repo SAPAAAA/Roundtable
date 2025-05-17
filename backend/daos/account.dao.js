@@ -1,5 +1,5 @@
 // backend/daos/account.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Account from '#models/account.model.js'; // Ensure Account model has fromDbRow
 
 class AccountDAO {

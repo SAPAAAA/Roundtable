@@ -1,5 +1,5 @@
 // backend/daos/user-message-details.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import UserMessageDetails from '#models/user-message-details.model.js';
 
 /**

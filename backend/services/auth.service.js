@@ -3,29 +3,36 @@ import argon2 from 'argon2';
 import dotenv from 'dotenv';
 
 // --- PostgresDB & Cache Clients ---
-import {postgresInstance} from '#db/postgres.js';
-import redisClient from '#db/redis.js';
+import {postgresInstance} from '#configs/postgres.config.js';
+import redisClient from '#configs/redis.config.js';
 
 // --- Utility Functions ---
 import {generateShortCode} from '#utils/codeGenerator.js';
 import {sendMail} from '#utils/email.js';
 
 // --- Data Access Objects (DAOs) ---
-import AccountDAO from '#daos/account.dao.js';
-import PrincipalDAO from '#daos/principal.dao.js';
-import ProfileDAO from '#daos/profile.dao.js';
-import RegisteredUserDAO from '#daos/registered-user.dao.js';
-import UserProfileDAO from '#daos/user-profile.dao.js';
+import accountDao from '#daos/account.dao.js';
+import principalDao from '#daos/principal.dao.js';
+import profileDao from '#daos/profile.dao.js';
+import registeredUserDao from '#daos/registered-user.dao.js';
+import userProfileDao from '#daos/user-profile.dao.js';
+import mediaDao from "#daos/media.dao.js";
 
 // --- Data Models ---
 import Account from '#models/account.model.js';
 import Profile from '#models/profile.model.js';
 import RegisteredUser from '#models/registered-user.model.js';
 import Principal, {PrincipalRoleEnum} from '#models/principal.model.js';
+import Media, {MediaTypeEnum} from "#models/media.model.js";
+
+// --- AWS & S3 Utilities ---
+import {CLOUDFRONT_MEDIA_DOMAIN_NAME, S3_MEDIA_BUCKET_NAME} from "#configs/aws.config.js";
+import s3Service from "#services/s3.service.js";
 
 // --- Constants & Custom Errors ---
 import {HASH_OPTIONS} from '#constants/security.js';
 import {
+    AppError,
     AuthenticationError,
     BadRequestError,
     ConflictError,
@@ -34,6 +41,7 @@ import {
     NotFoundError,
     VerificationError,
 } from '#errors/AppError.js';
+
 
 dotenv.config();
 
@@ -67,12 +75,13 @@ async function verifyPassword(hashedPassword, plainPassword) {
  * @description Handles core business logic for authentication, registration, verification.
  */
 class AuthService {
-    constructor(accountDao, principalDao, profileDao, registeredUserDao, userProfileDao) {
+    constructor(accountDao, principalDao, profileDao, registeredUserDao, userProfileDao, mediaDao) {
         this.accountDao = accountDao;
         this.principalDao = principalDao;
         this.profileDao = profileDao;
         this.registeredUserDao = registeredUserDao;
         this.userProfileDao = userProfileDao;
+        this.mediaDao = mediaDao;
     }
 
     /** Sends the verification email */
@@ -407,76 +416,107 @@ class AuthService {
 
     /**
      * Cập nhật thông tin profile theo profileId.
-     * @param {string} profileId - ID của profile cần cập nhật.
+     * @param {string} userId - ID của người dùng.
      * @param {object} profileData - Dữ liệu profile cần cập nhật.
      * @returns {Promise<Profile>} - Profile đã được cập nhật.
      */
-    async updateProfileById(profileId, profileData) {
-        if (!profileId) {
+    async updateProfile(profileData) {
+        if (!profileData.profileId) {
             throw new BadRequestError('Thiếu thông tin profileId.');
         }
 
         if (!profileData) {
-            // console.log('===(SERVICE) PROFILE DATA INVALID ===');
             throw new BadRequestError('Dữ liệu hồ sơ không hợp lệ.');
         }
 
-        // Kiểm tra giá trị gender nếu có
-        // if (profileData.gender && !Profile.isValidGender(profileData.gender)) {
-        //     console.log('===(SERVICE) INVALID GENDER VALUE ===', profileData.gender);
-        //     throw new BadRequestError('Giá trị gender không hợp lệ.');
-        // }
+        let profile = await profileDao.findById(profileData.profileId);
 
-        try {
-            // Chuẩn bị dữ liệu cập nhật
-            const updateData = {
-                avatar: null,
-                banner: null,
-                bio: profileData.bio,
-                location: profileData.location,
-                displayName: profileData.displayName,
-                gender: profileData.gender
-            };
-
-            // Loại bỏ các trường undefined
-            Object.keys(updateData).forEach(key => {
-                if (updateData[key] === undefined) {
-                    delete updateData[key];
-                }
-            });
-
-            // console.log('===(SERVICE) FINAL UPDATE DATA ===', JSON.stringify(updateData));
-
-            // Cập nhật profile trong database
-            // console.log('===(SERVICE) CALLING PROFILE DAO UPDATE ===');
-            const updatedProfile = await ProfileDAO.update(profileId, updateData);
-
-            if (!updatedProfile) {
-                // console.log('===(SERVICE) PROFILE UPDATE FAILED - NO PROFILE RETURNED ===');
-                throw new InternalServerError('Không thể cập nhật hồ sơ người dùng.');
-            }
-
-            // console.log('===(SERVICE) PROFILE UPDATED SUCCESSFULLY ===', JSON.stringify(updatedProfile));
-            return updatedProfile;
-        } catch (error) {
-            // console.log('===(SERVICE) ERROR IN UPDATE PROFILE BY ID ===', error.message);
-            // console.error('Lỗi khi cập nhật profile:', error);
-            // Nếu lỗi đã được xử lý (là instance của AppError), ném lại
-            if (error instanceof BadRequestError ||
-                error instanceof NotFoundError ||
-                error instanceof InternalServerError) {
-                throw error;
-            }
-            // Nếu là lỗi khác, bọc trong InternalServerError
-            throw new InternalServerError('Đã xảy ra lỗi khi cập nhật hồ sơ: ' + error.message);
+        if (!profile) {
+            throw new NotFoundError('Không tìm thấy hồ sơ với ID đã cho.');
         }
+
+        const principal = await this.principalDao.getByProfileId(profileData.profileId);
+        const registeredUser = await this.registeredUserDao.getByPrincipalId(principal.principalId);
+        const {userId} = registeredUser;
+        return await postgresInstance.transaction(async (transaction) => {
+            let createdAvatarMedia = null;
+            let createdBannerMedia = null;
+
+            try {
+                if (profileData.avatarFile && profileData.avatarFile.buffer) {
+                    try {
+                        const avatarMedia = new Media(null, userId, `${CLOUDFRONT_MEDIA_DOMAIN_NAME}`, MediaTypeEnum.IMAGE, profileData.avatarFile.mimetype.split("/")[1], profileData.avatarFile.size, null);
+                        createdAvatarMedia = await this.mediaDao.create(avatarMedia, transaction); // Assign to the outer scoped variable
+                        if (!createdAvatarMedia || !createdAvatarMedia.mediaId) { // Defensive check
+                            throw new InternalServerError("Avatar media creation returned invalid data.");
+                        }
+                        // Upload avatar to S3
+                        await s3Service.uploadObject(`uploads/images/${userId}/${createdAvatarMedia.mediaId}.${profileData.avatarFile.mimetype.split("/")[1]}`, profileData.avatarFile.buffer, profileData.avatarFile.mimetype, S3_MEDIA_BUCKET_NAME)
+                            .then((key) => {
+                                createdAvatarMedia.url = `${CLOUDFRONT_MEDIA_DOMAIN_NAME}/${key}`;
+                                return this.mediaDao.update(createdAvatarMedia, transaction);
+                            })
+                            .catch((error) => {
+                                console.error('[SubtableService:createSubtable] Error uploading avatar to S3:', error);
+                                throw new InternalServerError("Failed to upload avatar to S3.");
+                            });
+                    } catch (error) {
+                        console.error('[AuthService:updateProfile] Error creating avatar media entity:', error);
+                        if (error instanceof AppError) {
+                            throw error;
+                        }
+                        throw new InternalServerError("Failed to create avatar media entity.");
+                    }
+                }
+
+                if (profileData.bannerFile && profileData.bannerFile.buffer) {
+                    try {
+                        const bannerMedia = new Media(null, userId, `${CLOUDFRONT_MEDIA_DOMAIN_NAME}`, MediaTypeEnum.IMAGE, profileData.bannerFile.mimetype.split("/")[1], profileData.bannerFile.size, null);
+                        createdBannerMedia = await this.mediaDao.create(bannerMedia, transaction); // Assign to the outer scoped variable
+                        if (!createdBannerMedia || !createdBannerMedia.mediaId) { // Defensive check
+                            throw new InternalServerError("Banner media creation returned invalid data.");
+                        }
+                        // Upload banner to S3
+                        await s3Service.uploadObject(`uploads/images/${userId}/${createdBannerMedia.mediaId}.${profileData.bannerFile.mimetype.split("/")[1]}`, profileData.bannerFile.buffer, profileData.bannerFile.mimetype, S3_MEDIA_BUCKET_NAME)
+                            .catch((error) => {
+                                console.error('[AuthService:updateProfile] Error uploading banner to S3:', error);
+                                throw new InternalServerError("Failed to upload banner to S3.");
+                            });
+                    } catch (error) {
+                        console.error('[AuthService:updateProfile] Error creating banner media entity:', error);
+                        if (error instanceof AppError) {
+                            throw error;
+                        }
+                        throw new InternalServerError("Failed to create banner media entity.");
+                    }
+                }
+
+                if (createdAvatarMedia) {
+                    console.log('1234567890')
+                    profile.avatar = createdAvatarMedia.mediaId;
+                }
+                if (createdBannerMedia) {
+                    console.log('0987654321')
+                    profileData.banner = createdBannerMedia.mediaId;
+                }
+
+                return this.profileDao.update(profile, transaction);
+            } catch (error) {
+                console.error('[AuthService:updateProfile] Error during profile update:', error);
+                if (error instanceof AppError) {
+                    throw error;
+                }
+                throw new InternalServerError("Failed to update profile.");
+            }
+        });
     }
 }
 
 export default new AuthService(
-    AccountDAO,
-    PrincipalDAO,
-    ProfileDAO,
-    RegisteredUserDAO,
-    UserProfileDAO
+    accountDao,
+    principalDao,
+    profileDao,
+    registeredUserDao,
+    userProfileDao,
+    mediaDao,
 );

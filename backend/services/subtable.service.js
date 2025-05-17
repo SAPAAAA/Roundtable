@@ -1,29 +1,40 @@
 // backend/services/subtable.service.js
-import userPostDetailsDAO from '#daos/user-post-details.dao.js';
-import userProfileDAO from '#daos/user-profile.dao.js';
-import subtableDAO from '#daos/subtable.dao.js';
-import subscriptionDAO from '#daos/subscription.dao.js';
-import moderatorDAO from '#daos/moderator.dao.js';
+import userPostDetailsDao from '#daos/user-post-details.dao.js';
+import userProfileDao from '#daos/user-profile.dao.js';
+import subtableDao from '#daos/subtable.dao.js';
+import subtableDetailsDao from "#daos/subtable-details.dao.js";
+import subscriptionDao from '#daos/subscription.dao.js';
+import moderatorDao from '#daos/moderator.dao.js';
+import mediaDao from '#daos/media.dao.js';
 import {AppError, BadRequestError, ConflictError, InternalServerError, NotFoundError} from "#errors/AppError.js";
 import Subtable from "#models/subtable.model.js";
 import Subscription from "#models/subscription.model.js";
 import Moderator from "#models/moderator.model.js";
-import {postgresInstance} from "#db/postgres.js";
+import Media, {MediaTypeEnum} from "#models/media.model.js";
+import {postgresInstance} from "#configs/postgres.config.js";
+import s3Service from "#services/s3.service.js";
+import {CLOUDFRONT_MEDIA_DOMAIN_NAME, S3_MEDIA_BUCKET_NAME} from "#configs/aws.config.js";
 
 
 class SubtableService {
     /**
      * Constructor for SubtableService.
      * @param {SubtableDAO} subtableDao - Data Access Object for subtables.
+     * @param {SubtableDetailsDAO} subtableDetailsDao - DAO for the subtable_details view/q.
      * @param {UserPostDetailsDAO} userPostDetailsDao - DAO for the user_post_details view/q.
      * @param {UserProfileDAO} userProfileDao - DAO for user profiles.
+     * @param {SubscriptionDAO} subscriptionDao - DAO for subscriptions.
+     * @param {ModeratorDAO} moderatorDao - DAO for moderators.
+     * @param {MediaDAO} mediaDao - DAO for media.
      */
-    constructor(subtableDao, userPostDetailsDao, userProfileDao, subscriptionDao, moderatorDao) {
+    constructor(subtableDao, subtableDetailsDao, userPostDetailsDao, userProfileDao, subscriptionDao, moderatorDao, mediaDao) {
         this.subtableDao = subtableDao;
+        this.subtableDetailsDao = subtableDetailsDao;
         this.userPostDetailsDao = userPostDetailsDao;
         this.userProfileDao = userProfileDao;
         this.subscriptionDao = subscriptionDao;
         this.moderatorDao = moderatorDao;
+        this.mediaDao = mediaDao;
     }
 
     /**
@@ -63,18 +74,18 @@ class SubtableService {
     /**
      * Retrieves the details of a specific subtable.
      * @param {string} subtableName - The name of the subtable.
-     * @returns {Promise<Subtable>} A promise that resolves to the subtable details object.
+     * @returns {Promise<SubtableDetails>} A promise that resolves to the subtable details object.
      * @throws {BadRequestError} If subtableName is not provided.
      * @throws {NotFoundError} If the subtable does not exist.
      * @throws {InternalServerError} For unexpected errors during data retrieval.
      */
-    async getSubtableDetails(subtableName) {
+    async getSubtableDetailsByName(subtableName) {
         if (!subtableName || typeof subtableName !== 'string' || subtableName.trim() === '') {
             throw new BadRequestError("Subtable name is required and must be a non-empty string.");
         }
 
         try {
-            const subtable = await this.subtableDao.getByName(subtableName.trim());
+            const subtable = await this.subtableDetailsDao.getByName(subtableName.trim());
             if (!subtable) {
                 throw new NotFoundError(`Subtable '${subtableName}' not found.`);
             }
@@ -152,11 +163,70 @@ class SubtableService {
         // 3. Validate icon and banner files (Assuming this is handled or not critical for this error)
         const {name, description, iconFile, bannerFile} = subtableData; // iconFile and bannerFile are not used in provided snippet for creation logic but kept for consistency
 
+        console.log("Creating subtable with name: " + name + ", description: " + description + ", iconFile: " + iconFile + ", bannerFile: " + bannerFile);
         return await postgresInstance.transaction(async (transaction) => {
-            let createdSubtable; // Declare createdSubtable here, in the transaction's scope
+            let createdIconMedia;
+            let createdBannerMedia;
+            let createdSubtable;
+            let createdSubscription;
+            let createdModerator;
+
+            // 3.1. Create icon and banner media entities
+            if (iconFile && iconFile.buffer) {
+                try {
+                    const iconMedia = new Media(null, creatorUserId, `${CLOUDFRONT_MEDIA_DOMAIN_NAME}`, MediaTypeEnum.IMAGE, iconFile.mimetype.split("/")[1], iconFile.size, null);
+                    createdIconMedia = await this.mediaDao.create(iconMedia, transaction); // Assign to the outer scoped variable
+                    if (!createdIconMedia || !createdIconMedia.mediaId) { // Defensive check
+                        throw new InternalServerError("Icon media creation returned invalid data.");
+                    }
+                    // Upload icon to S3
+                    await s3Service.uploadObject(`uploads/images/${creatorUserId}/${createdIconMedia.mediaId}.${iconFile.mimetype.split("/")[1]}`, iconFile.buffer, iconFile.mimetype, S3_MEDIA_BUCKET_NAME)
+                        .then((key) => {
+                            createdIconMedia.url = `${CLOUDFRONT_MEDIA_DOMAIN_NAME}/${key}`;
+                            return this.mediaDao.update(createdIconMedia, transaction);
+                        })
+                        .catch((error) => {
+                            console.error('[SubtableService:createSubtable] Error uploading icon to S3:', error);
+                            throw new InternalServerError("Failed to upload icon to S3.");
+                        });
+                } catch (error) {
+                    console.error('[SubtableService:createSubtable] Error during mediaDao.create:', error);
+                    if (error instanceof AppError) {
+                        throw error;
+                    }
+                    throw new InternalServerError("Failed to create icon media entity.");
+                }
+            }
+
+            if (bannerFile && bannerFile.buffer) {
+                try {
+                    const bannerMedia = new Media(null, creatorUserId, `${CLOUDFRONT_MEDIA_DOMAIN_NAME}`, MediaTypeEnum.IMAGE, bannerFile.mimetype.split("/")[1], bannerFile.size, null);
+                    createdBannerMedia = await this.mediaDao.create(bannerMedia, transaction); // Assign to the outer scoped variable
+                    if (!createdBannerMedia || !createdBannerMedia.mediaId) { // Defensive check
+                        throw new InternalServerError("Banner media creation returned invalid data.");
+                    }
+                    await s3Service.uploadObject(`uploads/images/${creatorUserId}/${createdBannerMedia.mediaId}.${bannerFile.mimetype.split("/")[1]}`, bannerFile.buffer, bannerFile.mimetype, S3_MEDIA_BUCKET_NAME)
+                        .then((key) => {
+                            createdBannerMedia.url = `${CLOUDFRONT_MEDIA_DOMAIN_NAME}/${key}`;
+                            return this.mediaDao.update(createdBannerMedia, transaction);
+                        })
+                        .catch((error) => {
+                            console.error('[SubtableService:createSubtable] Error uploading banner to S3:', error);
+                            throw new InternalServerError("Failed to upload banner to S3.");
+                        });
+                } catch (error) {
+                    console.error('[SubtableService:createSubtable] Error during mediaDao.create:', error);
+                    if (error instanceof AppError) {
+                        throw error;
+                    }
+                    throw new InternalServerError("Failed to create banner media entity.");
+                }
+            }
+
+            // 4. Create the subtable entity
 
             try {
-                const subtable = new Subtable(null, name, description, creatorUserId);
+                const subtable = new Subtable(null, name, description, creatorUserId, createdIconMedia?.mediaId, createdBannerMedia?.mediaId);
                 createdSubtable = await this.subtableDao.create(subtable, transaction); // Assign to the outer scoped variable
                 if (!createdSubtable || !createdSubtable.subtableId) { // Defensive check
                     throw new InternalServerError("Subtable creation returned invalid data.");
@@ -172,7 +242,7 @@ class SubtableService {
             // 5. Create a subscription for the creator user
             const subscription = new Subscription(null, creatorUserId, createdSubtable.subtableId); // Now createdSubtable is accessible
             try {
-                await this.subscriptionDao.create(subscription, transaction); // Pass transaction
+                createdSubscription = await this.subscriptionDao.create(subscription, transaction); // Pass transaction
             } catch (error) {
                 console.error(`[SubtableService:createSubtable] Error creating subscription for user ${creatorUserId} to subtable ${createdSubtable.subtableId}:`, error);
                 if (error instanceof AppError) {
@@ -184,7 +254,7 @@ class SubtableService {
             // 6. Create a moderator entry for the creator
             const moderator = new Moderator(creatorUserId, createdSubtable.subtableId);
             try {
-                await this.moderatorDao.create(moderator, transaction); // Pass transaction
+                createdModerator = await this.moderatorDao.create(moderator, transaction); // Pass transaction
             } catch (error) {
                 console.error(`[SubtableService:createSubtable] Error creating moderator for user ${creatorUserId} for subtable ${createdSubtable.subtableId}:`, error);
                 if (error instanceof ConflictError || error instanceof AppError) { // Handle AppErrors explicitly
@@ -251,9 +321,11 @@ class SubtableService {
 
 // Inject dependencies when creating the instance
 export default new SubtableService(
-    subtableDAO,
-    userPostDetailsDAO,
-    userProfileDAO,
-    subscriptionDAO,
-    moderatorDAO
+    subtableDao,
+    subtableDetailsDao,
+    userPostDetailsDao,
+    userProfileDao,
+    subscriptionDao,
+    moderatorDao,
+    mediaDao
 );

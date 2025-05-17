@@ -1,5 +1,5 @@
 // backend/daos/profile.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Profile from '#models/profile.model.js';
 
 class ProfileDAO {
@@ -33,13 +33,13 @@ class ProfileDAO {
         }
     }
 
-    async update(profileId, updateData, trx) {
+    async update(updateData, trx) {
 
-        const queryBuilder = trx ? trx : postgresInstance;
+        const queryBuilder = trx || postgresInstance;
         try {
             // Thực hiện cập nhật và trả về dữ liệu đã cập nhật
             const updatedRows = await queryBuilder(this.tableName)
-                .where({profileId})
+                .where({profileId: updateData.profileId})
                 .update(updateData)
                 .returning('*');
 
@@ -67,6 +67,16 @@ class ProfileDAO {
         } catch (error) {
             console.error('Error deleting profile:', error);
             // Re-throw the original error
+            throw error;
+        }
+    }
+
+    async findById(profileId) {
+        try {
+            const profileRow = await postgresInstance(this.tableName).where({profileId}).first();
+            return profileRow ? Profile.fromDbRow(profileRow) : null;
+        } catch (error) {
+            console.error(`[ProfileDAO] Error fetching profile by ID ${profileId}:`, error);
             throw error;
         }
     }

@@ -11,8 +11,8 @@ import {WebSocketServer} from 'ws';
 import WebSocketManager from '#core/websocket-manager.js';
 
 // --- PostgresDB & Cache Clients ---
-import redisClient from '#db/redis.js';
-import PostgresDB from "#db/postgres.js";
+import redisClient from '#configs/redis.config.js';
+import PostgresDB from "#configs/postgres.config.js";
 
 // Routes
 import authRoutes from '#routes/auth.routes.js';

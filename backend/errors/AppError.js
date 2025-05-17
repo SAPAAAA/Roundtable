@@ -18,6 +18,7 @@ class NotFoundError extends AppError {
 } // For non-existent resources
 class UnauthorizedError extends AppError {
 }
+
 class ConflictError extends AppError {
 } // For existing username/email
 class VerificationError extends AppError {

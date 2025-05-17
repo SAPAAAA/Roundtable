@@ -1,7 +1,7 @@
 // backend/services/vote.service.js
 import Vote from "#models/vote.model.js";
 import {AppError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError} from "#errors/AppError.js";
-import {postgresInstance} from "#db/postgres.js";
+import {postgresInstance} from "#configs/postgres.config.js";
 import voteDAO from "#daos/vote.dao.js";
 import userCommentDetailsDao from "#daos/user-comment-details.dao.js";
 import userPostDetailsDao from "#daos/user-post-details.dao.js";

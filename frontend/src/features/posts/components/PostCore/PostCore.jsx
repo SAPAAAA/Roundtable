@@ -1,5 +1,5 @@
 // #features/posts/components/PostCore/PostCore.jsx
-import React ,{useEffect,useRef}from "react";
+import React, {useRef} from "react";
 import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 import useVote from "#features/posts/hooks/vote-hook.jsx";
@@ -84,8 +84,6 @@ export default function PostCore(props) {
     }
 
     const editorRef = useRef(null);    // Ref to access TextEdit component methods
-
-    console.log("PostCore post: ", post);
     const handleBeforeSubmit = (event) => {
         if (onUpdatePostCancel) {
             onUpdatePostCancel();

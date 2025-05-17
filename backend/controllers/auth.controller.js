@@ -240,26 +240,37 @@ class AuthController {
      */
     updateProfile = async (req, res, next) => {
         try {
-            // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATE PROFILE ROUTE ACCESSED ===');
-            // console.log('===(CONTROLLER) REQUEST BODY ===', JSON.stringify(req.body));
-
-            const profileData = req.body;
-            const profileId = profileData.profileId; // Lấy profileId từ request body
+            const {profileId, displayName, bio, location, gender} = req.body;
+            let avatarFile, bannerFile;
+            if (req.files) {
+                avatarFile = req.files.avatarFile ? req.files.avatarFile[0] : null;
+                bannerFile = req.files.bannerFile ? req.files.bannerFile[0] : null;
+            }
 
             if (!profileId) {
-                // console.log('===(CONTROLLER) PROFILE ID MISSING IN REQUEST ===');
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({
                     success: false,
                     message: 'Thiếu thông tin profileId.'
                 });
             }
 
-            // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATING PROFILE FOR ID ===', profileId);
-
             // Gọi service để cập nhật hồ sơ
-            const updatedProfile = await this.authService.updateProfileById(profileId, profileData);
+            const updatedProfile = await this.authService.updateProfile({
+                profileId,
+                displayName,
+                bio,
+                location,
+                gender,
+                avatarFile,
+                bannerFile
+            });
 
-            // console.log('===(CONTROLLER) PROFILE UPDATED SUCCESSFULLY ===');
+            if (!updatedProfile) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: 'Không tìm thấy hồ sơ để cập nhật.'
+                });
+            }
 
             // --- Phản hồi thành công ---
             return res.status(HTTP_STATUS.OK).json({
@@ -268,8 +279,6 @@ class AuthController {
             });
 
         } catch (error) {
-            //console.log('===(CONTROLLER) ERROR UPDATING PROFILE ===', error.message);
-
             if (error instanceof BadRequestError) {
                 return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
             }
@@ -285,7 +294,7 @@ class AuthController {
             }
 
             // --- Xử lý lỗi không mong muốn ---
-            // console.error("(CONTROLLER)[AuthController.updateProfile] Lỗi không mong muốn:", error.stack || error);
+            console.error("(CONTROLLER)[AuthController.updateProfile] Lỗi không mong muốn:", error.stack || error);
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.'

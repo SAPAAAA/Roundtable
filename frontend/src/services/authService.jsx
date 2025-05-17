@@ -71,10 +71,33 @@ class AuthService {
                 throw new Error('Thiếu thông tin profileId.');
             }
 
+            // displayName: '',
+            //     bio: '',
+            //     location: '',
+            //     gender: '',
+            //     avatarFile: null,
+            //     bannerFile: null
+
+            const formData = new FormData();
+            formData.append('profileId', profileData.profileId);
+            formData.append('displayName', profileData.displayName);
+            formData.append('bio', profileData.bio);
+            formData.append('location', profileData.location);
+            formData.append('gender', profileData.gender);
+            if (profileData.avatarFile && profileData.avatarFile.size > 0) {
+                formData.append('avatarFile', profileData.avatarFile, profileData.avatarFile.name);
+            }
+            if (profileData.bannerFile && profileData.bannerFile.size > 0) {
+                formData.append('bannerFile', profileData.bannerFile, profileData.bannerFile.name);
+            }
+
             // Sử dụng phương thức PUT để cập nhật hồ sơ
             const response = await sendApiRequest('/api/auth/profile', {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
                 method: 'PUT',
-                body: profileData
+                body: formData
             });
 
             console.log('AuthService createProfile successful:', response);

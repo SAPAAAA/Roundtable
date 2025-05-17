@@ -1,5 +1,5 @@
 // backend/daos/vote.dao.js
-import {postgresInstance} from '#db/postgres.js';
+import {postgresInstance} from '#configs/postgres.config.js';
 import Vote, {VoteTypeEnum} from '#models/vote.model.js';
 import {BadRequestError, ConflictError} from "#errors/AppError.js"; // Import for specific errors
 

@@ -60,7 +60,7 @@ export default function Header(props) {
             padding="1"
         >
             <Avatar
-                src={user?.avatarUrl || "https://avatars.githubusercontent.com/u/55435868?v=4"} // Use user's avatar if available
+                src={user?.avatar || "https://avatars.githubusercontent.com/u/55435868?v=4"} // Use user's avatar if available
                 alt={user?.displayName || "User"}
                 width="25"
                 height="25"
