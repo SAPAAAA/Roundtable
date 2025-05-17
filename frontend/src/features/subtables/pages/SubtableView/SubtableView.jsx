@@ -11,10 +11,12 @@ import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingS
 
 export default function SubtableView() {
     // --- Hooks ---
-    const {detailsData, postsData, loaderError} = useLoaderData();
-    console.log("SubtableView detailsData:", detailsData);
-    console.log("SubtableView postsData:", postsData);
-    console.log("SubtableView loaderError:", loaderError);
+    const {detailsData, postsData, iconData,bannerData, loaderError} = useLoaderData();
+    // console.log("SubtableView detailsData:", detailsData);
+    // console.log("SubtableView postsData:", postsData);
+    // console.log("SubtableView loaderError:", loaderError);
+    // console.log("SubtableView iconData:", iconData);
+    // console.log("SubtableView bannerData:", bannerData);
     const navigation = useNavigation();
     const {subtableName: subtableNameFromParams} = useParams();
 
@@ -45,8 +47,8 @@ export default function SubtableView() {
     // --- Extract Data ---
     const subtableInfo = detailsData;
     const subtableDisplayName = subtableInfo?.name || subtableNameFromParams || "Subtable";
-    const subtableAvatar = subtableInfo?.icon;
-    const subtableBanner = subtableInfo?.banner;
+    const subtableAvatar = iconData;
+    const subtableBanner = bannerData;
 
     // --- Prepare Posts Data using Destructuring (Keeping 'body') ---
     const posts = isLoading ? [] : (postsData || []).map((item) => {
@@ -100,13 +102,13 @@ export default function SubtableView() {
                 <div className='Header d-flex justify-content-center align-items-center'>
                     <div className="avatarAndBanner w-100 h-100">
                         {subtableBanner ? (
-                            <img src={subtableBanner} className="img-fluid object-fit-cover border rounded sizeBanner"
+                            <img src={`http://localhost:5000/images/${subtableBanner}`} className="img-fluid object-fit-cover border rounded sizeBanner"
                                  alt={`${subtableDisplayName} banner`}/>
                         ) : (
                             <div className="sizeBanner banner-placeholder"></div>
                         )}
                         <div className='bg-white rounded-circle resizeAvatar d-flex justify-content-center align-items-center moveAvatar'>
-                            <Avatar src={subtableAvatar} alt={`${subtableDisplayName} icon`} height={90} width={90}/>
+                            <Avatar src={`http://localhost:5000/images/${subtableAvatar}`} alt={`${subtableDisplayName} icon`} height={90} width={90}/>
                         </div>
                         <div className='nameSubtable'>
                             s/{subtableDisplayName}

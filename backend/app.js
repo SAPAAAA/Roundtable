@@ -25,9 +25,19 @@ import chatRoutes from "#routes/chat.routes.js";
 import homeRoutes from "#routes/home.routes.js";
 import userRoutes from "#routes/user.routes.js";
 
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
 // Listeners
 import '#listeners/notification.listener.js';
 import '#listeners/chat.listener.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 dotenv.config()
 

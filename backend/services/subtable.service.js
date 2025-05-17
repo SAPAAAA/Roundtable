@@ -8,6 +8,8 @@ import {AppError, BadRequestError, ConflictError, InternalServerError, NotFoundE
 import Subtable from "#models/subtable.model.js";
 import Subscription from "#models/subscription.model.js";
 import Moderator from "#models/moderator.model.js";
+import mediaDAO from "#daos/media.dao.js";
+import Media from "#models/media.model.js";
 import {postgresInstance} from "#db/postgres.js";
 
 
@@ -24,6 +26,7 @@ class SubtableService {
         this.userProfileDao = userProfileDao;
         this.subscriptionDao = subscriptionDao;
         this.moderatorDao = moderatorDao;
+        this.mediaDAO = mediaDAO;
     }
 
     /**
@@ -151,12 +154,48 @@ class SubtableService {
         }
         // 3. Validate icon and banner files (Assuming this is handled or not critical for this error)
         const {name, description, iconFile, bannerFile} = subtableData; // iconFile and bannerFile are not used in provided snippet for creation logic but kept for consistency
+       
+        console.log("subtableData:", subtableData);
+
+
+        // 4. create media entries for icon and banner
+        let icon = ""
+        let banner = ""
+        const mediaIcon =  new Media(null,creatorUserId, iconFile.filename,"image",iconFile.mimetype, iconFile.size);
+        const mediaBanner = new Media(null, creatorUserId, bannerFile.filename, "image",bannerFile.mimetype, bannerFile.size);
+        console.log("mediaIcon:", mediaIcon);
+        console.log("mediaBanner:", mediaBanner);
+       
+
+        console.log(`[SubtableService:createSubtable] Creating subtable with name: ${name}, description: ${description}, icon: ${icon}, banner: ${banner}`);
 
         return await postgresInstance.transaction(async (transaction) => {
             let createdSubtable; // Declare createdSubtable here, in the transaction's scope
+           
+            try {
+                
+            
+                const createdMediaIcon = await this.mediaDAO.create(mediaIcon, transaction); // Pass transaction
+                const createdMediaBanner = await this.mediaDAO.create(mediaBanner, transaction); // Pass transaction
+                console.log("createdMediaIcon:", createdMediaIcon);
+                console.log("createdMediaBanner:", createdMediaBanner);
+                icon = createdMediaIcon.mediaId;
+                banner = createdMediaBanner.mediaId;
+                
+
+            }catch (error) {
+                console.error('[SubtableService:createSubtable] Error during media creation:', error);
+                if (error instanceof ConflictError || error instanceof AppError) { // Handle AppErrors explicitly
+                    throw error;
+                }
+                throw new InternalServerError("Failed to create media entries for icon and banner.");
+            }
+            console.log("icon:", icon);
+            console.log("banner:", banner);
+            
 
             try {
-                const subtable = new Subtable(null, name, description, creatorUserId);
+                const subtable = new Subtable(null, name, description, creatorUserId,icon, banner); // Use the created media IDs
                 createdSubtable = await this.subtableDao.create(subtable, transaction); // Assign to the outer scoped variable
                 if (!createdSubtable || !createdSubtable.subtableId) { // Defensive check
                     throw new InternalServerError("Subtable creation returned invalid data.");
@@ -245,6 +284,27 @@ class SubtableService {
                 throw error;
             }
             throw new InternalServerError('An error occurred while searching subtables');
+        }
+    }
+    async getSubtableMedia(mediaId) {
+        if (!mediaId) {
+            throw new BadRequestError("Media ID is required to fetch subtable media.");
+        }
+
+        try {
+            console.log('media:', mediaId);
+            const media = await this.mediaDAO.getById(mediaId);
+            if (!media) {
+                throw new NotFoundError(`Media with ID '${mediaId}' not found.`);
+            }
+            return media; // Return the Media model instance
+
+        } catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            console.error(`[SubtableService:getSubtableMedia] Error for ${mediaId}:`, error);
+            throw new InternalServerError("An error occurred while fetching subtable media.");
         }
     }
 }

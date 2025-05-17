@@ -18,12 +18,18 @@ export default async function subtableViewLoader({params}) {
         console.log("Fetching details and posts for subtable:", subtableName);
         const detailsResponse = await subtableService.getSubtableDetails(subtableName);
         const postsResponse = await subtableService.getSubtablePosts(subtableName); // Use the correct function
+        const iconResponse = await subtableService.getSubtableMedia(detailsResponse.data.icon,subtableName); // Use the correct function
+        const bannerResponse = await subtableService.getSubtableMedia(detailsResponse.data.banner,subtableName); // Use the correct function
+        console.log("Icon Response:", iconResponse);
+        console.log("Banner Response:", bannerResponse);
 
         console.log("Details Response:", detailsResponse);
         console.log("Posts Response:", postsResponse);
 
         let detailsData = null;
         let postsData = [];
+        let iconData = null;
+        let bannerData = null;
 
         // Process details response
         if (detailsResponse.success && detailsResponse.data) {
@@ -42,11 +48,28 @@ export default async function subtableViewLoader({params}) {
             console.warn(`Loader Warning: Could not fetch valid posts for subtable "${subtableName}".`, postsResponse);
             loaderError = (loaderError ? loaderError + '\n' : '') + (postsResponse.message || `Failed to load posts for ${subtableName}.`);
         }
+        // Process icon and banner responses
+        if (iconResponse.success && iconResponse.data) {
+            iconData = iconResponse.data.url;
+        } else {
+            console.warn(`Loader Warning: Could not fetch valid icon for subtable "${subtableName}".`, iconResponse);
+            loaderError = (loaderError ? loaderError + '\n' : '') + (iconResponse.message || `Failed to load icon for ${subtableName}.`);
+        }
+        if (bannerResponse.success && bannerResponse.data) {
+            bannerData= bannerResponse.data.url;
+        } else {
+            console.warn(`Loader Warning: Could not fetch valid banner for subtable "${subtableName}".`, bannerResponse);
+            loaderError = (loaderError ? loaderError + '\n' : '') + (bannerResponse.message || `Failed to load banner for ${subtableName}.`);
+        }
 
         // Return fetched data and any accumulated errors
+        console.log('iconData:', iconData);
+        console.log('bannerData:', bannerData);
         return {
             detailsData, // Should contain { name, icon, banner, ... }
             postsData,   // Should be an array like [{ post: {...}, author: {...} }, ...] or similar
+            iconData,    // URL or data for the icon
+            bannerData,  // URL or data for the banner
             loaderError
         };
 

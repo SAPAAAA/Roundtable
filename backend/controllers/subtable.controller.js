@@ -158,7 +158,14 @@ class SubtableController {
      */
     createSubtable = async (req, res) => {
         try {
-            const {name, description, iconFile, bannerFile} = req.body;
+            //const {name, description, iconFile, bannerFile} = req.body;
+            console.log("req:", req.body);
+            const {name, description} = req.body;
+            console.log("req.files:", req.files);
+            const iconFile = req.files?.iconFile?.[0]; // Assuming multer is used for file uploads
+            const bannerFile = req.files?.bannerFile?.[0]; // Assuming multer is used for file uploads
+            console.log("iconFile:", iconFile);
+            console.log("bannerFile:", bannerFile);
             console.log(`[SubtableController:createSubtable] Received request to create subtable with name: ${name}`);
             const {userId} = req.session; // Creator is the logged-in user
             if (!userId) { /* Handle unauthorized */
@@ -199,6 +206,43 @@ class SubtableController {
                     message: "An unexpected error occurred."
                 });
             }
+        }
+    }
+    /**
+     * Handles GET /s/:subtableName/media
+     * Retrieves media for a specific subtable.
+     * @param {import('express').Request} req - Express request object.
+     * @param {import('express').Response} res - Express response object.
+     */
+    getSubtableMedia = async (req, res) => {
+        try {
+            const {subtableName,mediaId} = req.params;
+            console.log("subtableName:", subtableName);
+            console.log("mediaId:", mediaId);
+            //const {mediaId} = req.body; // Assuming mediaId is passed as a query parameter
+            const media = await this.subtableService.getSubtableMedia(mediaId);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: `Media for subtable '${subtableName}' fetched successfully.`,
+                data: media
+            });
+        } catch (error) {
+            console.error(`[SubtableController:getSubtableMedia] Error for ${req.params?.subtableName}:`, error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while fetching subtable media."
+            });
         }
     }
 }

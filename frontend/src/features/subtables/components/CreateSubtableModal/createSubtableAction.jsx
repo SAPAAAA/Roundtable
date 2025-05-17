@@ -17,6 +17,12 @@ export default async function createSubtableAction({request}) {
     console.log("createSubtableAction: iconFile", iconFile);
     console.log("createSubtableAction: bannerFile", bannerFile);
 
+    const data = new FormData();
+    data.append('name', name);
+    data.append('description', description);
+    data.append('iconFile', iconFile);
+    data.append('bannerFile', bannerFile);
+
     // Basic validation (can be more robust)
     if (!name || name.trim() === '') {
         return {success: false, message: 'Community name is required.'};
@@ -43,7 +49,7 @@ export default async function createSubtableAction({request}) {
         return {success: false, message: 'Banner file must be a JPEG or PNG image.'};
     }
 
-    const response = await subtableService.createSubtable({name, description, iconFile, bannerFile});
+    const response = await subtableService.createSubtable(data);
     if (response.success) {
         return {
             success: response.success,
