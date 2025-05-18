@@ -13,11 +13,12 @@ class UserProfile {
      * @param {string} username - The user's login username.
      * @param {string | null} displayName - The user's display name (can be null if not set).
      * @param {string | null} avatar - The URL to the user's avatar image (can be null).
+     * @param {string | null} banner
      * @param {number} karma - The user's karma score.
      * @param {boolean} isVerified - Whether the user's account is verified.
      * @param {typeof UserStatusEnum[keyof typeof UserStatusEnum]} status - The user's status (e.g., 'active'). Should be one of UserStatusEnum values.
      */
-    constructor(userId, principalId, username, displayName, avatar, karma, isVerified, status) {
+    constructor(userId, principalId, username, displayName, avatar,banner, karma, isVerified, status) {
         /** @type {string} */
         this.userId = userId;
 
@@ -32,6 +33,9 @@ class UserProfile {
 
         /** @type {string | null} */
         this.avatar = avatar;
+
+         /** @type {string | null} */
+        this.banner = banner;
 
         /** @type {number} */
         this.karma = karma;
@@ -69,6 +73,7 @@ class UserProfile {
             row.username,
             row.displayName,
             row.avatar,
+            row.banner,
             row.karma,
             row.isVerified,
             row.status,
