@@ -20,7 +20,7 @@ export default function PostHeaderPreview(props) {
             {/* Left side: Subtable Info */}
             <div className="d-flex align-items-center">
                 <Avatar
-                    src={subtable.icon}
+                    src={`http://localhost:5000/images/${subtable.icon}`}
                     alt={
                         <Identifier
                             type="subtable"

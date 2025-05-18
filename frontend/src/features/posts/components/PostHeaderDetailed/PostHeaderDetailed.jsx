@@ -46,7 +46,7 @@ export default function PostHeaderDetailed(props) {
                     <Icon mainClass="back-icon" name="arrow_left" size="18px"/> {/* Slightly larger icon */}
                 </Button>
                 <Avatar
-                    src={subtable.icon}
+                    src={`http://localhost:5000/images/${subtable.icon}`}
                     alt={`r/${subtable.name}`}
                     width={20}
                     height={20}/>
