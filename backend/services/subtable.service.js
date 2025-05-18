@@ -219,11 +219,6 @@ class SubtableService {
      */
     async searchSubtables(q, options = {}) {
         try {
-            // Validate input
-            if (!q || typeof q !== 'string' || q.trim() === '') {
-                throw new BadRequestError('Search q is required and must be a non-empty string');
-            }
-
             const { limit = 25, offset = 0 } = options;
 
             // Validate numeric parameters
@@ -234,9 +229,14 @@ class SubtableService {
                 throw new BadRequestError('Invalid offset parameter');
             }
 
-
-            // Get search results from DAO
-            const results = await this.subtableDao.searchSubtables(q.trim(), {limit, offset});
+            let results;
+            if (!q || typeof q !== 'string' || q.trim() === '') {
+                // If q is empty, return a random list of subtables
+                results = await this.subtableDao.getRandomSubtables({ limit, offset });
+            } else {
+                // Get search results from DAO
+                results = await this.subtableDao.searchSubtables(q.trim(), {limit, offset});
+            }
 
             console.log('[SubtableService:searchSubtables] Search results:', results);
 
