@@ -29,6 +29,17 @@ class PrincipalDAO {
         }
     }
 
+    async getByProfileId(profileId, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        try {
+            const principalRow = await queryBuilder(this.tableName).where({profileId}).first();
+            return principalRow ? Principal.fromDbRow(principalRow) : null;
+        } catch (error) {
+            console.error(`[PrincipalDAO] Error fetching principal by Account ID ${accountId}:`, error);
+            throw error;
+        }
+    }
+
     async create(principal, trx = null) {
         const queryBuilder = trx || postgresInstance;
         const {principalId, ...insertData} = principal;
