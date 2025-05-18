@@ -244,6 +244,8 @@ class AuthController {
             // console.log('===(CONTROLLER) REQUEST BODY ===', JSON.stringify(req.body));
 
             const profileData = req.body;
+            const avatar = req.files?.avatar?.[0];
+            const banner = req.files?.banner?.[0]
             const profileId = profileData.profileId; // Lấy profileId từ request body
 
             if (!profileId) {
@@ -257,7 +259,7 @@ class AuthController {
             // console.log('===(CONTROLLER) AUTH CONTROLLER: UPDATING PROFILE FOR ID ===', profileId);
 
             // Gọi service để cập nhật hồ sơ
-            const updatedProfile = await this.authService.updateProfileById(profileId, profileData);
+            const updatedProfile = await this.authService.updateProfileById(profileId, profileData,avatar,banner);
 
             // console.log('===(CONTROLLER) PROFILE UPDATED SUCCESSFULLY ===');
 

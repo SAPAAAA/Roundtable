@@ -22,7 +22,8 @@ import Account from '#models/account.model.js';
 import Profile from '#models/profile.model.js';
 import RegisteredUser from '#models/registered-user.model.js';
 import Principal, {PrincipalRoleEnum} from '#models/principal.model.js';
-
+import mediaDAO from "#daos/media.dao.js";
+import Media from "#models/media.model.js";
 // --- Constants & Custom Errors ---
 import {HASH_OPTIONS} from '#constants/security.js';
 import {
@@ -73,6 +74,7 @@ class AuthService {
         this.profileDao = profileDao;
         this.registeredUserDao = registeredUserDao;
         this.userProfileDao = userProfileDao;
+        this.mediaDAO = mediaDAO
     }
 
     /** Sends the verification email */
@@ -411,7 +413,7 @@ class AuthService {
      * @param {object} profileData - Dữ liệu profile cần cập nhật.
      * @returns {Promise<Profile>} - Profile đã được cập nhật.
      */
-    async updateProfileById(profileId, profileData) {
+    async updateProfileById(profileId, profileData,avatar,banner) {
         if (!profileId) {
             throw new BadRequestError('Thiếu thông tin profileId.');
         }
@@ -426,12 +428,43 @@ class AuthService {
         //     console.log('===(SERVICE) INVALID GENDER VALUE ===', profileData.gender);
         //     throw new BadRequestError('Giá trị gender không hợp lệ.');
         // }
+        let userId;
 
         try {
+            console.log("profileId",profileId)
+            const principal = await this.principalDao.getByProfileId(profileId);
+            console.log("principal")
+            if (!principal?.principalId) {
+                console.error(`Data inconsistency: Account ${profileId} found, but no matching Principal.`);
+                throw new InternalServerError('User data configuration error during verification.');
+            }
+            const register = await this.registeredUserDao.getByPrincipalId(principal.principalId)        
+            userId = register.userId
+            console.log("register",register)
+        } catch (error) {
+            
+        }
+
+        let avatarId = ""
+        let bannerId = ""
+        const mediaAvatar =  new Media(null,userId, avatar.filename,"image",avatar.mimetype, avatar.size);
+        const mediaBanner = new Media(null, userId, banner.filename, "image",banner.mimetype, banner.size);
+        console.log("mediaAvatar:", mediaAvatar);
+        console.log("mediaBanner:", mediaBanner);
+
+        try {
+
+            
+            const createdMediAvatar = await this.mediaDAO.create(mediaAvatar); // Pass transaction
+            const createdMediaBanner = await this.mediaDAO.create(mediaBanner); // Pass transaction
+            console.log("createdMediaAvatar:", createdMediAvatar);
+            console.log("createdMediaBanner:", createdMediaBanner);
+            avatarId = createdMediAvatar.mediaId;
+            bannerId = createdMediaBanner.mediaId;
             // Chuẩn bị dữ liệu cập nhật
             const updateData = {
-                avatar: null,
-                banner: null,
+                avatar: avatarId,
+                banner: bannerId,
                 bio: profileData.bio,
                 location: profileData.location,
                 displayName: profileData.displayName,
@@ -470,6 +503,7 @@ class AuthService {
             // Nếu là lỗi khác, bọc trong InternalServerError
             throw new InternalServerError('Đã xảy ra lỗi khi cập nhật hồ sơ: ' + error.message);
         }
+        
     }
 }
 
