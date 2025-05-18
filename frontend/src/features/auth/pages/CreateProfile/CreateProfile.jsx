@@ -148,6 +148,8 @@ function CreateProfile() {
                     method="post"
                     action="/create-profile"
                     mainClass="create-profile-form"
+                    encType="multipart/form-data"
+                    
                 >
                     {/* Thêm input hidden để gán profileId */}
                     <input

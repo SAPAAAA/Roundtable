@@ -8,6 +8,8 @@ import authService from '#services/authService';
 async function createProfileAction({request}) {
     const formData = await request.formData();
     const data = Object.fromEntries(formData.entries());
+    const avatar =  formData.get('avatar')
+    const banner = formData.get('banner')
 
     const httpMethod = request.method;
 
@@ -27,7 +29,7 @@ async function createProfileAction({request}) {
 
     try {
         // Gọi service để tạo hồ sơ
-        const response = await authService.createProfile(data);
+        const response = await authService.createProfile(formData);
 
         return {
             success: response.success,
