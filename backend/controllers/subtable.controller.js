@@ -1,7 +1,7 @@
 // backend/controllers/subtable.controller.js
 import HTTP_STATUS from '#constants/http-status.js';
 import subtableService from '#services/subtable.service.js';
-import {BadRequestError, ConflictError, InternalServerError, NotFoundError} from "#errors/AppError.js"; // Include potential errors from service
+import {BadRequestError, ConflictError, InternalServerError, NotFoundError, UnauthorizedError} from "#errors/AppError.js"; // Include potential errors from service
 
 class SubtableController {
     /**
@@ -151,12 +151,12 @@ class SubtableController {
     };
 
     /**
-     * Handles POST /s
      * Creates a new subtable.
-     * @param {import('express').Request} req - Express request object.
-     * @param {import('express').Response} res - Express response object.
+     * @param {import('express').Request} req - The request object.
+     * @param {import('express').Response} res - The response object.
+     * @param {import('express').NextFunction} next - The next middleware function.
      */
-    createSubtable = async (req, res) => {
+    createSubtable = async (req, res, next) => {
         try {
             //const {name, description, iconFile, bannerFile} = req.body;
             console.log("req:", req.body);
@@ -176,12 +176,11 @@ class SubtableController {
                 iconFile,
                 bannerFile
             });
-            return res.status(HTTP_STATUS.CREATED).json({
+
+            res.status(201).json({
                 success: true,
-                message: "Subtable created successfully.",
-                data: {
-                    subtable: newSubtable
-                }
+                message: 'Subtable created successfully.',
+                data: subtable
             });
         } catch (error) {
             // Handle BadRequestError, ConflictError, NotFoundError (for user), InternalServerError

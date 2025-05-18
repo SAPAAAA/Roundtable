@@ -35,8 +35,28 @@ class SubtableDAO {
      */
     async getByName(name) {
         try {
-            const subtableRow = await postgresInstance(this.tableName).where({name}).first();
-            return Subtable.fromDbRow(subtableRow);
+            const subtableRow = await postgresInstance(this.tableName)
+                .select(
+                    'Subtable.*',
+                    'icon_media.url as icon_url',
+                    'banner_media.url as banner_url'
+                )
+                .leftJoin('Media as icon_media', 'Subtable.icon', '=', 'icon_media.mediaId')
+                .leftJoin('Media as banner_media', 'Subtable.banner', '=', 'banner_media.mediaId')
+                .where('Subtable.name', name)
+                .first();
+
+            if (!subtableRow) {
+                return null;
+            }
+
+            // Replace media IDs with actual URLs
+            const subtable = Subtable.fromDbRow(subtableRow);
+            if (subtable) {
+                subtable.icon = subtableRow.icon_url;
+                subtable.banner = subtableRow.banner_url;
+            }
+            return subtable;
         } catch (error) {
             console.error(`[SubtableDAO] Error finding subtable by name (${name}):`, error);
             throw error;
@@ -206,6 +226,28 @@ class SubtableDAO {
             return searchResults.map(row => Subtable.fromDbRow(row));
         } catch (error) {
             console.error('[SubtableDAO:searchSubtables] Error details:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Fetches a random list of subtables.
+     * @param {object} options - Options for limit and offset
+     * @param {number} [options.limit=8] - Maximum number of results
+     * @param {number} [options.offset=0] - Number of results to skip
+     * @returns {Promise<Array<Subtable>>} Array of random Subtable instances
+     */
+    async getRandomSubtables(options = {}) {
+        const { limit = 8, offset = 0 } = options;
+        try {
+            const rows = await postgresInstance(this.tableName)
+                .select('*')
+                .orderByRaw('RANDOM()')
+                .limit(limit)
+                .offset(offset);
+            return rows.map(row => Subtable.fromDbRow(row));
+        } catch (error) {
+            console.error('[SubtableDAO] Error fetching random subtables:', error);
             throw error;
         }
     }
