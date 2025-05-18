@@ -1,13 +1,19 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import "./LeftSidebar.css";
 import Button from "#shared/components/UIElement/Button/Button.jsx";
 import Icon from "#shared/components/UIElement/Icon/Icon.jsx";
 import Identifier from '#shared/components/UIElement/Identifier/Identifier';
+import Avatar from '#shared/components/UIElement/Avatar/Avatar';
+import searchService from '#services/searchService';
+import Link from '#shared/components/Navigation/Link/Link';
 
 export default function LeftSidebar(props) {
     const [resourcesExpanded, setResourcesExpanded] = useState(true);
     const [communitiesExpanded, setCommunitiesExpanded] = useState(false);
     const [RecentExpanded, setRecentExpanded] = useState(false);
+    const [communityList, setCommunityList] = useState([]);
+    const [communitiesLoading, setCommunitiesLoading] = useState(false);
+    const [communitiesError, setCommunitiesError] = useState(null);
 
     const toggleResources = () => {
         setResourcesExpanded(!resourcesExpanded);
@@ -20,6 +26,22 @@ export default function LeftSidebar(props) {
     const toggleRecent = () => {
         setRecentExpanded(!RecentExpanded);
     }
+
+    useEffect(() => {
+        if (communitiesExpanded && communityList.length === 0 && !communitiesLoading) {
+            setCommunitiesLoading(true);
+            setCommunitiesError(null);
+            // Fetch a random set of communities (limit 8)
+            searchService.searchCommunities({ q: '', limit: 8 })
+                .then(res => {
+                    setCommunityList(res?.data?.communities || []);
+                })
+                .catch(err => {
+                    setCommunitiesError('Failed to load communities');
+                })
+                .finally(() => setCommunitiesLoading(false));
+        }
+    }, [communitiesExpanded]);
 
     // Add a class for easier CSS targeting and positioning context
     const containerClasses = `border-end p-3 ${props.isSidebarVisible ? 'open' : ''}`;
@@ -74,20 +96,32 @@ export default function LeftSidebar(props) {
                         {communitiesExpanded && (
                             <ul className="nav flex-column mb-3">
                                 <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="community" size="16" className="me-2"/>&nbsp;Communities
-                                    </a>
+                                    <Button addClass="create-community-btn w-100 mb-2 text-start">
+                                        <Icon name="plus" size="16" className="me-2" />
+                                        Create a community
+                                    </Button>
                                 </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="chart" size="16" className="me-2"/>&nbsp;Best of Reddit
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="topic" size="16" className="me-2"/>&nbsp;Topics
-                                    </a>
-                                </li>
+                                {communitiesLoading && (
+                                    <li className="text-center py-2 text-muted">Loading...</li>
+                                )}
+                                {communitiesError && (
+                                    <li className="text-danger py-2">{communitiesError}</li>
+                                )}
+                                {!communitiesLoading && !communitiesError && communityList.map((community) => (
+                                    <li key={community.subtableId} className="community-item p-0">
+                                        <Link href={`/s/${community.name}`} className="d-flex align-items-center py-1 px-2 text-dark text-decoration-none w-100">
+                                            <Avatar
+                                                src={community.icon}
+                                                alt={community.name}
+                                                width={28}
+                                                height={28}
+                                                addClass="community-avatar me-2"
+                                            />
+                                            <span className="flex-grow-1">r/{community.name}</span>
+                                            <Icon name="star" size="18" className="community-star ms-2" />
+                                        </Link>
+                                    </li>
+                                ))}
                             </ul>
                         )}
                     </div>
@@ -143,7 +177,7 @@ export default function LeftSidebar(props) {
                             className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
                             onClick={toggleResources}
                         >
-                            <h6 className="text-muted mb-0">RESOURCES</h6>
+                            <h6 className="text-muted mb-0">&nbsp;RESOURCES</h6>
                             <Icon name={resourcesExpanded ? "chevron-up" : "chevron-down"} size="16px" />
                         </div>
 
@@ -210,6 +244,27 @@ export default function LeftSidebar(props) {
                     </Button>
                 </div>
             </aside>
+            <hr />
+                <ul className="nav flex-column mb-3">
+                <li>
+                    <a href="#" className="nav-link text-dark d-flex align-items-center">
+                    <Icon name="community" size="16" className="me-2" />
+                    &nbsp;Communities
+                    </a>
+                </li>
+                <li>
+                    <a href="#" className="nav-link text-dark d-flex align-items-center">
+                    <Icon name="chart" size="16" className="me-2" />
+                    &nbsp;Best of Reddit
+                    </a>
+                </li>
+                <li>
+                    <a href="#" className="nav-link text-dark d-flex align-items-center">
+                    <Icon name="topic" size="16" className="me-2" />
+                    &nbsp;Topics
+                    </a>
+                </li>
+                </ul>
         </div>
     );
 }
