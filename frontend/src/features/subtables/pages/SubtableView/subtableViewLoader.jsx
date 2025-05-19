@@ -20,16 +20,20 @@ export default async function subtableViewLoader({params}) {
         const postsResponse = await subtableService.getSubtablePosts(subtableName); // Use the correct function
         const iconResponse = await subtableService.getSubtableMedia(detailsResponse.data.icon,subtableName); // Use the correct function
         const bannerResponse = await subtableService.getSubtableMedia(detailsResponse.data.banner,subtableName); // Use the correct function
+        const joinResponse = await subtableService.getJoinSubtable(detailsResponse.data.subtableId)
         console.log("Icon Response:", iconResponse);
         console.log("Banner Response:", bannerResponse);
 
         console.log("Details Response:", detailsResponse);
         console.log("Posts Response:", postsResponse);
+        console.log("join data",joinResponse)
 
         let detailsData = null;
         let postsData = [];
         let iconData = null;
         let bannerData = null;
+        let joinData = null
+        let login = true
 
         // Process details response
         if (detailsResponse.success && detailsResponse.data) {
@@ -61,6 +65,12 @@ export default async function subtableViewLoader({params}) {
             console.warn(`Loader Warning: Could not fetch valid banner for subtable "${subtableName}".`, bannerResponse);
             loaderError = (loaderError ? loaderError + '\n' : '') + (bannerResponse.message || `Failed to load banner for ${subtableName}.`);
         }
+        if(joinResponse.success && joinResponse.data.isJoined)
+        {
+            joinData = true
+        }
+        else if(joinResponse.success && !joinResponse.data.isJoined) joinData = false
+        else if(!joinResponse.success) login = false
 
         // Return fetched data and any accumulated errors
         console.log('iconData:', iconData);
@@ -70,7 +80,9 @@ export default async function subtableViewLoader({params}) {
             postsData,   // Should be an array like [{ post: {...}, author: {...} }, ...] or similar
             iconData,    // URL or data for the icon
             bannerData,  // URL or data for the banner
-            loaderError
+            loaderError,
+            joinData,
+            login
         };
 
     } catch (error) {

@@ -1,5 +1,5 @@
-import React from 'react';
-import {useLoaderData, useNavigation, useParams} from 'react-router';
+import React, { useEffect, useState } from 'react';
+import { useLoaderData, useNavigation, useParams, useFetcher } from 'react-router';
 import Link from "#shared/components/Navigation/Link/Link";
 
 import './SubtableView.css';
@@ -8,17 +8,30 @@ import Button from "#shared/components/UIElement/Button/Button";
 import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
+import Form from '#shared/components/UIElement/Form/Form';
 
 export default function SubtableView() {
     // --- Hooks ---
-    const {detailsData, postsData, iconData,bannerData, loaderError} = useLoaderData();
+    const { detailsData, postsData, iconData, bannerData, loaderError, joinData, login } = useLoaderData();
     // console.log("SubtableView detailsData:", detailsData);
     // console.log("SubtableView postsData:", postsData);
     // console.log("SubtableView loaderError:", loaderError);
     // console.log("SubtableView iconData:", iconData);
     // console.log("SubtableView bannerData:", bannerData);
     const navigation = useNavigation();
-    const {subtableName: subtableNameFromParams} = useParams();
+    const { subtableName: subtableNameFromParams } = useParams();
+
+    const fetcher = useFetcher();
+
+    // --- Render Component ---
+
+    // useEffect(() => {
+    // if (fetcher.state === 'idle' && fetcher.data != null) {
+    //     // Sau khi fetcher hoàn tất và có phản hồi từ server
+    //     setJoinSubtable(prev => !prev);
+    // }
+    // }, [fetcher.state, fetcher.data]);
+    console.log("login",login)
 
     // --- Loading State ---
     const isLoading = navigation.state === 'loading';
@@ -54,7 +67,7 @@ export default function SubtableView() {
     const posts = isLoading ? [] : (postsData || []).map((item) => {
         // Destructure author, and collect the rest into postDetails
         // 'body' will now be part of postDetails if it exists on item
-        const {author, ...postDetails} = item;
+        const { author, ...postDetails } = item;
 
         // Return the structure expected by ListPostPreviewSubtable/PostPreviewSubtable
         // The 'post' object now contains all properties from 'item' except 'author'
@@ -86,12 +99,21 @@ export default function SubtableView() {
 
     // --- Render Loading State ---
     if (isLoading) {
-        return <LoadingSpinner message={`Loading s/${subtableNameFromParams}...`}/>;
+        return <LoadingSpinner message={`Loading s/${subtableNameFromParams}...`} />;
     }
+    //console.log("subtable",subtableInfo)
 
-    // --- Render Component ---
     return (
-        <>
+        <Form
+            method={joinData ? "delete" : "post"}
+            action={`/s/${subtableDisplayName}`}
+            preventNavigation={true}
+            fetcher={fetcher}
+        >
+
+            <input name="subtableId" value={subtableInfo.subtableId} type="hidden" />
+
+
             {loaderError && (
                 <div className="alert alert-warning alert-sm fs-8 m-3 p-2" role="alert">
                     Warning: {loaderError}
@@ -103,26 +125,48 @@ export default function SubtableView() {
                     <div className="avatarAndBanner w-100 h-100">
                         {subtableBanner ? (
                             <img src={`http://localhost:5000/images/${subtableBanner}`} className="img-fluid object-fit-cover border rounded sizeBanner"
-                                 alt={`${subtableDisplayName} banner`}/>
+                                alt={`${subtableDisplayName} banner`} />
                         ) : (
                             <div className="sizeBanner banner-placeholder"></div>
                         )}
                         <div className='bg-white rounded-circle resizeAvatar d-flex justify-content-center align-items-center moveAvatar'>
-                            <Avatar src={`http://localhost:5000/images/${subtableAvatar}`} alt={`${subtableDisplayName} icon`} height={90} width={90}/>
+                            <Avatar src={`http://localhost:5000/images/${subtableAvatar}`} alt={`${subtableDisplayName} icon`} height={90} width={90} />
                         </div>
                         <div className='nameSubtable'>
                             s/{subtableDisplayName}
                         </div>
                         <div className='resizeButton d-flex justify-content-end align-items-center gap-2'>
-                            <Link href={`/s/${subtableNameFromParams}/submit`} className="text-decoration-none">
-                                <Button addClass="designButtonCreatePost d-flex align-items-center">
-                                    <Icon name="plus" size="11px" addClass="me-1"/>
-                                    Create Post
+                            {login ? (
+                                <Link href={`/s/${subtableNameFromParams}/submit`} className="text-decoration-none">
+                                    <Button addClass="designButtonCreatePost d-flex align-items-center">
+                                        <Icon name="plus" size="11px" addClass="me-1" />
+                                        Create Post
+                                    </Button>
+                                </Link>
+                            ) : (
+                                <Link href="/login" className="text-decoration-none">
+                                    <Button addClass="designButtonCreatePost d-flex align-items-center">
+                                        <Icon name="plus" size="11px" addClass="me-1" />
+                                        Create Post
+                                    </Button>
+                                </Link>
+                            )}
+
+                            {/* Join Button */}
+                            {login ? (
+                                <Button addClass="text-white designButtonJoin" type='submit'>
+                                    {joinData ? "Joined" : "Join"}
                                 </Button>
-                            </Link>
-                            <Button addClass="text-white designButtonJoin">Join</Button>
+                            ) : (
+                                <Link href="/login">
+                                    <Button addClass="text-white designButtonJoin">
+                                        Join
+                                    </Button>
+                                </Link>
+                            )}
+
                             <Button addClass="designButtonMore">
-                                <Icon name="three_dots" size="15px"/>
+                                <Icon name="three_dots" size="15px" />
                             </Button>
                         </div>
                     </div>
@@ -138,20 +182,20 @@ export default function SubtableView() {
                                 tooltipPlacement="top"
                                 padding="2"
                                 addClass="mostPost">
-                                Best <Icon name="down" size="12px" addClass="ms-1"/>
+                                Best <Icon name="down" size="12px" addClass="ms-1" />
                             </Button>
                             <ul className="dropdown-menu resizeDropdown1">
                                 <li className="sort d-flex justify-content-center align-items-center">Sort by</li>
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
-                                       href="#">Best</a></li>
+                                    href="#">Best</a></li>
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
-                                       href="#">Hot</a></li>
+                                    href="#">Hot</a></li>
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
-                                       href="#">New</a></li>
+                                    href="#">New</a></li>
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
-                                       href="#">Top</a></li>
+                                    href="#">Top</a></li>
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
-                                       href="#">Rising</a></li>
+                                    href="#">Rising</a></li>
                             </ul>
                         </div>
                         <div className="btn-group">
@@ -161,27 +205,27 @@ export default function SubtableView() {
                                 tooltipTitle="Change post view"
                                 tooltipPlacement="top"
                                 padding="2">
-                                <Icon addClass="me-1" name="layout" size="15px"/>
-                                <Icon name="down" size="12px"/>
+                                <Icon addClass="me-1" name="layout" size="15px" />
+                                <Icon name="down" size="12px" />
                             </Button>
                             <ul className="dropdown-menu resizeDropdown2">
                                 <li className="sort d-flex justify-content-center align-items-center">View</li>
                                 <li><a className="dropdown-item item d-flex justify-content-between align-items-center"
-                                       href="#">
-                                    <Icon name="layout" size="15px" addClass="ms-0"/>
+                                    href="#">
+                                    <Icon name="layout" size="15px" addClass="ms-0" />
                                     <div className="resizeMagin">Card</div>
                                 </a></li>
                                 <li>
                                     <a className="dropdown-item item d-flex justify-content-between align-items-center"
-                                       href="#">
-                                        <Icon name="menu" size="15px" addClass="ms-0"/> {/* Changed icon */}
+                                        href="#">
+                                        <Icon name="menu" size="15px" addClass="ms-0" /> {/* Changed icon */}
                                         Compact
                                     </a>
                                 </li>
                                 <li>
                                     <a className="dropdown-item item d-flex justify-content-between align-items-center"
-                                       href="#">
-                                        <Icon name="list" size="15px" addClass="ms-0"/> {/* Changed icon */}
+                                        href="#">
+                                        <Icon name="list" size="15px" addClass="ms-0" /> {/* Changed icon */}
                                         Classic
                                     </a>
                                 </li>
@@ -190,12 +234,13 @@ export default function SubtableView() {
                     </div>
                     {/* Pass the processed posts array */}
                     {posts.length > 0 ? (
-                        <ListPostPreviewSubtable posts={posts}/>
+                        <ListPostPreviewSubtable posts={posts} />
                     ) : (
                         <p className="text-muted text-center">No posts found in this subtable yet.</p>
                     )}
                 </div>
             </div>
-        </>
+        </Form>
+
     );
 }
