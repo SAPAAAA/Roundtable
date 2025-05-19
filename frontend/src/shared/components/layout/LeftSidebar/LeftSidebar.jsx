@@ -5,6 +5,7 @@ import Icon from "#shared/components/UIElement/Icon/Icon.jsx";
 import Identifier from '#shared/components/UIElement/Identifier/Identifier';
 import Avatar from '#shared/components/UIElement/Avatar/Avatar';
 import searchService from '#services/searchService';
+import subtableService from "#services/subtableService.jsx";
 import Link from '#shared/components/Navigation/Link/Link';
 
 export default function LeftSidebar(props) {
@@ -14,6 +15,7 @@ export default function LeftSidebar(props) {
     const [communityList, setCommunityList] = useState([]);
     const [communitiesLoading, setCommunitiesLoading] = useState(false);
     const [communitiesError, setCommunitiesError] = useState(null);
+    const [communityMedia,setCommunityMedia] = useState([])
 
     const toggleResources = () => {
         setResourcesExpanded(!resourcesExpanded);
@@ -40,8 +42,38 @@ export default function LeftSidebar(props) {
                     setCommunitiesError('Failed to load communities');
                 })
                 .finally(() => setCommunitiesLoading(false));
+            
+            
         }
     }, [communitiesExpanded]);
+
+    useEffect(()=>{
+        // Only run if communityList has items
+    if (communityList.length > 0) {
+        // Fetch media for each community
+        communityList.forEach(async (community) => {
+            try {
+                const mediaResponse = await subtableService.getSubtableMedia(
+                    community.icon,
+                    community.name
+                );
+                //setCommunityMedia()
+                // Update the specific community with its media URL
+                setCommunityList(prevList => 
+                    prevList.map(item => 
+                        item.subtableId === community.subtableId 
+                            ? { ...item, icon: mediaResponse.data.url } 
+                            : item
+                    )
+                );
+            } catch (error) {
+                console.error(`Failed to load media for community ${community.name}:`, error);
+            }
+        });
+        console.log("listtable",communityList)
+    }
+
+    },[communityList])
 
     // Add a class for easier CSS targeting and positioning context
     const containerClasses = `border-end p-3 ${props.isSidebarVisible ? 'open' : ''}`;
@@ -59,7 +91,7 @@ export default function LeftSidebar(props) {
                 {/* Removed me-4 as button is no longer next to it */}
                 <div id="left-sidebar">
                     <a
-                        href="/frontend/public"
+                        href="/"
                         className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
                         <span className="fs-4">&nbsp;Roundtable</span>
                     </a>
@@ -95,12 +127,12 @@ export default function LeftSidebar(props) {
 
                         {communitiesExpanded && (
                             <ul className="nav flex-column mb-3">
-                                <li>
+                                {/* <li>
                                     <Button addClass="create-community-btn w-100 mb-2 text-start">
                                         <Icon name="plus" size="16" className="me-2" />
                                         Create a community
                                     </Button>
-                                </li>
+                                </li> */}
                                 {communitiesLoading && (
                                     <li className="text-center py-2 text-muted">Loading...</li>
                                 )}
@@ -111,7 +143,7 @@ export default function LeftSidebar(props) {
                                     <li key={community.subtableId} className="community-item p-0">
                                         <Link href={`/s/${community.name}`} className="d-flex align-items-center py-1 px-2 text-dark text-decoration-none w-100">
                                             <Avatar
-                                                src={community.icon}
+                                                src={`http://localhost:5000/images/${community.icon}`}
                                                 alt={community.name}
                                                 width={28}
                                                 height={28}

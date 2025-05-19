@@ -8,7 +8,7 @@ import Form from "#shared/components/UIElement/Form/Form"; // Assuming correct p
 import Input from "#shared/components/UIElement/Input/Input"; // Assuming correct path
 import {useActionData, useLoaderData, useNavigate, useNavigation, useParams} from 'react-router'; // Make sure it's 'react-router-dom'
 import './CreatePost.css'; // Assuming CSS file exists
-
+import subtableService from "#services/subtableService.jsx";
 export default function CreatePost() {
     // --- Hooks ---
     const loaderData = useLoaderData();
@@ -22,6 +22,8 @@ export default function CreatePost() {
     const [subtableDropdownVisible, setSubtableDropdownVisible] = useState(false);
     const [subtableSearchValue, setSubtableSearchValue] = useState("");
     const [selectedSubtable, setSelectedSubtable] = useState(null); // Holds the chosen community object
+    const [subtablesWithMedia, setSubtablesWithMedia] = useState([]);
+
     // REMOVED: const [contentValue, setContentValue] = useState(''); // No longer needed for submission logic
 
     // --- Derived State ---
@@ -53,6 +55,30 @@ export default function CreatePost() {
             setSelectedSubtable(null);
         }
     }, [availableSubtables, subtableName, selectedSubtable]);
+
+    useEffect(() => {
+        // Create async function inside useEffect
+        const fetchSubtableMedia = async () => {
+            if (selectedSubtable !== null) {
+                try {
+                    const mediaResponse = await subtableService.getSubtableMedia(
+                        selectedSubtable.icon,
+                        selectedSubtable.name
+                    );
+                    // Create a new object to trigger re-render
+                    setSelectedSubtable(prev => ({
+                        ...prev,
+                        icon: mediaResponse.data.url
+                    }));
+                } catch (error) {
+                    console.error('Error fetching subtable media:', error);
+                }
+            }
+        };
+
+        // Call the async function
+        fetchSubtableMedia();
+    }, [selectedSubtable]); // Dependency array
 
     // Effect to handle closing the subtable dropdown when clicking outside
     useEffect(() => {
@@ -112,6 +138,32 @@ export default function CreatePost() {
     const filteredSubtables = availableSubtables.filter(sub =>
         sub.name.toLowerCase().includes(subtableSearchValue.toLowerCase())
     );
+    useEffect(() => {
+        const loadSubtableMedia = async () => {
+            const updatedSubtables = await Promise.all(
+                filteredSubtables.map(async (sub) => {
+                    try {
+                        const mediaResponse = await subtableService.getSubtableMedia(
+                            sub.icon,
+                            sub.name
+                        );
+                        return {
+                            ...sub,
+                            icon: mediaResponse.data.url
+                        };
+                    } catch (error) {
+                        console.error(`Error loading media for subtable ${sub.name}:`, error);
+                        return sub;
+                    }
+                })
+            );
+            setSubtablesWithMedia(updatedSubtables);
+        };
+
+        if (filteredSubtables.length > 0) {
+            loadSubtableMedia();
+        }
+    }, [filteredSubtables]);
 
     // --- Render ---
 
@@ -158,7 +210,7 @@ export default function CreatePost() {
                         {selectedSubtable ? (
                             <>
                                 <Avatar
-                                    src={selectedSubtable.icon}
+                                    src={`http://localhost:5000/images/${selectedSubtable.icon}`}
                                     alt={`s/${selectedSubtable.name}`}
                                     width={20}
                                     height={20}
@@ -185,8 +237,8 @@ export default function CreatePost() {
                                 onChange={(e) => setSubtableSearchValue(e.target.value)} // Update search state
                             />
                             {/* Render filtered list or 'not found' message */}
-                            {filteredSubtables.length > 0 ? (
-                                filteredSubtables.map((sub) => (
+                            {subtablesWithMedia.length > 0 ? (
+                                subtablesWithMedia.map((sub) => (
                                     <Button
                                         key={sub.subtableId}
                                         justifyContent="start" // Align content to the start
@@ -195,7 +247,7 @@ export default function CreatePost() {
                                         type="button" // Also prevent form submission
                                     >
                                         <Avatar
-                                            src={sub.icon}
+                                            src={`http://localhost:5000/images/${sub.icon}`}
                                             alt={`s/${sub.name}`}
                                             width={30}
                                             height={30}
