@@ -62,6 +62,84 @@ class SubtableService {
         }
         return responseData
     }
+    async getJoinSubtable(subtableId) {
+        console.log("subtableiiiiiiiiiiiii",subtableId)
+        if (!subtableId) {
+            throw new Error('Subtable ID is required');
+        }
+
+        try {
+            const baseUrl = `/api/s/user/${subtableId}`;
+            const response = await sendApiRequest(baseUrl, { method: 'GET' });
+
+            if (response.status === 401 || !response.success) {
+                return {
+                    success: false,
+                    message: "User not logged in",
+                    data: {
+                        isJoined: false,
+                        subscription: null
+                    }
+                };
+            }
+
+            return response;
+        } catch (error) {
+            if (error.status === 401) {
+                return {
+                    success: false,
+                    message: "User not logged in",
+                    data: {
+                        isJoined: false,
+                        subscription: null
+                    }
+                };
+            }
+            console.error('[SubtableService:getJoinSubtable] Error:', error.message);
+            throw new Error(`Failed to check subtable join status: ${error.message}`);
+        }
+    }
+
+    async followSubtable(subtableId) {
+        if (!subtableId) {
+            throw new Error('Subtable ID is required');
+        }
+
+        try {
+            const baseUrl = `/api/s/user/${subtableId}`;
+            const response = await sendApiRequest(baseUrl, { method: 'POST' });
+
+            if (!response.success) {
+                throw new Error(`Failed to follow subtable: ${response.message}`);
+            }
+
+            return response;
+        } catch (error) {
+            console.error('[SubtableService:followSubtable] Error:', error.message);
+            throw new Error(`Failed to follow subtable: ${error.message}`);
+        }
+    }
+
+    async unfollowSubtable(subtableId) {
+        if (!subtableId) {
+            throw new Error('Subtable ID is required');
+        }
+
+        try {
+            const baseUrl = `/api/s/user/${subtableId}`;
+            const response = await sendApiRequest(baseUrl, { method: 'DELETE' });
+
+            if (!response.success) {
+                throw new Error(`Failed to unfollow subtable: ${response.message}`);
+            }
+
+            return response;
+        } catch (error) {
+            console.error('[SubtableService:unfollowSubtable] Error:', error.message);
+            throw new Error(`Failed to unfollow subtable: ${error.message}`);
+        }
+    }
+
     
 }
 export default new SubtableService();
