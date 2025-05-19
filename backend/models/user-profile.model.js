@@ -13,6 +13,7 @@ class UserProfile {
      * @param {string} username - The user's login username.
      * @param {string | null} displayName - The user's display name (can be null if not set).
      * @param {string | null} avatar - The URL to the user's avatar image (can be null).
+     * @param {string | null} banner - The URL to the user's avatar image (can be null).
      * @param {number} karma - The user's karma score.
      * @param {boolean} isVerified - Whether the user's account is verified.
      * @param {typeof UserStatusEnum[keyof typeof UserStatusEnum]} status - The user's status (e.g., 'active'). Should be one of UserStatusEnum values.
