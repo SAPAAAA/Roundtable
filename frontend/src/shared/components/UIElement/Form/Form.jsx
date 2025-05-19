@@ -47,41 +47,29 @@ function FormWithoutNavigation(props) {
     const {
         id, mainClass, addClass, style, children, onSubmit, onAbort, onReset, onChange,
         onFocus, onBlur, onInvalid, onInput, method, action, encType,
+        // Accept the passed fetcher instance
         fetcher: passedFetcher,
+        // Omit navigation-related props
     } = props;
 
+    // Use the passed fetcher if available, otherwise create a new one.
+    // Note: Creating one here means the parent component cannot easily track its state.
+    // It's generally better for the parent to create and pass the fetcher.
     const internalFetcher = useFetcher();
-    const fetcher = passedFetcher || internalFetcher;
+    const fetcher = passedFetcher || internalFetcher; // Prioritize passed fetcher
+
     const combinedClassName = `${addClass || ''} ${mainClass || ''}`.trim();
 
-    // Default onSubmit handler for file uploads
-    const handleSubmit = (event) => {
-        if (onSubmit) {
-            onSubmit(event);
-        } else {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            console.log('Submitting FormData via fetcher:', formData);
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
-            fetcher.submit(formData, {
-                method: method || 'post',
-                encType: encType || 'multipart/form-data',
-                action: action,
-            });
-        }
-    };
-
+    // Render fetcher.Form using the determined fetcher instance
     return (
-        <fetcher.Form
+        <fetcher.Form // Use the selected fetcher instance here
             id={id}
             className={combinedClassName || undefined}
             style={style}
             method={method}
             action={action}
             encType={encType}
-            onSubmit={handleSubmit}
+            onSubmit={onSubmit}
             onAbort={onAbort}
             onReset={onReset}
             onChange={onChange}
@@ -91,6 +79,8 @@ function FormWithoutNavigation(props) {
             onInput={onInput}
         >
             {children}
+            {/* Optional: Render state based on the USED fetcher */}
+            {/* {fetcher.state === 'submitting' && <p>Submitting...</p>} */}
         </fetcher.Form>
     );
 }
@@ -113,7 +103,7 @@ function FormWithoutNavigation(props) {
  * @param {string} [props.addClass] - Additional custom CSS classes.
  * @param {React.CSSProperties} [props.style] - Inline styles for the form.
  * @param {(e: React.FormEvent<HTMLFormElement>) => void} [props.onSubmit] - Called when the form is submitted.
- * @param {React.ReactNode} props.children - The form's inner content.
+ * @param {React.ReactNode} props.children - The form’s inner content.
  * @param {'get'|'post'} [props.method] - HTTP method.
  * @param {string} [props.action] - URL to submit to.
  * @param {string} [props.encType] - Encoding type.

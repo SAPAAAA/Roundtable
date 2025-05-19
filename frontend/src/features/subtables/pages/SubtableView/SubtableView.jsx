@@ -9,14 +9,6 @@ import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
 
-const BACKEND_URL = 'http://localhost:5000';  //change if host is different
-const getFullImageUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    // Ensure there's a slash between BACKEND_URL and the path
-    return BACKEND_URL + (url.startsWith('/') ? url : '/' + url);
-};
-
 export default function SubtableView() {
     // --- Hooks ---
     const {detailsData, postsData, iconData,bannerData, loaderError} = useLoaderData();

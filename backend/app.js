@@ -6,10 +6,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import {WebSocketServer} from 'ws';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import fs from 'fs';
 
 // WebSocket
 import WebSocketManager from '#core/websocket-manager.js';
@@ -103,19 +99,6 @@ const sessionMiddleware = session({
     }
 });
 app.use(sessionMiddleware);
-
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Create upload directories if they don't exist
-const uploadDir = path.join(__dirname, 'public', 'uploads', 'subtables');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Serve static files from the public directory
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // --- HTTP Routes ---
 app.use('/api/auth', authRoutes);

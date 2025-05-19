@@ -11,7 +11,6 @@ import Moderator from "#models/moderator.model.js";
 import mediaDAO from "#daos/media.dao.js";
 import Media from "#models/media.model.js";
 import {postgresInstance} from "#db/postgres.js";
-import mediaService from './media.service.js';
 
 
 class SubtableService {
@@ -129,9 +128,7 @@ class SubtableService {
     /**
      * Creates a new subtable.
      * @param {string} creatorUserId - The ID of the user creating the subtable.
-     * @param {object} subtableData - Data for the new subtable { name, description, iconFile, bannerFile }.
-     * @param {Object} [subtableData.iconFile] - The uploaded icon file from multer.
-     * @param {Object} [subtableData.bannerFile] - The uploaded banner file from multer.
+     * @param {object} subtableData - Data for the new subtable { name, description, icon, banner }.
      * @returns {Promise<Subtable>} The newly created subtable.
      * @throws {BadRequestError} For invalid input.
      * @throws {NotFoundError} If creator user doesn't exist.
@@ -143,8 +140,7 @@ class SubtableService {
         if (!creatorUserId || !subtableData || !subtableData.name) {
             throw new BadRequestError("Invalid input for creating a subtable.");
         }
-
-        // 2. Check if creator user exists
+        // 2. Check if creator user exists (using userProfileDao) -> NotFoundError
         try {
             const userExists = await this.userProfileDao.getByUserId(creatorUserId);
             if (!userExists) {
@@ -235,8 +231,9 @@ class SubtableService {
                 }
                 throw new InternalServerError("Failed to assign creator as moderator for the new subtable.");
             }
-            throw new InternalServerError('Failed to create subtable.');
-        }
+
+            return createdSubtable; // Now this will correctly return the subtable
+        });
     }
 
     /**
@@ -251,6 +248,11 @@ class SubtableService {
      */
     async searchSubtables(q, options = {}) {
         try {
+            // Validate input
+            if (!q || typeof q !== 'string' || q.trim() === '') {
+                throw new BadRequestError('Search q is required and must be a non-empty string');
+            }
+
             const { limit = 25, offset = 0 } = options;
 
             // Validate numeric parameters
@@ -261,14 +263,9 @@ class SubtableService {
                 throw new BadRequestError('Invalid offset parameter');
             }
 
-            let results;
-            if (!q || typeof q !== 'string' || q.trim() === '') {
-                // If q is empty, return a random list of subtables
-                results = await this.subtableDao.getRandomSubtables({ limit, offset });
-            } else {
-                // Get search results from DAO
-                results = await this.subtableDao.searchSubtables(q.trim(), {limit, offset});
-            }
+
+            // Get search results from DAO
+            const results = await this.subtableDao.searchSubtables(q.trim(), {limit, offset});
 
             console.log('[SubtableService:searchSubtables] Search results:', results);
 
