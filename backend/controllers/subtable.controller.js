@@ -245,6 +245,123 @@ class SubtableController {
             });
         }
     }
+
+    followSubtable = async (req, res) => {
+        try {
+            const { subtableId } = req.params;
+            const { userId } = req.session;
+
+            const response = await this.subtableService.followSubtable(userId, subtableId);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Successfully followed the subtable',
+                data: response
+            });
+        } catch (error) {
+            console.error('[SubtableController:followSubtable] Error:', error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while following subtable."
+            });
+        }
+    }
+
+    unfollowSubtable = async (req, res) => {
+        try {
+            const { subtableId } = req.params;
+            const { userId } = req.session;
+
+            const response = await this.subtableService.unfollowSubtable(userId, subtableId);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Successfully unfollowed the subtable',
+                data: response
+            });
+        } catch (error) {
+            console.error('[SubtableController:unfollowSubtable] Error:', error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while unfollowing subtable."
+            });
+        }
+    }
+
+    getJoinSubtable = async (req, res) => {
+        try {
+            const { subtableId } = req.params;
+            const { userId } = req.session;
+            console.log("userIDDD",userId)
+            console.log("uuuuuuuuu",subtableId)
+
+            // Check if userId is empty
+            if (!userId || userId === undefined) {
+                return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+                    success: false,
+                    message: "User must be logged in to check subscription status",
+                    data: {
+                        isJoined: false,
+                        subscription: null
+                    }
+                });
+            }
+
+
+            const response = await this.subtableService.getJoinSubtable(userId, subtableId);
+            console.log(response)
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: response.isJoined 
+                ? 'User is subscribed to this subtable' 
+                : 'User is not subscribed to this subtable',
+                data: response
+            });
+        } catch (error) {
+            console.error('[SubtableController:getJoinSubtable] Error:', error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while getting subtable join status."
+            });
+        }
+    }
 }
 
 export default new SubtableController(subtableService);

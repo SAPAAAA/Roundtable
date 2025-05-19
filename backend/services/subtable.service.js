@@ -307,6 +307,93 @@ class SubtableService {
             throw new InternalServerError("An error occurred while fetching subtable media.");
         }
     }
+    async followSubtable(userId, subtableId) {
+        if (!userId || !subtableId) {
+            throw new BadRequestError("User ID and Subtable ID are required.");
+        }
+
+        try {
+            // Check if user exists
+            const userExists = await this.userProfileDao.getByUserId(userId);
+            if (!userExists) {
+                throw new NotFoundError(`User with ID '${userId}' not found.`);
+            }
+
+            // Check if subtable exists
+            const subtableExists = await this.subtableDao.getById(subtableId);
+            if (!subtableExists) {
+                throw new NotFoundError(`Subtable with ID '${subtableId}' not found.`);
+            }
+
+            return await postgresInstance.transaction(async (transaction) => {
+                try {
+                    const subscription = new Subscription(null, userId, subtableId);
+                    const result = await this.subscriptionDao.create(subscription, transaction);
+                    return result;
+                } catch (error) {
+                    console.error(`[SubtableService:followSubtable] Error creating subscription:`, error);
+                    if (error instanceof AppError) {
+                        throw error;
+                    }
+                    throw new InternalServerError("Failed to create subscription.");
+                }
+            });
+        } catch (error) {
+            console.error(`[SubtableService:followSubtable] Error:`, error);
+            throw error;
+        }
+    }
+
+    async unfollowSubtable(userId, subtableId) {
+        if (!userId || !subtableId) {
+            throw new BadRequestError("User ID and Subtable ID are required.");
+        }
+
+        try {
+            // Check if subscription exists
+            const subscription = await this.subscriptionDao.getByUserAndSubtable(userId, subtableId);
+            if (!subscription) {
+                throw new NotFoundError("Subscription not found.");
+            }
+
+            return await postgresInstance.transaction(async (transaction) => {
+                try {
+                    const result = await this.subscriptionDao.delete(userId, subtableId, transaction);
+                    return result;
+                } catch (error) {
+                    console.error(`[SubtableService:unfollowSubtable] Error deleting subscription:`, error);
+                    if (error instanceof AppError) {
+                        throw error;
+                    }
+                    throw new InternalServerError("Failed to delete subscription.");
+                }
+            });
+        } catch (error) {
+            console.error(`[SubtableService:unfollowSubtable] Error:`, error);
+            throw error;
+        }
+    }
+
+    async getJoinSubtable(userId, subtableId) {
+        if (!userId || !subtableId) {
+            throw new BadRequestError("User ID and Subtable ID are required.");
+        }
+
+        try {
+            // No need for transaction here since we're just reading
+            const subscription = await this.subscriptionDao.getByUserAndSubtable(userId, subtableId);
+            return {
+                isJoined: !!subscription,
+                subscription: subscription
+            };
+        } catch (error) {
+            console.error(`[SubtableService:getJoinSubtable] Error checking subscription:`, error);
+            if (error instanceof AppError) {
+                throw error;
+            }
+            throw new InternalServerError("Failed to check subscription status.");
+        }
+    }
 }
 
 // Inject dependencies when creating the instance

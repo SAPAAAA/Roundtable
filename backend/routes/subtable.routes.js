@@ -13,8 +13,14 @@ router.post('/',isAuthenticated,upload.fields([
     ]),SubtableController.createSubtable);
 router.get('/search', SubtableController.searchSubtables);
 router.get('/subscribed', isAuthenticated, SubtableController.getSubscribedSubtables);
+
+router.post('/user/:subtableId',SubtableController.followSubtable);
+router.delete('/user/:subtableId',SubtableController.unfollowSubtable);
+router.get('/user/:subtableId',SubtableController.getJoinSubtable)
+
 router.get('/:subtableName', SubtableController.getSubtableDetails);
 router.get('/:subtableName/posts', SubtableController.getSubtablePosts);
 router.get('/:subtableName/:mediaId', SubtableController.getSubtableMedia);
+
 
 export default router;
