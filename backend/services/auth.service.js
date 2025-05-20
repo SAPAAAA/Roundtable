@@ -424,58 +424,56 @@ class AuthService {
 
         let userId;
         try {
-            console.log("profileId", profileId)
             const principal = await this.principalDao.getByProfileId(profileId);
             if (!principal?.principalId) {
                 throw new NotFoundError('Không tìm thấy thông tin người dùng.');
             }
-            const register = await this.registeredUserDao.getByPrincipalId(principal.principalId)
-            userId = register.userId
-            console.log("register", register)
+            const register = await this.registeredUserDao.getByPrincipalId(principal.principalId);
+            if (!register?.userId) {
+                throw new NotFoundError('Không tìm thấy thông tin người dùng đã đăng ký.');
+            }
+            userId = register.userId;
         } catch (error) {
-
+            if (error instanceof NotFoundError) {
+                throw error;
+            }
+            throw new InternalServerError('Lỗi khi tìm thông tin người dùng.');
         }
 
-        let avatarId = ""
-        let bannerId = ""
+        // Use a transaction for the entire update process
+        return await postgresInstance.transaction(async (trx) => {
+            try {
+                let avatarId = null;
+                let bannerId = null;
 
+                // Only create media records if files are provided
+                if (avatar) {
+                    const mediaAvatar = new Media(null, userId, avatar.filename, "image", avatar.mimetype, avatar.size);
+                    const createdMediaAvatar = await this.mediaDAO.create(mediaAvatar, trx);
+                    if (!createdMediaAvatar?.mediaId) {
+                        throw new InternalServerError('Không thể tạo media cho avatar.');
+                    }
+                    avatarId = createdMediaAvatar.mediaId;
+                }
 
-        //const mediaAvatar =  new Media(null,userId, avatar.filename,"image",avatar.mimetype, avatar.size);
-        //const mediaBanner = new Media(null, userId, banner.filename, "image",banner.mimetype, banner.size);
-        //console.log("mediaAvatar:", mediaAvatar);
-        //console.log("mediaBanner:", mediaBanner);
+                if (banner) {
+                    const mediaBanner = new Media(null, userId, banner.filename, "image", banner.mimetype, banner.size);
+                    const createdMediaBanner = await this.mediaDAO.create(mediaBanner, trx);
+                    if (!createdMediaBanner?.mediaId) {
+                        throw new InternalServerError('Không thể tạo media cho banner.');
+                    }
+                    bannerId = createdMediaBanner.mediaId;
+                }
 
-        try {
-
-
-            // const createdMediAvatar = await this.mediaDAO.create(mediaAvatar); // Pass transaction
-            // const createdMediaBanner = await this.mediaDAO.create(mediaBanner); // Pass transaction
-            // console.log("createdMediaAvatar:", createdMediAvatar);
-            // console.log("createdMediaBanner:", createdMediaBanner);
-            // avatarId = createdMediAvatar.mediaId;
-            // bannerId = createdMediaBanner.mediaId;
-            if (avatar) {
-                const mediaAvatar = new Media(null, userId, avatar.filename, "image", avatar.mimetype, avatar.size);
-                const createdMediaAvatar = await this.mediaDAO.create(mediaAvatar);
-                avatarId = createdMediaAvatar.mediaId;
-            }
-
-            if (banner) {
-                const mediaBanner = new Media(null, userId, banner.filename, "image", banner.mimetype, banner.size);
-                const createdMediaBanner = await this.mediaDAO.create(mediaBanner);
-                bannerId = createdMediaBanner.mediaId;
-            }
-            // Prepare update data
-            const updateData = {
-                bio: profileData.bio,
-                location: profileData.location,
-                displayName: profileData.displayName,
-                gender: profileData.gender
-            };
-
-            // Only add avatar/banner to updateData if they exist
-            if (avatarId) updateData.avatar = avatarId;
-            if (bannerId) updateData.banner = bannerId;
+                // Prepare update data
+                const updateData = {
+                    ...(avatarId && { avatar: avatarId }),
+                    ...(bannerId && { banner: bannerId }),
+                    ...(profileData.bio !== undefined && { bio: profileData.bio }),
+                    ...(profileData.location !== undefined && { location: profileData.location }),
+                    ...(profileData.displayName !== undefined && { displayName: profileData.displayName }),
+                    ...(profileData.gender !== undefined && { gender: profileData.gender })
+                };
 
                 // Remove undefined values
                 Object.keys(updateData).forEach(key => {
@@ -505,7 +503,8 @@ class AuthService {
                 // Wrap unknown errors
                 throw new InternalServerError('Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.');
             }
-        }
+        });
+    }
 
     /**
      * Resends a verification code to the user's email.
