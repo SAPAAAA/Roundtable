@@ -226,12 +226,12 @@ export default function SearchContent() {
                                                     const displayUsername = person.username && person.username.toLowerCase() !== 'empty' ? person.username : "Tên người dùng không khả dụng";
                                                     const displayDisplayName = person.displayName && person.displayName.toLowerCase() !== 'empty' ? person.displayName : displayUsername;
                                                     const displayBio = person.bio && person.bio.toLowerCase() !== 'empty' ? person.bio : "";
-                                                    const linkUsername = person.username && person.username.toLowerCase() !== 'empty' ? person.username : (person.userId || person.id);
-
+                                                    const userId = person.userId || person.id;
+                                                    
                                                     return (
                                                         <Link
-                                                            href={`/u/${linkUsername}`}
-                                                            key={person.userId || person.id}
+                                                            href={`/user/${userId}`}
+                                                            key={userId}
                                                             className="list-group-item list-group-item-action"
                                                         >
                                                             <div className="d-flex align-items-center">
