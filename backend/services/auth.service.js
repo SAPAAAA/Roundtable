@@ -505,8 +505,7 @@ class AuthService {
                 // Wrap unknown errors
                 throw new InternalServerError('Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.');
             }
-        });
-    }
+        }
 
     /**
      * Resends a verification code to the user's email.
@@ -575,7 +574,6 @@ class AuthService {
             // Wrap unknown errors
             throw new InternalServerError('Failed to resend verification code. Please try again later.');
         }
-
     }
 }
 
