@@ -27,6 +27,20 @@ class AuthController {
     register = async (req, res, next) => {
         try {
             const {username, email, password} = req.body;
+            
+            // Check if this is a resend request (no username/password)
+            const isResendRequest = !username && !password && email;
+            
+            if (isResendRequest) {
+                // Handle resend verification code
+                await this.authService.resendVerificationCode(email);
+                return res.status(HTTP_STATUS.OK).json({
+                    success: true,
+                    message: 'Verification code has been resent to your email.',
+                });
+            }
+
+            // Handle new registration
             const data = await this.authService.registerUser({username, email, password});
 
             return res.status(HTTP_STATUS.CREATED).json({
@@ -41,6 +55,9 @@ class AuthController {
             }
             if (error instanceof ConflictError) {
                 return res.status(HTTP_STATUS.CONFLICT).json({success: false, message: error.message});
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
             // Let service-originated InternalServerError pass through if it has a specific message
             if (error instanceof InternalServerError && error.message !== 'An unexpected error occurred during registration.') {
@@ -291,6 +308,44 @@ class AuthController {
             return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.'
+            });
+        }
+    }
+
+    /**
+     * Handles resending verification code requests.
+     * POST /resend-code
+     */
+    resendCode = async (req, res, next) => {
+        try {
+            const { email } = req.body;
+            
+            if (!email) {
+                throw new BadRequestError('Email is required to resend verification code.');
+            }
+
+            // Call the service layer to resend the code
+            await this.authService.resendVerificationCode(email);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: 'Verification code has been resent to your email.',
+            });
+        } catch (error) {
+            console.error("[AuthController.resendCode] Error:", error.message);
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: error.message });
+            }
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: error.message });
+            }
+            if (error instanceof InternalServerError && error.message !== 'An unexpected error occurred while resending verification code.') {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message });
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'An unexpected error occurred while resending verification code.'
             });
         }
     }
