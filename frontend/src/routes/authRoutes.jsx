@@ -22,12 +22,14 @@ function authRoutes() {
                 path: "/login", // Full path from root
                 element: <Login/>,
                 action: loginAction,
-            },
+            }
+            ,
             {
                 path: "/register", // Full path from root
                 element: <Register/>,
                 action: registerAction,
-            },
+            }
+            ,
             {
                 path: "/verify-email", // Full path from root
                 element: <VerifyEmail/>,

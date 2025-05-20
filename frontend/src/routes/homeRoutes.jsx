@@ -13,6 +13,12 @@ function homeRoutes() {
           path: '',
           element: <HomeContent />
         }
+        // ,
+        // {
+        //     path: "/register", // Full path from root
+        //     element: <Register/>,
+        //     action: registerAction,
+        // }
       ]
     }
   ];

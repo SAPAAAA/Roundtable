@@ -14,7 +14,7 @@ function UserProfileView({
                              userProfileData,
                              isOwnProfile
                          }) {
-    const [activeTab, setActiveTab] = useState("Posts");
+    const [activeTab, setActiveTab] = useState("Overview");
     const {user: loggedInUser, isLoading: authIsLoading} = useAuth(); // Get current logged-in user
 
     const tabItemsConfig = React.useMemo(() => {
@@ -70,12 +70,17 @@ function UserProfileView({
                             </div>
                         </div>
                     </div>
-
+                                
                     <Tabs
+                        activeTab={activeTab} // Truyền activeTab để kiểm soát
+                        onTabChange={setActiveTab} // Hàm cập nhật activeTab
+                        tabItems={tabItemsConfig}
+                    />
+                    {/* <Tabs
                         onTabChange={setActiveTab}
                         tabItems={tabItemsConfig}
                         initialActiveTab="Overview"
-                    />
+                    /> */}
                     <div className="profile-tab-content mt-3"> {/* Added mt-3 for spacing */}
                         <UserProfileContent
                             activeTab={activeTab}

@@ -37,6 +37,9 @@ export default function RegisterModal(props) {
 
     const {passwordStrength, checkPasswordStrength} = usePasswordStrength();
 
+    const closeRegisterModal = () => {
+        navigate(location.state?.backgroundLocation?.pathname || '/');
+    };
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
         const newValue = type === 'checkbox' ? checked : value;
