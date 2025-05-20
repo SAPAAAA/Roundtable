@@ -261,9 +261,10 @@ class AuthController {
             // console.log('===(CONTROLLER) REQUEST BODY ===', JSON.stringify(req.body));
 
             const profileData = req.body;
-            const avatar = req.files?.avatar?.[0];
-            const banner = req.files?.banner?.[0]
+            const avatar = req.files?.avatar ? req.files.avatar[0] : null;
+            const banner = req.files?.banner ? req.files.banner[0] : null
             const profileId = profileData.profileId; // Lấy profileId từ request body
+
 
             if (!profileId) {
                 // console.log('===(CONTROLLER) PROFILE ID MISSING IN REQUEST ===');
