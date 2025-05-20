@@ -5,6 +5,7 @@ import useAuth from "#hooks/useAuth.jsx";
 import useWebSocketNotifications from "#hooks/useWebSocketNotifications.jsx";
 import ChatAppWrapper from "#features/chats/components/ChatAppWrapper/ChatAppWrapper";
 import useWebSocketChat from "#hooks/useWebSocketChat.jsx";
+import { useLocation, useNavigate } from 'react-router';
 
 // Lazy load components
 const Header = React.lazy(() => import("#shared/components/layout/Header/Header.jsx"));
@@ -29,6 +30,32 @@ export default function MainLayout() {
     // --- State for ChatBox ---
     const [isChatboxOpen, setIsChatboxOpen] = useState(false);
 
+
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Theo dõi URL để mở modal
+    useEffect(() => {
+        if (location.pathname === '/register') {
+            setIsRegisterModalOpen(true);
+        }
+    }, [location]);
+
+    // Sửa hàm mở modal
+    const openRegisterModal = () => {
+        navigate('/register', { 
+            state: { backgroundLocation: location } // Lưu vị trí hiện tại
+        });
+    };
+
+    // Sửa hàm đóng modal
+    const closeRegisterModal = () => {
+        navigate(-1); // Quay lại trang trước
+        setIsRegisterModalOpen(false);
+    };
+
+
+
     // --- Activate WebSocket listener hook ---
     useWebSocketNotifications();
     useWebSocketChat();
@@ -48,14 +75,14 @@ export default function MainLayout() {
         setLoginApiError(null);
     }
 
-    const openRegisterModal = () => {
-        setLoginApiError(null);
-        setIsLoginModalOpen(false);
-        setIsRegisterModalOpen(true);
-    };
-    const closeRegisterModal = () => {
-        setIsRegisterModalOpen(false);
-    }
+    // const openRegisterModal = () => {
+    //     setLoginApiError(null);
+    //     setIsLoginModalOpen(false);
+    //     setIsRegisterModalOpen(true);
+    // };
+    // const closeRegisterModal = () => {
+    //     setIsRegisterModalOpen(false);
+    // }
 
     const openCreateSubtableModal = () => {
         setIsCreateSubtableModalOpen(true);
