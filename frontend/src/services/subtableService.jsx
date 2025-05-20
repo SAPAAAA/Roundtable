@@ -18,14 +18,47 @@ class SubtableService {
         }
         return response;
     }
-    async getSubtableMedia(mediaId,subtableName) {
-        const baseUrl = `/api/s/${subtableName}/${mediaId}`;
-        console.log('Fetching subtable media with ID:', mediaId);
-        const response = await sendApiRequest(baseUrl, {method: 'GET'});
-        if (!response.success) {
-            throw new Error(`Failed to fetch subtable details for ${mediaId}: ${response.status} ${response.statusText}`);
+    async getSubtableMedia(mediaId, subtableName) {
+        // Early return if mediaId is null, undefined, or empty string
+        if (!mediaId || mediaId === 'null' || mediaId === 'undefined') {
+            console.log('Skipping media fetch - no mediaId provided for subtable:', subtableName);
+            return {
+                success: true,
+                data: {
+                    url: null,
+                    mediaType: null,
+                    mimeType: null
+                }
+            };
         }
-        return response; // Return the whole response object
+
+        const baseUrl = `/api/s/${subtableName}/media/${mediaId}`;
+        console.log('Fetching subtable media with ID:', mediaId, 'for subtable:', subtableName);
+        try {
+            const response = await sendApiRequest(baseUrl, {method: 'GET'});
+            if (!response.success) {
+                console.warn(`Failed to fetch media for subtable ${subtableName}:`, response.message);
+                return {
+                    success: true,
+                    data: {
+                        url: null,
+                        mediaType: null,
+                        mimeType: null
+                    }
+                };
+            }
+            return response;
+        } catch (error) {
+            console.warn(`Error fetching media for subtable ${subtableName}:`, error.message);
+            return {
+                success: true,
+                data: {
+                    url: null,
+                    mediaType: null,
+                    mimeType: null
+                }
+            };
+        }
     }
 
     async getSubscribedSubtables() {
