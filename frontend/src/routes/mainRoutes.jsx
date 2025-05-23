@@ -10,6 +10,8 @@ import searchLoader from "#features/search/loaders/searchLoader.jsx";
 const MainLayout = lazy(() => import('#layouts/MainLayout/MainLayout'));
 const Home = lazy(() => import('#pages/Home/HomeContent/HomeContent'));
 const SearchView = lazy(() => import('#features/search/pages/SearchView/SearchView'));
+const About = lazy(() => import('#pages/About/About'));
+const Help = lazy(() => import('#pages/Help/Help'));
 
 function mainRoutes() {
     return {
@@ -23,6 +25,14 @@ function mainRoutes() {
                 path: "search",
                 element: <SearchView/>,
                 loader: searchLoader,
+            },
+            {
+                path: "about",
+                element: <About/>,
+            },
+            {
+                path: "help",
+                element: <Help/>,
             },
             ...getSubtableRoutesConfig(),
             ...getPostRoutesConfig(),

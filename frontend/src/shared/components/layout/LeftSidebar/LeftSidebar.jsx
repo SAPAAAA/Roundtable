@@ -98,7 +98,7 @@ export default function LeftSidebar(props) {
                     <hr/>
                     <ul className="nav nav-pills flex-column mb-auto">
                         <li className="nav-item">
-                            <a href="#" className="nav-link active d-flex align-items-center">
+                            <a href="/" className="nav-link active d-flex align-items-center">
                                 <Icon name="home" size="16" className="me-2"/>&nbsp;Home
                             </a>
                         </li>
@@ -216,9 +216,9 @@ export default function LeftSidebar(props) {
                         {resourcesExpanded && (
                             <ul className="nav flex-column mb-3">
                                 <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                    <Link href="/about" className="nav-link text-dark d-flex align-items-center">
                                         <Icon name="info" size="16" className="me-2"/>&nbsp;About Roundtable
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
                                     <a href="#" className="nav-link text-dark d-flex align-items-center">
@@ -232,9 +232,9 @@ export default function LeftSidebar(props) {
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
+                                    <Link href="/help" className="nav-link text-dark d-flex align-items-center">
                                         <Icon name="question" size="16" className="me-2"/>&nbsp;Help
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
                                     <a href="#" className="nav-link text-dark d-flex align-items-center">
