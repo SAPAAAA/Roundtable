@@ -438,9 +438,11 @@ class AuthService {
                 console.error(`Data inconsistency: Account ${profileId} found, but no matching Principal.`);
                 throw new InternalServerError('User data configuration error during verification.');
             }
-            const register = await this.registeredUserDao.getByPrincipalId(principal.principalId)
-            userId = register.userId
-            console.log("register", register)
+            const register = await this.registeredUserDao.getByPrincipalId(principal.principalId);
+            if (!register?.userId) {
+                throw new NotFoundError('Không tìm thấy thông tin người dùng đã đăng ký.');
+            }
+            userId = register.userId;
         } catch (error) {
 
         }
@@ -504,19 +506,90 @@ class AuthService {
                 throw new InternalServerError('Không thể cập nhật hồ sơ người dùng.');
             }
 
-            // console.log('===(SERVICE) PROFILE UPDATED SUCCESSFULLY ===', JSON.stringify(updatedProfile));
-            return updatedProfile;
+                return updatedProfile;
+            } catch (error) {
+                // Log the error for debugging
+                console.error('[AuthService:updateProfileById] Error:', error);
+                
+                // Re-throw known errors
+                if (error instanceof BadRequestError ||
+                    error instanceof NotFoundError ||
+                    error instanceof InternalServerError) {
+                    throw error;
+                }
+                
+                // Wrap unknown errors
+                throw new InternalServerError('Đã xảy ra lỗi không mong muốn khi cập nhật hồ sơ.');
+            }
+        
+    }
+
+    /**
+     * Resends a verification code to the user's email.
+     * @param {string} email - The email address to resend the code to.
+     * @throws {BadRequestError} If email is missing or invalid.
+     * @throws {NotFoundError} If no account is found for the email.
+     * @throws {InternalServerError} For database, Redis, or email sending errors.
+     */
+    async resendVerificationCode(email) {
+        if (!email) {
+            throw new BadRequestError('Email is required to resend verification code.');
+        }
+
+        let userId = null;
+        let redisKey = null;
+
+        try {
+            // Find the user's account by email
+            const account = await this.accountDao.getByEmail(email);
+            if (!account?.accountId) {
+                throw new NotFoundError('No account found with this email address.');
+            }
+
+            // Find the principal by accountId
+            const principal = await this.principalDao.getByAccountId(account.accountId);
+            if (!principal?.principalId) {
+                throw new InternalServerError('User data configuration error during code resend.');
+            }
+
+            // Find the registered user by principalId
+            const registeredUser = await this.registeredUserDao.getByPrincipalId(principal.principalId);
+            if (!registeredUser?.userId) {
+                throw new InternalServerError('User registration data error during code resend.');
+            }
+
+            // If user is already verified, no need to resend
+            if (registeredUser.isVerified) {
+                throw new BadRequestError('This account is already verified.');
+            }
+
+            userId = registeredUser.userId;
+            redisKey = `verify:email:${userId}`;
+
+            // Generate a new code
+            const plainCode = generateShortCode(6);
+            const redisTTL = CODE_EXPIRY_MINUTES * 60;
+
+            // Store the new code in Redis
+            await redisClient.set(redisKey, plainCode, { EX: redisTTL });
+
+            // Send the new verification email
+            await this._sendVerificationEmail(email, plainCode);
+
+            console.log(`[AuthService] Verification code resent to ${email} (userId: ${userId})`);
         } catch (error) {
-            // console.log('===(SERVICE) ERROR IN UPDATE PROFILE BY ID ===', error.message);
-            // console.error('Lỗi khi cập nhật profile:', error);
-            // Nếu lỗi đã được xử lý (là instance của AppError), ném lại
+            // Log the error for debugging
+            console.error(`[AuthService:resendVerificationCode] Error for email ${email}:`, error);
+
+            // Re-throw known errors
             if (error instanceof BadRequestError ||
                 error instanceof NotFoundError ||
                 error instanceof InternalServerError) {
                 throw error;
             }
-            // Nếu là lỗi khác, bọc trong InternalServerError
-            throw new InternalServerError('Đã xảy ra lỗi khi cập nhật hồ sơ: ' + error.message);
+
+            // Wrap unknown errors
+            throw new InternalServerError('Failed to resend verification code. Please try again later.');
         }
 
     }

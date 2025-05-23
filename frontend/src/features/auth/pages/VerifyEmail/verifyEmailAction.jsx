@@ -16,11 +16,17 @@ export default async function verifyEmailAction({request}) {
         return responseData;
     } catch (error) {
         console.error("Verify email action failed:", error);
-        const errorData = error.data || {message: error.message || 'Email verification failed.'};
-        const status = error.status || 500;
-        throw new Response(JSON.stringify(errorData), {
-            status: status,
-            headers: {'Content-Type': 'application/json'}
-        });
+        // Handle both error formats: error.data and error.response
+        const errorData = error.data || error.response?.data || { message: error.message || 'Email verification failed.' };
+        const status = error.status || error.response?.status || 500;
+        
+        // Return error object instead of throwing Response
+        return {
+            success: false,
+            error: {
+                message: errorData.message || 'Mã xác thực không hợp lệ. Vui lòng thử lại.',
+                status: status
+            }
+        };
     }
 }
