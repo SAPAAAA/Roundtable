@@ -194,7 +194,7 @@ export default function SearchContent() {
                                                         >
                                                             <div className="d-flex align-items-center">
                                                                 <Avatar
-                                                                    src={community.icon}
+                                                                    src={`http://localhost:5000/images/${community.icon}`}
                                                                     alt={displayName}
                                                                     width={40}
                                                                     height={40}
@@ -236,7 +236,7 @@ export default function SearchContent() {
                                                         >
                                                             <div className="d-flex align-items-center">
                                                                 <Avatar
-                                                                    src={person.avatar}
+                                                                    src={`http://localhost:5000/images/${person.avatar}`}
                                                                     alt={displayDisplayName}
                                                                     width={40}
                                                                     height={40}
