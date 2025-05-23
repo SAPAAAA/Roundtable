@@ -28,52 +28,60 @@ export default function LeftSidebar(props) {
     const toggleRecent = () => {
         setRecentExpanded(!RecentExpanded);
     }
-
+    //console.log("communities",props.communities)
     useEffect(() => {
-        if (communitiesExpanded && communityList.length === 0 && !communitiesLoading) {
-            setCommunitiesLoading(true);
-            setCommunitiesError(null);
-            // Fetch a random set of communities (limit 8)
-            searchService.searchCommunities({ q: '', limit: 8 })
-                .then(res => {
-                    setCommunityList(res?.data?.communities || []);
-                })
-                .catch(err => {
-                    setCommunitiesError('Failed to load communities');
-                })
-                .finally(() => setCommunitiesLoading(false));
-            
-            
-        }
-    }, [communitiesExpanded]);
-
-    useEffect(()=>{
-        // Only run if communityList has items
-    if (communityList.length > 0) {
-        // Fetch media for each community
-        communityList.forEach(async (community) => {
-            try {
-                const mediaResponse = await subtableService.getSubtableMedia(
-                    community.icon,
-                    community.name
-                );
-                //setCommunityMedia()
-                // Update the specific community with its media URL
-                setCommunityList(prevList => 
-                    prevList.map(item => 
-                        item.subtableId === community.subtableId 
-                            ? { ...item, icon: mediaResponse.data.url } 
-                            : item
-                    )
-                );
-            } catch (error) {
-                console.error(`Failed to load media for community ${community.name}:`, error);
-            }
-        });
-        console.log("listtable",communityList)
+    console.log('Communities loaded from props:', props.communities);
+    if (props.communities && props.communities.length > 0) {
+        setCommunityList(props.communities);
+        console.log('Communities loaded from props:', props.communities);
     }
+    }, [props.communities]);
 
-    },[communityList])
+    // useEffect(() => {
+    //     if (communitiesExpanded && communityList.length === 0 && !communitiesLoading) {
+    //         setCommunitiesLoading(true);
+    //         setCommunitiesError(null);
+    //         // Fetch a random set of communities (limit 8)
+    //         searchService.searchCommunities({ q: '', limit: 8 })
+    //             .then(res => {
+    //                 setCommunityList(res?.data?.communities || []);
+    //             })
+    //             .catch(err => {
+    //                 setCommunitiesError('Failed to load communities');
+    //             })
+    //             .finally(() => setCommunitiesLoading(false));
+            
+            
+    //     }
+    // }, [communitiesExpanded]);
+
+    // useEffect(()=>{
+    //     // Only run if communityList has items
+    // if (communityList.length > 0) {
+    //     // Fetch media for each community
+    //     communityList.forEach(async (community) => {
+    //         try {
+    //             const mediaResponse = await subtableService.getSubtableMedia(
+    //                 community.icon,
+    //                 community.name
+    //             );
+    //             //setCommunityMedia()
+    //             // Update the specific community with its media URL
+    //             setCommunityList(prevList => 
+    //                 prevList.map(item => 
+    //                     item.subtableId === community.subtableId 
+    //                         ? { ...item, icon: mediaResponse.data.url } 
+    //                         : item
+    //                 )
+    //             );
+    //         } catch (error) {
+    //             console.error(`Failed to load media for community ${community.name}:`, error);
+    //         }
+    //     });
+    //     console.log("listtable",communityList)
+    // }
+
+    // },[communityList])
 
     // Add a class for easier CSS targeting and positioning context
     const containerClasses = `border-end p-3 ${props.isSidebarVisible ? 'open' : ''}`;
