@@ -1,8 +1,9 @@
 // src/errors/AppError.js
 class AppError extends Error {
-    constructor(message) {
+    constructor(message, data = null) {
         super(message);
         this.name = this.constructor.name;
+        this.data = data;
         Error.captureStackTrace(this, this.constructor);
     }
 }
