@@ -126,7 +126,7 @@ export default function MainLayout() {
     return (
         <Suspense
             fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>
-                <LoadingSpinner message="Loading Layout..."/></div>}>
+                <LoadingSpinner message="Đang tải bố cục trang..."/></div>}>
             <Header
                 toggleChat={toggleChatVisibility} // Pass the new function from context
                 openChatWithUser={openChatWithUser} // Pass the new function

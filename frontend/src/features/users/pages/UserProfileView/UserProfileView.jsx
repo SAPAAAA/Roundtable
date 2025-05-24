@@ -42,7 +42,7 @@ function UserProfileView({
 
     if (!userProfileData) {
         // This case should ideally be handled by the loader or errorElement in routes
-        return <LoadingSpinner message="Loading profile information..."/>;
+        return <LoadingSpinner message="Đang tải thông tin người dùng..."/>;
     }
 
     return (

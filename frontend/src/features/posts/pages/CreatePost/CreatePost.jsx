@@ -117,7 +117,7 @@ export default function CreatePost() {
 
     // Display a loading spinner if the initial loader data is still loading
     if (isLoading && availableSubtables.length === 0) {
-        return <LoadingSpinner message="Loading communities..."/>;
+        return <LoadingSpinner message="Đang tải dữ liệu..."/>;
     }
 
     // Display an error message if the loader failed
