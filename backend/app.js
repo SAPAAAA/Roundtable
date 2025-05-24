@@ -193,17 +193,30 @@ const signals = {'SIGINT': 2, 'SIGTERM': 15};
 Object.keys(signals).forEach((signal) => {
     process.on(signal, async () => {
         console.log(`\nReceived ${signal}. Shutting down gracefully...`);
-        WebSocketManager.closeAllConnections(); // Close WebSocket connections
-        server.close(() => {
+        WebSocketManager.closeAllConnections();
+
+        server.close(async () => {
             console.log('HTTP server closed.');
-            // Close database connections
-            redisClient.quit(() => {
-                console.log('Redis connection closed.');
-                process.exit(128 + signals[signal]);
-            });
-            PostgresDB.destroy(() => {
-                console.log('Postgres connection pool closed.');
-            }); // Close Knex pool
+            try {
+                console.log('Closing database and Redis connections...');
+                await Promise.all([
+                    redisClient.quit(),
+                    PostgresDB.destroy()
+                ]);
+                console.log('Redis and Postgres connections closed successfully.');
+            } catch (err) {
+                console.error('Error during cleanup:', err);
+            } finally {
+                // Exit after a short delay to allow logs to flush
+                setTimeout(() => {
+                    process.exit(128 + signals[signal]);
+                }, 100); // Optional delay
+            }
         });
+
+        setTimeout(() => {
+            console.error('Graceful shutdown timed out. Forcing exit.');
+            process.exit(1);
+        }, 10000);
     });
 });

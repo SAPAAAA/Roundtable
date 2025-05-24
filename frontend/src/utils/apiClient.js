@@ -39,33 +39,33 @@ export async function sendApiRequest(url, options = {}) {
             credentials: 'include',
         });
 
-        let responseData;
+        let responseJson;
         const responseContentType = response.headers.get('content-type');
 
         if (responseContentType && responseContentType.includes('application/json')) {
-            responseData = await response.json();
+            responseJson = await response.json();
         } else {
             // Handle non-JSON responses (e.g., text, or empty for 204)
             // For empty responses (like 204 No Content), .text() is fine and returns empty string.
             const textData = await response.text();
-            responseData = textData ? {message: textData, success: response.ok} : {success: response.ok};
+            responseJson = textData ? {message: textData, success: response.ok} : {success: response.ok};
             if (response.status === 204 && !textData) { // Specifically handle 204 if you expect it
-                responseData = {success: true, status: 204, message: "Operation successful (No Content)"};
+                responseJson = {success: true, status: 204, message: "Operation successful (No Content)"};
             }
         }
-        console.log("responseData from apiClient:", responseData);
+        console.log("responseData from apiClient:", responseJson);
 
 
         if (!response.ok) {
-            const error = new Error(responseData.message || `Request failed with status ${response.status}`);
+            const error = new Error(responseJson.message || `Request failed with status ${response.status}`);
             error.status = response.status;
-            error.data = responseData; // Attach the parsed/constructed error response body
+            error.data = responseJson || null;
             throw error;
         }
 
         return {
             status: response.status, // Add original status to success response
-            ...responseData
+            ...responseJson
         };
 
     } catch (err) {
