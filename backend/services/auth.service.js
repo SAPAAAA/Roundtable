@@ -466,13 +466,13 @@ class AuthService {
             // avatarId = createdMediAvatar.mediaId;
             // bannerId = createdMediaBanner.mediaId;
             if (avatar) {
-                const mediaAvatar = new Media(null, userId, avatar.filename, "image", avatar.mimetype, avatar.size);
+                const mediaAvatar = new Media(null, userId, avatar.path, "image", avatar.mimetype, avatar.size);
                 const createdMediaAvatar = await this.mediaDAO.create(mediaAvatar);
                 avatarId = createdMediaAvatar.mediaId;
             }
 
             if (banner) {
-                const mediaBanner = new Media(null, userId, banner.filename, "image", banner.mimetype, banner.size);
+                const mediaBanner = new Media(null, userId, banner.path, "image", banner.mimetype, banner.size);
                 const createdMediaBanner = await this.mediaDAO.create(mediaBanner);
                 bannerId = createdMediaBanner.mediaId;
             }
