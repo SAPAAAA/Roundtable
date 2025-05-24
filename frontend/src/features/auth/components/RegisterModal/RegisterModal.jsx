@@ -1,12 +1,11 @@
+// src/features/auth/components/RegisterModal/RegisterModal.jsx
 import React, {useEffect, useState} from 'react';
-// Remove RouterForm import
-import {useActionData, useNavigate, useNavigation} from 'react-router';
+import {useFetcher, useNavigate, useNavigation} from 'react-router'; // Ensure this is react-router-dom
 import {usePasswordStrength, useRegisterFormState} from '#features/auth/hooks/register-hook.jsx';
 
 import Modal from "#shared/components/UIElement/Modal/Modal";
 import Button from "#shared/components/UIElement/Button/Button";
-// Import your custom Form component
-import Form from '#shared/components/UIElement/Form/Form.jsx';
+import Form from '#shared/components/UIElement/Form/Form.jsx'; // Your custom Form
 import Input from "#shared/components/UIElement/Input/Input";
 import Icon from '#shared/components/UIElement/Icon/Icon';
 
@@ -17,25 +16,44 @@ export default function RegisterModal(props) {
         isOpen,
         onClose,
         onSwitchToLogin,
+        onRegistrationSuccess, // New prop to handle success and pass email
     } = props;
 
-    const actionData = useActionData();
-    const navigation = useNavigation();
+    const fetcher = useFetcher(); // Use fetcher hook
+    const actionData = fetcher.data; // Data from the action
+    const navigation = useNavigation(); // For submission state
     const navigate = useNavigate();
-    const isSubmitting = navigation.state === 'submitting';
+    const isSubmitting = navigation.state === 'submitting' || fetcher.state === 'submitting';
+
 
     const [localApiError, setLocalApiError] = useState(null);
     const {
-        fullName, setFullName,
+        // fullName, setFullName, // Removed fullName as it's not in Register.jsx
         username, setUsername,
         email, setEmail,
         password, setPassword,
         confirmPassword, setConfirmPassword,
         agreeTerms, setAgreeTerms,
         formErrors, setFormErrors
-    } = useRegisterFormState(isOpen);
+    } = useRegisterFormState(isOpen); // Removed apiError from hook call
 
     const {passwordStrength, checkPasswordStrength} = usePasswordStrength();
+
+    // Reset form when modal opens/closes
+    useEffect(() => {
+        if (isOpen) {
+            // setFullName('');
+            setUsername('');
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
+            setAgreeTerms(false);
+            setFormErrors({});
+            setLocalApiError(null);
+            checkPasswordStrength(''); // Reset password strength
+        }
+    }, [isOpen])
+
 
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
@@ -46,9 +64,7 @@ export default function RegisterModal(props) {
         if (formErrors.general) setFormErrors(prev => ({...prev, general: null}));
 
         switch (name) {
-            case 'fullName':
-                setFullName(newValue);
-                break;
+            // case 'fullName': setFullName(newValue); break;
             case 'username':
                 setUsername(newValue);
                 break;
@@ -58,9 +74,17 @@ export default function RegisterModal(props) {
             case 'password':
                 setPassword(newValue);
                 checkPasswordStrength(newValue);
+                // Re-validate confirmPassword if password changes
+                if (confirmPassword) {
+                    const confirmError = validateField('confirmPassword', confirmPassword, newValue);
+                    setFormErrors(prev => ({...prev, confirmPassword: confirmError}));
+                }
                 break;
             case 'confirmPassword':
                 setConfirmPassword(newValue);
+                // Re-validate confirmPassword against current password
+                const confirmError = validateField('confirmPassword', newValue, password);
+                setFormErrors(prev => ({...prev, confirmPassword: confirmError}));
                 break;
             case 'agreeTerms':
                 setAgreeTerms(newValue);
@@ -69,68 +93,82 @@ export default function RegisterModal(props) {
                 break;
         }
     };
+    const validateField = (name, value, currentPassword) => {
+        let error = null;
+        switch (name) {
+            case 'username':
+                if (!value.trim()) error = 'Vui lòng nhập tên đăng nhập';
+                break;
+            case 'email':
+                if (!value.trim()) error = 'Vui lòng nhập email';
+                else if (!/\S+@\S+\.\S+/.test(value)) error = 'Email không hợp lệ';
+                break;
+            case 'password':
+                if (!value) error = 'Vui lòng nhập mật khẩu';
+                else if (value.length < 6) error = 'Mật khẩu phải có ít nhất 6 ký tự';
+                break;
+            case 'confirmPassword':
+                if (value !== currentPassword) error = 'Mật khẩu xác nhận không khớp';
+                break;
+            case 'agreeTerms':
+                if (!value) error = 'Bạn phải đồng ý với điều khoản dịch vụ';
+                break;
+            default:
+                break;
+        }
+        return error;
+    };
+
 
     const validateForm = () => {
         const newErrors = {};
-        // (Validation logic remains the same)
-        if (!fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ tên';
-        if (!username.trim()) newErrors.username = 'Vui lòng nhập tên đăng nhập';
-        if (!email.trim()) newErrors.email = 'Vui lòng nhập email';
-        else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
-        if (!password) newErrors.password = 'Vui lòng nhập mật khẩu';
-        else if (password.length < 6) newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-        if (password !== confirmPassword) newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-        if (!agreeTerms) newErrors.agreeTerms = 'Bạn phải đồng ý với điều khoản dịch vụ';
+        // newErrors.fullName = validateField('fullName', fullName); // Removed
+        newErrors.username = validateField('username', username);
+        newErrors.email = validateField('email', email);
+        newErrors.password = validateField('password', password);
+        newErrors.confirmPassword = validateField('confirmPassword', confirmPassword, password);
+        newErrors.agreeTerms = validateField('agreeTerms', agreeTerms);
 
-        setFormErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        const filteredErrors = Object.entries(newErrors)
+            .filter(([_, value]) => value !== null)
+            .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});
+
+        setFormErrors(filteredErrors);
+        return Object.keys(filteredErrors).length === 0;
     };
 
     const handleSubmit = (event) => {
         setFormErrors({});
         setLocalApiError(null);
         if (!validateForm()) {
-            event.preventDefault(); // Prevent RR submission if client validation fails
-            console.log("Client validation failed in modal. Preventing submission.");
-        } else {
-            console.log("Client validation passed in modal. Allowing React Router submission...");
-            // Let RR handle it
+            event.preventDefault();
+            console.log("Client validation failed in RegisterModal. Preventing submission.");
+            return;
         }
+        console.log("Client validation passed in RegisterModal. Allowing React Router submission via fetcher...");
+        // Fetcher will handle the submission based on Form's method and action
     };
 
     useEffect(() => {
-        if (isOpen && actionData) {
-            console.log("Register Modal action data received:", actionData);
-            if (actionData.success === false) {
-                setLocalApiError(actionData.message || 'Đăng ký không thành công.');
-            } else if (actionData.success === true) {
-                console.log('Registration successful (via actionData in modal):', actionData.user);
-                onClose(); // Close modal on success
-                // Optionally navigate after closing if needed
-                // navigate('/verify-email', { state: { message: 'Please check your email' } });
+        if (actionData && isOpen) { // Process only if modal is open
+            console.log("Register Modal actionData received:", actionData);
+            if (actionData.success) {
+                console.log('Registration successful (via actionData in modal):', actionData.data);
+                if (onRegistrationSuccess) {
+                    // Pass the email and potentially other data if needed by VerifyEmailModal
+                    onRegistrationSuccess(actionData.data?.email || email);
+                }
+                onClose(); // Close RegisterModal
             } else {
-                console.warn("Received unexpected actionData in RegisterModal:", actionData);
-                setLocalApiError("Phản hồi từ máy chủ không hợp lệ.");
+                // Handle API errors or other validation messages from the action
+                setLocalApiError(actionData.message || actionData.error?.message || 'Đăng ký không thành công.');
+                // If your action returns field-specific errors:
+                if (actionData.errors) {
+                    setFormErrors(prev => ({...prev, ...actionData.errors}));
+                }
             }
         }
-        if (!isOpen) {
-            setLocalApiError(null);
-        }
-    }, [actionData, isOpen, onClose, navigate, setFormErrors]); // Add dependencies
-
-    useEffect(() => {
-        if (isOpen) {
-            setFullName('');
-            setUsername('');
-            setEmail('');
-            setPassword('');
-            setConfirmPassword('');
-            setAgreeTerms(false);
-            setFormErrors({});
-            setLocalApiError(null);
-            checkPasswordStrength('');
-        }
-    }, [isOpen, setFullName, setUsername, setEmail, setPassword, setConfirmPassword, setAgreeTerms, setFormErrors, checkPasswordStrength]);
+    }, [actionData, isOpen, onClose, onRegistrationSuccess, email, setFormErrors]);
 
 
     return (
@@ -161,34 +199,22 @@ export default function RegisterModal(props) {
                 <h1>Đăng ký tài khoản</h1>
                 <p>Vui lòng điền thông tin để tạo tài khoản mới</p>
             </div>
-            {/* Use your custom Form component */}
             <Form
-                id="register-form-modal"
+                id="register-form-modal" // Unique ID for the modal form
                 method="post"
-                action="/register"
-                onSubmit={handleSubmit} // Pass client validation handler
-                mainClass="register-form" // Use mainClass/addClass
+                action="/register" // Make sure this matches your route for registerAction
+                onSubmit={handleSubmit}
+                mainClass="register-form"
                 addClass="px-4"
-                // noValidate // Optional
+                preventNavigation={true} // Use fetcher without page navigation
+                fetcher={fetcher} // Pass the fetcher instance
             >
                 {localApiError && <div className="alert alert-danger mb-3">{localApiError}</div>}
-                {formErrors.general && <div className="alert alert-danger mb-3">{formErrors.general}</div>}
-
-                {/* Form Fields remain the same as previous RegisterModal example */}
-                <div className="form-group">
-                    <Input
-                        id="registerModalFullName" name="fullName" label="Họ và tên"
-                        placeholder="Nhập họ và tên" value={fullName} onChange={handleChange}
-                        isInvalid={!!formErrors.fullName} feedback={formErrors.fullName}
-                        addonBefore={<Icon name="user" size="16"/>}
-                        disabled={isSubmitting}
-                        required
-                    />
-                </div>
+                {/* Removed fullName field as it's not in Register.jsx */}
                 <div className="form-group">
                     <Input
                         id="registerModalUsername" name="username" label="Tên đăng nhập"
-                        placeholder="Nhập tên đăng nhập" value={username} onChange={handleChange}
+                        placeholder="Nhập họ và tên" value={username} onChange={handleChange}
                         isInvalid={!!formErrors.username} feedback={formErrors.username}
                         addonBefore={<Icon name="user" size="16"/>}
                         disabled={isSubmitting}
@@ -242,7 +268,7 @@ export default function RegisterModal(props) {
                         <input
                             type="checkbox" id="registerModalAgreeTerms" name="agreeTerms"
                             checked={agreeTerms} onChange={handleChange}
-                            className={formErrors.agreeTerms ? 'is-invalid' : ''}
+                            className={`form-check-input ${formErrors.agreeTerms ? 'is-invalid' : ''}`}
                             disabled={isSubmitting}
                             required
                         />
