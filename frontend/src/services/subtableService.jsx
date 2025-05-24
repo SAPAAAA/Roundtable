@@ -140,6 +140,20 @@ class SubtableService {
         }
     }
 
+    async getSortPost(subtableId,sortType = 'hot') {
+        // Sử dụng URL đầy đủ thay vì đường dẫn tương đối
+        const baseUrl = `/api/s/${subtableId}/sort`;
+        
+        // Thêm sortType vào query parameters
+        const response = await sendApiRequest(`${baseUrl}?sortType=${sortType}`, {method: 'GET'});
+        
+        if (!response.success) {
+            throw new Error(`Không thể lấy dữ liệu trang chủ: ${response.status} ${response.statusText}`);
+        }
+
+        return response.data;
+    }    
+
     
 }
 export default new SubtableService();
