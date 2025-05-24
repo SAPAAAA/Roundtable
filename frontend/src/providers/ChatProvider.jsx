@@ -46,11 +46,9 @@ const ChatProvider = ({children}) => {
         setError(null);
         try {
             const fetchedData = await chatService.getMessages(partnerPrincipalId);
-            if (!fetchedData.success) {
-                setMessages(prev => ({...prev, [partnerPrincipalId]: prev[partnerPrincipalId] || []}));
-                return;
-            }
+            console.log("fetchedData", fetchedData);
             const validMessages = fetchedData.messages || [];
+            console.log("validMessages", validMessages);
             setMessages(prev => ({
                 ...prev,
                 [partnerPrincipalId]: validMessages,
@@ -211,7 +209,8 @@ const ChatProvider = ({children}) => {
         }
         setError(null);
         try {
-            const sentMessage = await chatService.sendMessage(recipientPrincipalId, body);
+            const responseData = await chatService.sendMessage(recipientPrincipalId, body);
+            const sentMessage = responseData.message;
             if (sentMessage) {
                 addMessage(sentMessage);
                 return sentMessage;

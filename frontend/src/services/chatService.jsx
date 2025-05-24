@@ -62,7 +62,7 @@ class ChatService {
                 body: {recipientPrincipalId: recipientPrincipalId, body},
             });
             if (response.success && response.data?.message) {
-                return response.data.message;
+                return response.data;
             }
             console.error("Failed to send message or invalid response:", response);
             throw new Error(response.message || "Failed to send message.");
