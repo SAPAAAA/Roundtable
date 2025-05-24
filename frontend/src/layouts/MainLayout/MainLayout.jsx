@@ -73,7 +73,33 @@ export default function MainLayout() {
 
     // --- Handlers ---
     const toggleSidebar = () => setSidebarVisible(prev => !prev);
-    const toggleChat = () => setIsChatboxOpen(prev => !prev);
+    // Thêm vào phần useEffect trong MainLayout.jsx
+    
+    useEffect(() => {
+        // Lắng nghe sự kiện toggleChat từ UserProfileSidebar
+        const handleToggleChat = (event) => {
+            setIsChatboxOpen(true);
+            if (event.detail && event.detail.partnerId) {
+                // Sử dụng context từ useChat để set active partner
+                const { setActivePartnerId } = useChat();
+                setActivePartnerId(event.detail.partnerId);
+            }
+        };
+    
+        document.addEventListener('toggleChat', handleToggleChat);
+        return () => {
+            document.removeEventListener('toggleChat', handleToggleChat);
+        };
+    }, []);
+    
+    // Cập nhật hàm toggleChat để phát sự kiện khi đóng
+    const toggleChat = () => {
+        const newState = !isChatboxOpen;
+        setIsChatboxOpen(newState);
+        if (!newState) {
+            document.dispatchEvent(new Event('chatClosed'));
+        }
+    };
 
     // --- Modal Control ---
     const openLoginModal = () => {

@@ -1,13 +1,40 @@
 // src/features/users/pages/UserProfileView/UserProfileSidebar/UserProfileSidebar.jsx
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import useSidebar from '#hooks/useSidebar.jsx';
 import UserInfo from "#features/users/components/UserInfo/UserInfo.jsx";
 import Setting from "#features/users/components/Setting/Setting.jsx";
 import Button from "#shared/components/UIElement/Button/Button.jsx";
+import useChat from "#hooks/useChat.jsx";
 import './UserProfileSidebar.css';
 
 function UserProfileSidebar({userProfileData, isOwnProfile}) {
     const {setSidebarParts} = useSidebar();
+    const [isChatboxOpen, setIsChatboxOpen] = useState(false);
+    const {setActivePartnerId} = useChat();
+
+    // Hàm xử lý khi nhấn nút Chat
+    const handleChatClick = () => {
+        if (userProfileData && userProfileData.principalId) {
+            setActivePartnerId(userProfileData.principalId);
+            setIsChatboxOpen(true);
+            const chatToggleEvent = new CustomEvent('toggleChat', {
+                detail: { partnerId: userProfileData.principalId }
+            });
+            document.dispatchEvent(chatToggleEvent);
+        }
+    };
+
+    // Lắng nghe sự kiện đóng chat từ ChatAppWrapper
+    useEffect(() => {
+        const handleChatClose = () => {
+            setIsChatboxOpen(false);
+        };
+
+        document.addEventListener('chatClosed', handleChatClose);
+        return () => {
+            document.removeEventListener('chatClosed', handleChatClose);
+        };
+    }, []);
 
     useEffect(() => {
         if (!userProfileData) {
@@ -43,7 +70,7 @@ function UserProfileSidebar({userProfileData, isOwnProfile}) {
         ) : (
             <div className="d-flex flex-column gap-2">
                 <Button mainClass="button-8" role="button" onClick={() => console.log('Follow clicked')}>Follow</Button>
-                <Button mainClass="button-8" role="button" onClick={() => console.log('Chat clicked')}>Chat</Button>
+                <Button mainClass="button-8" role="button" onClick={handleChatClick}>Chat</Button>
                 <Button mainClass="button-8" role="button" onClick={() => console.log('Block clicked')}>Block</Button>
             </div>
         );
@@ -59,7 +86,7 @@ function UserProfileSidebar({userProfileData, isOwnProfile}) {
         return () => {
             setSidebarParts(null);
         };
-    }, [userProfileData, isOwnProfile, setSidebarParts]); //
+    }, [userProfileData, isOwnProfile, setSidebarParts, setActivePartnerId]); // Thêm setActivePartnerId vào dependencies
 
     return null;
 }
