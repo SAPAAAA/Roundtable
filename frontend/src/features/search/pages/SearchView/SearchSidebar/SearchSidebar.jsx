@@ -135,7 +135,7 @@ export default function SearchSidebarContent() {
             className="list-group-item list-group-item-action d-flex align-items-center p-2"
         >
             <Avatar
-                src={`http://localhost:5000/images/${community.icon}`}
+                src={community.icon}
                 alt={`s/${community.name}`}
                 width="32"
                 height="32"
@@ -157,7 +157,7 @@ export default function SearchSidebarContent() {
             className="list-group-item list-group-item-action d-flex align-items-center p-2"
         >
             <Avatar
-                src={`http://localhost:5000/images/${user.avatar}`}
+                src={user.avatar}
                 alt={user.username}
                 width="32"
                 height="32"

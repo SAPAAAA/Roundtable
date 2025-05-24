@@ -151,7 +151,7 @@ export default function LeftSidebar(props) {
                                     <li key={community.subtableId} className="community-item p-0">
                                         <Link href={`/s/${community.name}`} className="d-flex align-items-center py-1 px-2 text-dark text-decoration-none w-100">
                                             <Avatar
-                                                src={`http://localhost:5000/images/${community.icon}`}
+                                                src={community.icon}
                                                 alt={community.name}
                                                 width={28}
                                                 height={28}
