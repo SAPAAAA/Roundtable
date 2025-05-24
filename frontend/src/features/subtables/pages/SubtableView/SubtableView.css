@@ -39,6 +39,7 @@
 .designButtonCreatePost:hover{
     text-decoration: underline;
     cursor: pointer;
+    color:black
 }
 .designButtonJoin{
     background-color: #3F72AF !important;
