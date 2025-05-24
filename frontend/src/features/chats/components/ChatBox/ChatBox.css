@@ -54,4 +54,6 @@
     background-color: var(--var-azureish-white) !important; /* Consistent hover */
 }
 
-/* --- Message styles remain in ChatMessage.css --- */
+.chatbox-close-btn {
+    color: var(--var-cultured) !important;
+}

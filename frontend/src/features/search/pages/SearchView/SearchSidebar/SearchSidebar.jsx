@@ -101,7 +101,7 @@ export default function SearchSidebarContent() {
     const renderUser = (user) => (
         <Link
             key={user.userId}
-            href={`/u/${user.username}`}
+            href={`/user/${user.username}`}
             className="list-group-item list-group-item-action d-flex align-items-center p-2"
         >
             <Avatar

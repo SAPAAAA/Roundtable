@@ -1,179 +1,128 @@
-// src/features/chats/components/ChatAppWrapper/ChatAppWrapper.jsx
-import React, {useEffect, useRef} from 'react'; // Import useEffect
+import React, {useEffect, useRef, useState} from 'react';
 import ChatSidebar from '#features/chats/components/ChatSidebar/ChatSidebar';
 import ChatBox from '#features/chats/components/ChatBox/ChatBox';
-import useChat from '#hooks/useChat.jsx'; // Import the chat hook
-import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner'; // For loading state
+import UserSearchBox from '#features/chats/components/UserSearchBox/UserSearchBox';
+import useChat from '#hooks/useChat.jsx';
+import Button from '#shared/components/UIElement/Button/Button';
+import Icon from '#shared/components/UIElement/Icon/Icon';
+import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
 import './ChatAppWrapper.css';
 import useAuth from "#hooks/useAuth.jsx";
 
-// --- Dummy Data ---
-const ALL_CHATS = [
-    {id: 'chat1', partnerName: 'Alice'},
-    {id: 'chat2', partnerName: 'Bob'},
-    {id: 'chat3', partnerName: 'Charlie'},
-];
-const ALL_MESSAGES = {
-    chat1: [
-        {id: 1, sender: 'Alice', text: 'Hey there!'},
-        {id: 2, sender: 'You', text: 'Hi Alice! How are you?'},
-        {id: 3, sender: 'Alice', text: 'Doing well, thanks!'},
-    ],
-    chat2: [
-        {id: 4, sender: 'Bob', text: 'Meeting at 3?'},
-        {id: 5, sender: 'You', text: 'Yes, sounds good.'},
-    ],
-    chat3: [
-        {id: 6, sender: 'Charlie', text: 'Can you send the report?'},
-        {id: 7, sender: 'You', text: 'Sure, sending it now.'},
-        {id: 8, sender: 'Charlie', text: 'Thanks!'},
-        {id: 9, sender: 'Charlie', text: 'Got it.'},
-    ],
-};
-// --- End Dummy Data ---
-
 export default function ChatAppWrapper(props) {
     const {isOpen = false, toggleChatVisibility} = props;
-    const {user} = useAuth(); // Get current user info
+    const {user} = useAuth();
 
-    // Use the chat hook to get state and actions
     const {
         conversationPartners,
         messages,
         activePartnerId,
         setActivePartnerId,
-        fetchMessages,
-        isLoadingConversations,
         isLoadingMessages,
         sendMessage,
         readMessages,
     } = useChat();
 
-    // Ref for the main wrapper div
+    const [isUserSearchBoxOpen, setIsUserSearchBoxOpen] = useState(false);
     const wrapperRef = useRef(null);
 
-    // Effect to handle focus and call markMessagesAsRead
     useEffect(() => {
         const wrapperElement = wrapperRef.current;
-
-        const handleFocusIn = (event) => {
-            // Check if the wrapper exists, is open, has an active chat,
-            // and the focus event originated from within the wrapper
-            if (wrapperElement && isOpen && activePartnerId) {
-                console.log('Chat focused, marking messages as read for:', activePartnerId); // Optional: for debugging
+        const handleFocusIn = () => {
+            if (wrapperElement && isOpen && activePartnerId && !isUserSearchBoxOpen) {
                 readMessages(activePartnerId);
             }
         };
-
-        // Add event listener when the component mounts or dependencies change
         if (wrapperElement) {
-            // Use capture phase false (bubble phase) is standard for 'focusin'
             wrapperElement.addEventListener('focusin', handleFocusIn);
         }
-
-
-        // Cleanup: remove event listener when component unmounts or dependencies change
         return () => {
             if (wrapperElement) {
                 wrapperElement.removeEventListener('focusin', handleFocusIn);
             }
         };
-        // Dependencies: Re-run effect if visibility, active chat, or read function changes
-    }, [isOpen, activePartnerId, readMessages]); // Add wrapperRef? No, ref object is stable.
-
-
-    const handleSelectChat = (partnerPrincipalId) => {
-        console.log("Selected Chat Partner ID:", partnerPrincipalId);
-        setActivePartnerId(partnerPrincipalId);
-        if (partnerPrincipalId) {
-            // Fetch messages if not already loaded (optional, depends on your logic)
-            if (!messages[partnerPrincipalId] || messages[partnerPrincipalId].length === 0) {
-                fetchMessages(partnerPrincipalId);
-            }
-            // Mark as read immediately on selection as well
-            readMessages(partnerPrincipalId);
-        }
-    };
+    }, [isOpen, activePartnerId, readMessages, isUserSearchBoxOpen]);
 
     const handleSendMessage = async (messageBody) => {
-        if (!activePartnerId || !messageBody.trim()) {
+        if (!activePartnerId || !messageBody.trim() || isUserSearchBoxOpen) {
             return;
         }
         try {
             await sendMessage(activePartnerId, messageBody);
         } catch (error) {
-            console.error("Failed to send message from wrapper:", error);
-            alert("Error sending message. Please try again.");
+            alert("Lỗi gửi tin nhắn. Vui lòng thử lại.");
         }
     };
 
-    const handleCloseChat = () => {
-        toggleChatVisibility();
+    const handleOpenUserSearchBox = () => {
+        setIsUserSearchBoxOpen(true);
+    };
+
+    const handleCloseUserSearchBox = () => {
+        setIsUserSearchBoxOpen(false);
+    };
+
+    const handleUserSelected = (selectedUserFromSearch) => {
+        if (setActivePartnerId) {
+            setActivePartnerId(selectedUserFromSearch.principalId || selectedUserFromSearch.userId, selectedUserFromSearch);
+        }
+        setIsUserSearchBoxOpen(false);
     };
 
     const selectedPartner = conversationPartners.find(p => p.partnerPrincipalId === activePartnerId);
-    const messagesForSelectedChat = messages[activePartnerId] || [];
-
-    const wrapperClasses = `
-        chat-app-wrapper
-        position-fixed
-        bottom-0
-        end-0
-        m-3
-        z-index-fixed
-        bg-light
-        border
-        rounded
-        shadow-sm
-        d-flex
-        flex-row
-        ${isOpen ? 'visible' : 'hidden'}
-    `;
+    const messagesForSelectedChat = activePartnerId ? (messages[activePartnerId] || []) : [];
+    const wrapperDynamicClasses = isOpen ? 'visible' : '';
 
     return (
-        // Add the ref and tabindex to make the div focusable itself (optional but good practice)
-        <div className={wrapperClasses} ref={wrapperRef} tabIndex="-1">
-            {/* Sidebar */}
-            {isLoadingConversations ? (
-                <div className="chat-sidebar d-flex justify-content-center align-items-center">
-                    <div className="spinner-border spinner-border-sm" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            ) : (
-                <ChatSidebar
-                    chats={conversationPartners}
-                    selectedPartnerId={activePartnerId}
-                    onSelectChat={handleSelectChat}
-                />
-            )}
+        <div
+            className={`chat-app-wrapper position-fixed bottom-0 end-0 m-3 shadow-sm border rounded bg-light d-flex flex-row ${wrapperDynamicClasses}`}
+            style={{width: '550px', height: '450px', maxWidth: '90vw', maxHeight: '70vh'}}
+            ref={wrapperRef}
+            tabIndex="-1"
+        >
+            <ChatSidebar
+                chats={conversationPartners}
+                selectedPartnerId={activePartnerId}
+                onSelectChat={setActivePartnerId}
+                onAddNewChat={handleOpenUserSearchBox}
+            />
 
-            {/* Chat Content Area */}
-            <div className="chat-content-area flex-grow-1 d-flex flex-column">
-                {activePartnerId ? (
+            <div className="chat-content-area d-flex flex-column flex-grow-1">
+                {isUserSearchBoxOpen ? (
+                    <UserSearchBox
+                        isOpen={isUserSearchBoxOpen}
+                        onClose={handleCloseUserSearchBox}
+                        onUserSelected={handleUserSelected}
+                    />
+                ) : activePartnerId ? (
                     isLoadingMessages ? (
                         <div className="d-flex justify-content-center align-items-center h-100">
-                            <LoadingSpinner size={40} message="Loading messages..."/>
+                            <LoadingSpinner size={40} message="Đang tải tin nhắn..."/>
                         </div>
                     ) : (
                         <ChatBox
-                            chatPartnerName={selectedPartner?.partnerDisplayName || "Chat"}
+                            chatPartnerName={selectedPartner?.partnerDisplayName || "Trò chuyện"}
                             messages={messagesForSelectedChat}
                             onSendMessage={handleSendMessage}
-                            onClose={handleCloseChat}
+                            onClose={toggleChatVisibility}
                             currentUserPrincipalId={user?.principalId}
+                            partnerStatus={selectedPartner?.partnerStatus}
                         />
                     )
                 ) : (
                     <div
-                        className="no-chat-selected p-3 text-center text-muted d-flex justify-content-center align-items-center h-100 position-relative">
-                        Select a chat to start messaging.
-                        <button
+                        className="no-chat-selected-placeholder p-3 d-flex flex-column justify-content-center align-items-center h-100">
+                        <Button
                             type="button"
-                            className="btn-close position-absolute top-0 end-0 m-2"
-                            aria-label="Close Chat"
-                            onClick={handleCloseChat}
-                        ></button>
+                            onClick={toggleChatVisibility}
+                            mainClass="btn-close"
+                            addClass="ms-auto align-self-start"
+                            aria-label="Đóng"
+                        />
+                        <div className="mt-auto mb-auto">
+                            <Icon name="chat" size="48px" addClass="mb-3 text-muted"/>
+                            <p className="h5">Chọn một cuộc trò chuyện hoặc bắt đầu trò chuyện mới</p>
+                        </div>
                     </div>
                 )}
             </div>

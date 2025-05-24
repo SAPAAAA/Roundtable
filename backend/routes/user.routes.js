@@ -3,7 +3,7 @@ import UserController from '#controllers/user.controller.js';
 
 const router = express.Router();
 
-router.get('/:userId', UserController.getUserProfile);
 router.get('/search', UserController.searchUsers);
+router.get('/:username', UserController.getUserProfile);
 
 export default router; 

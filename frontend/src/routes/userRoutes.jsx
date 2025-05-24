@@ -8,7 +8,7 @@ import {useLoaderData} from "react-router";
 const UserProfileView = lazy(() => import('#features/users/pages/UserProfileView/UserProfileView.jsx'));
 
 function ProfilePageWrapper() {
-    const {userProfileData, paramUserId: loadedParamUserId} = useLoaderData();
+    const {userProfileData} = useLoaderData();
     const auth = useAuth();
     const authUserId = auth?.user?.userId;
 
@@ -18,11 +18,10 @@ function ProfilePageWrapper() {
         return <div>Error loading profile data or profile not found. Please try again.</div>;
     }
 
-    const isOwnProfile = !!authUserId && loadedParamUserId === authUserId;
+    const isOwnProfile = !!authUserId && userProfileData.userId === authUserId;
 
     return (
         <UserProfileView
-            userId={loadedParamUserId}
             userProfileData={userProfileData}
             isOwnProfile={isOwnProfile}
         />
@@ -32,7 +31,7 @@ function ProfilePageWrapper() {
 function getUserRoutesConfig() {
     return [
         {
-            path: "user/:userId",
+            path: "user/:username",
             element: <ProfilePageWrapper/>,
             loader: profileLoader,
         }

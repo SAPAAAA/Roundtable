@@ -49,8 +49,8 @@ class UserController {
 
     getUserProfile = async (req, res) => {
         try {
-            const {userId} = req.params;
-            const userProfile = await this.userService.getUserProfile(userId);
+            const {username} = req.params;
+            const userProfile = await this.userService.getUserProfile(username);
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
                 data: userProfile

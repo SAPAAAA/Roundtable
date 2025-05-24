@@ -230,7 +230,7 @@ export default function SearchContent() {
 
                                                     return (
                                                         <Link
-                                                            href={`/u/${linkUsername}`}
+                                                            href={`/user/${linkUsername}`}
                                                             key={person.userId || person.id}
                                                             className="list-group-item list-group-item-action"
                                                         >

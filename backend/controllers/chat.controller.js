@@ -31,7 +31,9 @@ class ChatController {
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: conversationPartners,
+                data: {
+                    partners: conversationPartners
+                },
             });
         } catch (error) {
             console.error(`[ChatController:getConversationPartnersPreview] Error for user ${principalId}:`, error.message);
@@ -79,7 +81,9 @@ class ChatController {
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
-                data: messages,
+                data: {
+                    messages: messages || [],
+                },
             });
         } catch (error) {
             console.error(`[ChatController:getMessages] Error between ${principalId} and ${partnerPrincipalId}:`, error.message);
@@ -90,7 +94,11 @@ class ChatController {
                 return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
             }
             if (error instanceof ForbiddenError) {
-                return res.status(HTTP_STATUS.FORBIDDEN).json({success: false, message: error.message});
+                return res.status(HTTP_STATUS.FORBIDDEN).json({
+                    success: false,
+                    message: error.message,
+                    data: error.data
+                });
             }
             if (error instanceof InternalServerError) {
                 return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});

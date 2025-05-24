@@ -3,17 +3,15 @@ import userService from '#services/userService';
 import {redirect} from 'react-router';
 
 async function profileLoader({params}) {
-    const {userId: paramUserId} = params;
+    const {username: paramUsername} = params;
 
-    if (!paramUserId) {
+    if (!paramUsername) {
         console.error("ProfileLoader: userId parameter is missing.");
         return redirect('/404');
     }
 
     try {
-        const fullResponse = await userService.getUserProfileByUserId(paramUserId);
-
-        console.log('ProfileLoader: fullResponse:', fullResponse);
+        const fullResponse = await userService.getUserProfileByUsername(paramUsername);
 
         if (fullResponse && fullResponse.success) {
             const profilePayload = fullResponse.profile || fullResponse.data;
@@ -24,7 +22,6 @@ async function profileLoader({params}) {
             }
             return {
                 userProfileData: profilePayload.user,
-                paramUserId: paramUserId
             };
         } else {
             console.error('ProfileLoader: Failed to fetch profile -', fullResponse?.message);

@@ -1,8 +1,8 @@
 import {sendApiRequest} from "#utils/apiClient";
 
 class UserService {
-    async getUserProfileByUserId(userId) {
-        const baseUrl = `/api/users/${userId}`;
+    async getUserProfileByUsername(username) {
+        const baseUrl = `/api/users/${username}`;
 
         const response = await sendApiRequest(baseUrl, {
             method: 'GET'

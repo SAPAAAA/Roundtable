@@ -10,7 +10,7 @@ class ChatService {
     async getConversationPartners() {
         try {
             const response = await sendApiRequest('/api/chats/partners', {method: 'GET'});
-            if (response.success && Array.isArray(response.data)) {
+            if (response.success && Array.isArray(response.data.partners)) {
                 return response.data;
             }
             console.warn("Unexpected response structure for getConversationPartnersPreviewData:", response);
@@ -34,14 +34,14 @@ class ChatService {
         try {
             const url = `/api/chats/${encodeURIComponent(partnerPrincipalId)}/messages`;
             const response = await sendApiRequest(url, {method: 'GET'});
-            if (response.success && Array.isArray(response.data)) {
+            if (response.success && Array.isArray(response.data.messages)) {
                 return response.data;
             }
             console.warn(`Unexpected response structure for getMessages(${partnerPrincipalId}):`, response);
             return [];
         } catch (error) {
             console.error(`Error fetching messages for partner ${partnerPrincipalId}:`, error);
-            return [];
+            return error.data;
         }
     }
 

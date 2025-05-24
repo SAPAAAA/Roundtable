@@ -1,15 +1,24 @@
 // src/features/users/pages/UserProfileView/UserProfileSidebar/UserProfileSidebar.jsx
 import React, {useEffect} from "react";
 import useSidebar from '#hooks/useSidebar.jsx';
+import useChat from '#hooks/useChat.jsx'; // Import useChat
 import UserInfo from "#features/users/components/UserInfo/UserInfo.jsx";
 import Setting from "#features/users/components/Setting/Setting.jsx";
 import Button from "#shared/components/UIElement/Button/Button.jsx";
 import './UserProfileSidebar.css';
 
-function UserProfileSidebar({userProfileData, isOwnProfile}) {
+function UserProfileSidebar({userProfileData, isOwnProfile}) { // Removed openChat from props
     const {setSidebarParts} = useSidebar();
-
+    const {openChatWithUser} = useChat(); // Get openChatWithUser from context
     useEffect(() => {
+        const handleOpenChat = () => {
+            if (userProfileData && userProfileData.principalId) {
+                openChatWithUser(userProfileData.principalId, userProfileData);
+            } else {
+                console.warn("Cannot open chat: userProfileData or principalId is missing.");
+            }
+        };
+
         if (!userProfileData) {
             setSidebarParts(null);
             return;
@@ -43,23 +52,22 @@ function UserProfileSidebar({userProfileData, isOwnProfile}) {
         ) : (
             <div className="d-flex flex-column gap-2">
                 <Button mainClass="button-8" role="button" onClick={() => console.log('Follow clicked')}>Follow</Button>
-                <Button mainClass="button-8" role="button" onClick={() => console.log('Chat clicked')}>Chat</Button>
+                <Button mainClass="button-8" role="button" onClick={handleOpenChat}>Chat</Button>
                 <Button mainClass="button-8" role="button" onClick={() => console.log('Block clicked')}>Block</Button>
             </div>
         );
 
         setSidebarParts({
-            id: `profile-${userProfileData.userId}`, // Keep the ID if you use it for the cleanup logic
+            id: `profile-${userProfileData.userId}`,
             header: headerContent,
             body: bodyContent,
             footer: footerContent,
         });
 
-        // Cleanup function
         return () => {
             setSidebarParts(null);
         };
-    }, [userProfileData, isOwnProfile, setSidebarParts]); //
+    }, [userProfileData, isOwnProfile, setSidebarParts, openChatWithUser]); // Added openChatWithUser to dependencies
 
     return null;
 }

@@ -8,6 +8,7 @@ const ChatContext = createContext({
     isLoadingConversations: true,
     isLoadingMessages: false,
     error: null, // string | null
+    isChatboxOpen: false, // New state
     fetchConversations: async () => {
     },
     fetchMessages: async (partnerUserId) => {
@@ -21,6 +22,10 @@ const ChatContext = createContext({
     }, // (partnerUserId: string | null) => void
     clearChatState: () => {
     },
+    openChatWithUser: (partnerPrincipalId) => {
+    }, // New function
+    toggleChatVisibility: () => {
+    }, // New function
 });
 
 export default ChatContext;

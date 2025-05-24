@@ -1,0 +1,33 @@
+/* src/features/chats/components/UserSearchBox/UserSearchBox.css */
+
+.user-search-box-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background-color: var(--bs-light, #f8f9fa); /* Bootstrap light background */
+    color: var(--bs-dark, #212529); /* Bootstrap dark text */
+}
+
+.user-search-box-header {
+    background-color: var(--var-space-cadet); /* Retaining custom header color */
+    color: var(--var-cultured);
+}
+
+.user-search-box-header .btn-close-white { /* Bootstrap class for white close button */
+    filter: invert(1) grayscale(100%) brightness(200%); /* Make it white */
+}
+
+.user-search-box-body {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.user-search-results-list .list-group-item-action:hover,
+.user-search-results-list .list-group-item-action:focus {
+    background-color: var(--bs-gray-200, #e9ecef); /* Bootstrap hover color */
+}
+
+.user-search-result-info .identifier {
+    font-size: var(--var-fs-8) !important; /* Keep if var-fs-8 is a custom smaller font size */
+}

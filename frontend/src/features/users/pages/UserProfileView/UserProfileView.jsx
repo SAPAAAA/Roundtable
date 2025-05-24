@@ -10,13 +10,12 @@ import LoadingSpinner from "#shared/components/UIElement/LoadingSpinner/LoadingS
 import './UserProfileView.css';
 
 function UserProfileView({
-                             userId,
                              userProfileData,
                              isOwnProfile
                          }) {
     const [activeTab, setActiveTab] = useState("Posts");
     const {user: loggedInUser, isLoading: authIsLoading} = useAuth(); // Get current logged-in user
-
+    const userId = userProfileData ? userProfileData.userId : null;
     const tabItemsConfig = React.useMemo(() => {
         const baseTabs = [
             {key: "Overview", label: "Overview", href: `#${userId}-overview`},

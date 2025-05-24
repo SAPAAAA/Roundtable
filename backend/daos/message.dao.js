@@ -4,6 +4,9 @@ import Message from '#models/message.model.js';
 
 /**
  * @typedef {import('../models/message.model.js').MessageTypeEnum} MessageTypeEnum
+ * // Assuming UserStatus might be defined elsewhere, e.g., in a user model.
+ * // For this example, we'll describe it inline if not available for import.
+ * // For instance: typedef {import('../models/user.model.js').UserStatus} UserStatus
  */
 
 /**
@@ -14,16 +17,22 @@ import Message from '#models/message.model.js';
  */
 
 /**
+ * @typedef {object} LastMessageDetailsPreview
+ * @property {string | null} text - The body text of the last message.
+ * @property {Date | null} timestamp - The timestamp of the last message.
+ * @property {string | null} senderPrincipalId - The Principal UUID of who sent the last message.
+ * @property {boolean} isRead - If the last message was read by its recipient (true if read, false otherwise).
+ */
+
+/**
  * @typedef {object} ConversationPartnerPreview
- * @property {string} partnerId - The Principal UUID of the conversation partner.
+ * @property {string} partnerPrincipalId - The Principal UUID of the conversation partner.
  * @property {string | null} partnerDisplayName - The display name of the partner.
  * @property {string | null} partnerUsername - The username of the partner.
  * @property {string | null} partnerAvatar - The avatar URL of the partner.
+ * @property {('active'|'suspended'|'banned') | null} partnerStatus - The status of the partner (from RegisteredUser table), null if not applicable or not a registered user.
  * @property {number} unreadCount - The number of unread messages from this partner to the user.
- * @property {Date} lastMessageTime - The timestamp of the last message exchanged.
- * @property {string | null} lastMessageSnippet - The body text of the last message exchanged.
- * @property {boolean} lastMessageIsRead - If the last message (from the perspective of the requesting user) was read by them.
- * @property {string | null} lastMessageSenderId - The Principal UUID of who sent the last message.
+ * @property {LastMessageDetailsPreview | null} lastMessage - Details of the last message exchanged.
  */
 
 
@@ -236,34 +245,35 @@ class MessageDAO {
                 .with(partnersCTE, partnersQuery)
                 .with(latestInteractionCTE, latestInteractionQuery)
                 .select(
-                    'pCTE.partnerId', // This is a PrincipalId of the conversation partner
+                    'pCTE.partnerId',
                     'prof.displayName as partnerDisplayName',
                     'acc.username as partnerUsername',
                     'media_avatar.url as partnerAvatar',
+                    'ru.status as partnerStatus', // <<< --- ADDED partnerStatus selection
                     postgresInstance(this.tableName + ' as m_unread')
                         .count('*')
-                        .where('m_unread.senderPrincipalId', postgresInstance.ref('pCTE.partnerId')) // Messages sent BY the partner
-                        .andWhere('m_unread.recipientPrincipalId', currentUserPrincipalId) // Messages sent TO the current user
-                        .andWhere('m_unread.isRead', false) // That are unread by the current user
-                        .andWhere('m_unread.recipientDeleted', false) // And not deleted by the current user
+                        .where('m_unread.senderPrincipalId', postgresInstance.ref('pCTE.partnerId'))
+                        .andWhere('m_unread.recipientPrincipalId', currentUserPrincipalId)
+                        .andWhere('m_unread.isRead', false)
+                        .andWhere('m_unread.recipientDeleted', false)
                         .as('unreadCount'),
-                    'liCTE.lastMessageTime', // This is the timestamp of the actual last message in conversation
+                    'liCTE.lastMessageTime',
                     postgresInstance(this.tableName + ' as m_snippet')
                         .select(postgresInstance.raw(`json_build_object(
                         'body', body,
                         'senderPrincipalId', "senderPrincipalId",
                         'isRead', "isRead",
-                        'createdAt', "createdAt" 
-                    )::text`)) // Added createdAt to ensure we have it for the last message object
-                        .where(function () { // Messages between current user and this specific partner
+                        'createdAt', "createdAt"
+                    )::text`))
+                        .where(function () {
                             this.where(builder => builder.where('m_snippet.senderPrincipalId', currentUserPrincipalId).andWhere('m_snippet.recipientPrincipalId', postgresInstance.ref('pCTE.partnerId')))
                                 .orWhere(builder => builder.where('m_snippet.senderPrincipalId', postgresInstance.ref('pCTE.partnerId')).andWhere('m_snippet.recipientPrincipalId', currentUserPrincipalId));
                         })
-                        .andWhere(function () { // Filter out messages deleted by the current user
-                            this.where(function () { // Current user sent it and didn't delete it
+                        .andWhere(function () {
+                            this.where(function () {
                                 this.where('m_snippet.senderPrincipalId', currentUserPrincipalId).andWhere('m_snippet.senderDeleted', false);
                             })
-                                .orWhere(function () { // Current user received it and didn't delete it
+                                .orWhere(function () {
                                     this.where('m_snippet.recipientPrincipalId', currentUserPrincipalId).andWhere('m_snippet.recipientDeleted', false);
                                 });
                         })
@@ -277,7 +287,8 @@ class MessageDAO {
                 .leftJoin('Profile as prof', 'p.profileId', 'prof.profileId')
                 .leftJoin('Account as acc', 'p.accountId', 'acc.accountId')
                 .leftJoin('Media as media_avatar', 'prof.avatar', 'media_avatar.mediaId')
-                .whereNotNull('pCTE.partnerId') // Ensure partnerId is not null
+                .leftJoin('RegisteredUser as ru', 'p.principalId', 'ru.principalId') // <<< --- ADDED JOIN with RegisteredUser
+                .whereNotNull('pCTE.partnerId')
                 .orderBy('liCTE.lastMessageTime', validOrder)
                 .limit(limit)
                 .offset(offset);
@@ -289,17 +300,12 @@ class MessageDAO {
                         const details = JSON.parse(row.lastMessageDetailsJson);
                         lastMessage = {
                             text: details.body,
-                            // Use createdAt from the JSON object itself, as liCTE.lastMessageTime is from a separate aggregation
-                            // and while it represents the latest interaction, the specific 'createdAt' of the message snippet is more direct.
-                            // However, liCTE.lastMessageTime should be identical to details.createdAt for the latest message.
-                            // Using details.createdAt ensures the timestamp is directly from the message object.
-                            timestamp: new Date(details.createdAt),
-                            senderPrincipalId: details.senderPrincipalId, // PrincipalId of the last message sender
+                            timestamp: details.createdAt ? new Date(details.createdAt) : null, // Use createdAt from JSON
+                            senderPrincipalId: details.senderPrincipalId,
                             isRead: !!details.isRead
                         };
                     } catch (e) {
                         console.error(`[MessageDAO] Error parsing last message details JSON for partner ${row.partnerId}:`, e, "JSON:", row.lastMessageDetailsJson);
-                        // Decide how to handle: nullify, or rethrow, or log and continue
                     }
                 }
 
@@ -308,16 +314,14 @@ class MessageDAO {
                     partnerDisplayName: row.partnerDisplayName,
                     partnerUsername: row.partnerUsername,
                     partnerAvatar: row.partnerAvatar,
+                    partnerStatus: row.partnerStatus,
                     unreadCount: parseInt(row.unreadCount, 10) || 0,
-                    // lastMessageTime from liCTE is good for ordering the conversation list,
-                    // but the actual lastMessage object should have its own specific timestamp.
                     lastMessage: lastMessage
                 };
             });
 
         } catch (error) {
             console.error(`[MessageDAO] Error fetching conversation partners preview for user (PrincipalId: ${currentUserPrincipalId}):`, error);
-            // Rethrow as a generic error or a specific DB error if you have a hierarchy
             throw new Error('Failed to retrieve conversation partners from database.');
         }
     }

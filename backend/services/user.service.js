@@ -42,15 +42,15 @@ class UserService {
         }
     }
 
-    async getUserProfile(userId) {
+    async getUserProfile(username) {
         try {
             // Validate input
-            if (!userId) {
+            if (!username) {
                 throw new BadRequestError('Missing user ID');
             }
 
             // Get user profile from DAO
-            const userProfile = await this.userProfileDao.getByUserId(userId);
+            const userProfile = await this.userProfileDao.getByUsername(username);
 
             return {
                 user: userProfile

@@ -74,8 +74,13 @@ class ChatService {
         if (!partnerUser) {
             throw new NotFoundError(`User with ID ${partnerPrincipalId} not found.`);
         }
-        if (partnerUser.status !== 'active') { // Example status check
-            throw new ForbiddenError(`Cannot retrieve messages involving user with status: ${partnerUser.status}.`);
+        if (partnerUser.status !== 'active') {
+            throw new ForbiddenError(
+                `Cannot retrieve messages involving user with status: ${partnerUser.status}.`,
+                {
+                    userStatus: partnerUser.status
+                }
+            );
         }
         // Get requesting user
         const requestingUser = await this.registeredUserDAO.getByPrincipalId(requestingPrincipalId);
@@ -93,13 +98,11 @@ class ChatService {
 
         try {
             // Use the DAO for fetching detailed messages view/object
-            const messages = await this.userMessageDetailsDAO.getMessagesBetweenUsers(
+            return await this.userMessageDetailsDAO.getMessagesBetweenUsers(
                 requestingPrincipalId,
                 partnerPrincipalId,
                 queryOptions
             );
-            console.log('messages:', messages);
-            return messages;
         } catch (error) {
             console.error(`[ChatService:getMessages] Error between ${requestingUser.principalId} and ${partnerUser.principalId}:`, error);
             if (error instanceof AppError) {

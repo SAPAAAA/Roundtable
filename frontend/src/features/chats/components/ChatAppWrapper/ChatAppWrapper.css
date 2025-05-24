@@ -1,59 +1,51 @@
 /* src/features/chats/components/ChatAppWrapper/ChatAppWrapper.css */
 
 .chat-app-wrapper {
-    /* --- Dimensions --- */
-    width: 550px;
-    max-width: 90vw;
-    height: 450px;
-    max-height: 70vh;
+    /* Dimensions are set by Bootstrap utilities on the element itself in JSX */
+    /* Max width/height can be controlled via inline styles or utility classes if needed */
 
-    /* --- Visibility & Transition --- */
-    z-index: 9999;
+    /* Visibility & Transition - Keep these for smooth open/close */
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out, visibility 0.2s linear;
     transform: scale(0.95) translateY(10px);
     opacity: 0;
     visibility: hidden;
-    transition: transform 0.2s ease-out, opacity 0.2s ease-out, visibility 0.2s linear;
-    overflow: hidden; /* Hide content during transition */
+    overflow: hidden;
+    z-index: 100000;
 }
 
 .chat-app-wrapper.visible {
-    /* Become visible (full scale, no translation, full opacity) */
     transform: scale(1) translateY(0);
     opacity: 1;
     visibility: visible;
 }
 
-.chat-app-wrapper.hidden {
-    /* Explicitly define hidden state for transition */
-    transform: scale(0.95) translateY(10px);
-    opacity: 0;
-    visibility: hidden;
+/* No need for .chat-app-wrapper.hidden if default state is hidden */
+
+/* Ensure child flex items (sidebar, content-area) behave correctly */
+.chat-app-wrapper > .chat-sidebar {
+    width: 200px; /* Example fixed width for sidebar, adjust as needed */
+    flex-shrink: 0;
 }
 
-/* --- Internal Layout --- */
-/* Ensure sidebar and content area layout correctly */
-.chat-content-area {
-    min-width: 0;
+.chat-app-wrapper > .chat-content-area {
+    min-width: 0; /* Allow content area to shrink */
+    flex-grow: 1; /* Allow content area to take remaining space */
     height: 100%;
 }
 
-.no-chat-selected {
-    /* Styles for the placeholder message */
+.no-chat-selected-placeholder { /* Renamed class for clarity */
     display: flex;
+    flex-direction: column; /* Stack button above text */
     justify-content: center;
     align-items: center;
-    height: 100%; /* Fill the content area */
+    height: 100%;
+    text-align: center;
+    color: var(--bs-secondary-color); /* Bootstrap secondary text color */
 }
 
-/* Ensure ChatBox fills the content area */
-.chat-content-area > .chatbox-container {
+/* ChatBox within content area should fill it */
+.chat-content-area > .chatbox-container,
+.chat-content-area > .user-search-box-container {
     height: 100%;
     width: 100%;
-    position: static;
-    transform: none;
-    opacity: 1;
-    visibility: visible;
-    box-shadow: none;
-    border: none;
-    border-radius: 0;
 }

@@ -10,13 +10,13 @@
 }
 
 .sidebar-header {
-    padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--bs-border-color);
-    margin-bottom: 0;
-    font-size: 1rem;
-    font-weight: bold;
     color: var(--var-space-cadet);
-    background-color: #f8f9fa;
+}
+
+.sidebar-header button:hover {
+    color: var(--var-space-cadet);
+    background-color: var(--var-azureish-white);
 }
 
 .chat-list {

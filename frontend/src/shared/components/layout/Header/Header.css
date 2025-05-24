@@ -51,7 +51,7 @@
     text-decoration: none;
 }
 
-[data-theme="light"] #header .btn:hover {
+[data-theme="light"] #header button:hover {
     color: var(--header-btn-hover-color) !important;
     background-color: var(--header-btn-hover-bg-color) !important;
 }
