@@ -362,6 +362,34 @@ class SubtableController {
             });
         }
     }
+    getSubtablePostsBySortType = async (req, res) => {
+        try {
+            const { subtableName, sortType } = req.params;
+            const posts = await this.subtableService.getSubtablePostsBySortType(subtableName, sortType);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: `Posts for subtable '${subtableName}' sorted by ${sortType} fetched successfully.`,
+                data: posts
+            });
+        } catch (error) {
+            console.error(`[SubtableController:getSubtablePostsBySortType] Error for ${req.params?.subtableName}:`, error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while fetching sorted subtable posts."
+            });
+        }
+    };
 }
 
 export default new SubtableController(subtableService);

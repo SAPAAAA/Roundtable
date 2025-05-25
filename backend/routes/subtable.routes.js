@@ -22,5 +22,6 @@ router.get('/:subtableName', SubtableController.getSubtableDetails);
 router.get('/:subtableName/posts', SubtableController.getSubtablePosts);
 router.get('/:subtableName/:mediaId', SubtableController.getSubtableMedia);
 
+router.get('/sort/:subtableName/:sortType', SubtableController.getSubtablePostsBySortType);
 
 export default router;

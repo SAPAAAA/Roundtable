@@ -394,6 +394,50 @@ class SubtableService {
             throw new InternalServerError("Failed to check subscription status.");
         }
     }
+    async getSubtablePostsBySortType(subtableName, sortType) {
+        if (!subtableName || typeof subtableName !== 'string' || subtableName.trim() === '') {
+            throw new BadRequestError("Subtable name is required and must be a non-empty string.");
+        }
+
+        try {
+            const options = this._getSortOptions(sortType);
+            // Fetch posts using the subtable ID from the UserPostDetails view
+            return await this.userPostDetailsDao.getBySubtableIdAndSortType(subtableName, options);
+
+        } catch (error) {
+            // Re-throw known application errors
+            if (error instanceof AppError) {
+                throw error;
+            }
+            // Wrap unexpected DAO/database errors
+            console.error(`[SubtableService:getSubtablePostsBySortType] Error for ${subtableName}:`, error);
+            throw new InternalServerError("An error occurred while fetching subtable posts by sort type.");
+        }
+    }
+     _getSortOptions(sortType) {
+        switch(sortType) {
+            case 'hot':
+                return { 
+                    sortBy: 'score',
+                    timePreference: '3months' // Ưu tiên bài viết trong 3 tháng
+                }; 
+            case 'new':
+                return { sortBy: 'postCreatedAt', order: 'desc' }; 
+            case 'top':
+                return { 
+                    sortBy: 'voteCount', 
+                    order: 'desc',
+                    timePreference: '3months' // Thêm timePreference cho Top
+                }; 
+            case 'rising':
+                return { 
+                    sortBy: 'score',
+                    timeRange: '24h'
+                };
+            default:
+                return { sortBy: 'score' }; 
+        }
+    }
 }
 
 // Inject dependencies when creating the instance

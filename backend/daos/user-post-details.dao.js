@@ -333,6 +333,158 @@ class UserPostDetailsDAO {
             throw error;
         }
     }
+    async getBySubtableIdAndSortType(subtableName, options = {}) {
+        const isSortingByScore = options.sortBy === 'score';
+        const { timeRange, timePreference } = options;
+        const {
+            limit,
+            offset = 0,
+            sortBy: dbSortBy,
+            order,
+            includeRemoved
+        } = this._prepareQueryOptions(options);
+    
+        try {
+            //let query = postgresInstance(this.viewName).select('*');
+            let query = postgresInstance(this.viewName)
+                .select('*')
+                .where('subtableName', subtableName);
+            if (!includeRemoved) {
+                query = query.where('isRemoved', false);
+            }
+    
+            // Nếu là rising, chỉ lấy bài viết trong 24h
+            if (timeRange === '24h') {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                query = query.where('postCreatedAt', '>=', oneDayAgo);
+            }
+    
+            // If not sorting by custom score, apply database-level sorting and pagination (if limit is provided)
+            if (!isSortingByScore && !timePreference) {
+                query = query.orderBy(dbSortBy, order).offset(offset);
+                if (limit !== null && limit !== undefined) { // Ensure limit is explicitly set
+                    query = query.limit(limit);
+                }
+            }
+
+            const viewRows = await query;
+            let posts = viewRows.map(row => UserPostDetails.fromDbRow(row)).filter(post => post !== null);
+
+            let now = new Date();
+            // Xử lý trường hợp timePreference = '3months' cho cả Hot và Top
+            if (timePreference === '3months') {
+                const threeMonthsAgo = new Date(now);
+                threeMonthsAgo.setMonth(now.getMonth() - 3);
+                
+                // Chia bài viết thành 2 nhóm: trong 3 tháng và ngoài 3 tháng
+                const recentPosts = [];
+                const olderPosts = [];
+                
+                posts.forEach(post => {
+                    const postDate = new Date(post.postCreatedAt);
+                    if (postDate >= threeMonthsAgo) {
+                        recentPosts.push(post);
+                    } else {
+                        olderPosts.push(post);
+                    }
+                });
+                
+                if (isSortingByScore) {
+                    // Xử lý cho chế độ Hot
+                    // Tính điểm cho cả hai nhóm
+                    const scoredRecentPosts = this._calculateScores(recentPosts, now);
+                    const scoredOlderPosts = this._calculateScores(olderPosts, now);
+                    
+                    // Sắp xếp mỗi nhóm theo điểm
+                    scoredRecentPosts.sort((a, b) => order === 'asc' ? a._score - b._score : b._score - a._score);
+                    
+                    // Sắp xếp nhóm cũ hơn theo điểm và thời gian
+                    scoredOlderPosts.sort((a, b) => {
+                        // Nếu điểm khác nhau, sắp xếp theo điểm
+                        if (b._score !== a._score) {
+                            return order === 'asc' ? a._score - b._score : b._score - a._score;
+                        }
+                        // Nếu điểm bằng nhau, sắp xếp theo thời gian
+                        const dateA = new Date(a.postCreatedAt);
+                        const dateB = new Date(b.postCreatedAt);
+                        return order === 'asc' ? dateA - dateB : dateB - dateA;
+                    });
+                    
+                    // Ghép hai nhóm lại, ưu tiên nhóm gần đây
+                    const combinedPosts = [...scoredRecentPosts, ...scoredOlderPosts];
+                    
+                    // Áp dụng phân trang
+                    const startIndex = offset;
+                    const endIndex = (limit !== null && limit !== undefined) ? offset + limit : combinedPosts.length;
+                    const paginatedPosts = combinedPosts.slice(startIndex, endIndex);
+                    
+                    // Loại bỏ thuộc tính _score trước khi trả về
+                    return paginatedPosts.map(p => {
+                        const {_score, ...cleanPost} = p;
+                        return cleanPost;
+                    });
+                } else {
+                    // Xử lý cho chế độ Top (sortBy = voteCount)
+                    // Sắp xếp mỗi nhóm theo số lượt vote
+                    recentPosts.sort((a, b) => {
+                        const voteA = a.voteCount || 0;
+                        const voteB = b.voteCount || 0;
+                        return order === 'asc' ? voteA - voteB : voteB - voteA;
+                    });
+                    
+                    // Sắp xếp nhóm cũ hơn theo số lượt vote và thời gian
+                    olderPosts.sort((a, b) => {
+                        const voteA = a.voteCount || 0;
+                        const voteB = b.voteCount || 0;
+                        
+                        // Nếu số vote khác nhau, sắp xếp theo số vote
+                        if (voteA !== voteB) {
+                            return order === 'asc' ? voteA - voteB : voteB - voteA;
+                        }
+                        
+                        // Nếu số vote bằng nhau, sắp xếp theo thời gian
+                        const dateA = new Date(a.postCreatedAt);
+                        const dateB = new Date(b.postCreatedAt);
+                        return order === 'asc' ? dateA - dateB : dateB - dateA;
+                    });
+                    
+                    // Ghép hai nhóm lại, ưu tiên nhóm gần đây
+                    const combinedPosts = [...recentPosts, ...olderPosts];
+                    
+                    // Áp dụng phân trang
+                    const startIndex = offset;
+                    const endIndex = (limit !== null && limit !== undefined) ? offset + limit : combinedPosts.length;
+                    return combinedPosts.slice(startIndex, endIndex);
+                }
+            } else if (isSortingByScore) {
+                // Xử lý bình thường cho các trường hợp khác của Hot
+                const scoredPosts = this._calculateScores(posts, now);
+                
+                // Sort posts by the calculated score.
+                scoredPosts.sort((a, b) => {
+                    return order === 'asc' ? a._score - b._score : b._score - a._score;
+                });
+    
+                // Apply pagination (limit and offset) after scoring and sorting
+                const startIndex = offset;
+                const endIndex = (limit !== null && limit !== undefined) ? offset + limit : scoredPosts.length;
+                const paginatedPosts = scoredPosts.slice(startIndex, endIndex);
+    
+                // Remove the _score property before returning
+                return paginatedPosts.map(p => {
+                    const {_score, ...cleanPost} = p;
+                    return cleanPost;
+                });
+            } else {
+                // If not sorting by score, posts are already sorted and paginated by the DB (if limit was applied).
+                return posts;
+            }
+     
+        } catch (error) {
+            console.error(`[UserPostDetailsDAO] Error fetching home posts:`, error);
+            throw error;
+        }
+    }
     /**
      * Thêm phương thức mới để tính điểm cho bài viết
      * @param {UserPostDetails[]} posts - Mảng các bài viết
