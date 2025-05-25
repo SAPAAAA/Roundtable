@@ -10,6 +10,7 @@ import Icon from "#shared/components/UIElement/Icon/Icon";
 import Avatar from "#shared/components/UIElement/Avatar/Avatar";
 import LoadingSpinner from '#shared/components/UIElement/LoadingSpinner/LoadingSpinner';
 import Form from '#shared/components/UIElement/Form/Form';
+import subtableService from '#services/subtableService';
 
 export default function SubtableView() {
     // --- Hooks ---
@@ -44,7 +45,12 @@ export default function SubtableView() {
     const handleSortChange = (newSortType) => {
         console.log(`Changing sort type to: ${newSortType}`);
         setSortType(newSortType);
+        setSelectedSort(newSortType.charAt(0).toUpperCase() + newSortType.slice(1));
     };
+    const [selectedSort, setSelectedSort] = useState('Hot'); // Default text
+    const [posts, setPosts]= useState([]);
+    const [postsLoading, setPostsLoading] = useState(true);
+
 
     // --- Loading State ---
     const isLoading = navigation.state === 'loading';
@@ -76,42 +82,47 @@ export default function SubtableView() {
     const subtableAvatar = iconData;
     const subtableBanner = bannerData;
 
-    // --- Prepare Posts Data using Destructuring (Keeping 'body') ---
-    const posts = isLoading ? [] : (postsData || []).map((item) => {
-        // Destructure author, and collect the rest into postDetails
-        // 'body' will now be part of postDetails if it exists on item
-        const { author, ...postDetails } = item;
+    // // --- Prepare Posts Data using Destructuring (Keeping 'body') ---
+    // const posts = isLoading ? [] : (postsData || []).map((item) => {
+    //     // Destructure author, and collect the rest into postDetails
+    //     // 'body' will now be part of postDetails if it exists on item
+    //     const { author, ...postDetails } = item;
+    //     return {
+    //         post: postDetails, // Spread the rest of the post properties (includes 'body')
+    //         author: author
+    //     };
+    // });
 
-        // Return the structure expected by ListPostPreviewSubtable/PostPreviewSubtable
-        // The 'post' object now contains all properties from 'item' except 'author'
-        // including 'body' if it was present.
-        return {
-            post: postDetails, // Spread the rest of the post properties (includes 'body')
-            author: author
-        };
-    });
 
-    // --- Quick Check: Does PostCore expect 'content' or 'body'? ---
-    // Check PostCore.jsx: It looks for props.post.content
-    // If PostCore *requires* a 'content' prop, you'll need to adjust PostCore
-    // or map 'body' to 'content' here as done previously.
-    // If PostCore can be modified to accept 'body', this mapping is fine.
-    // Assuming for now PostCore needs 'content', let's revert slightly but keep the destructuring:
+    useEffect(() => {
+            const fetchPosts = async () => {
+                try {
+                    setPostsLoading(true);
+                    console.log("kkkkkkkk:", subtableDisplayName, "Sort Type:", sortType);
+                    const data = await subtableService.getSortPost(subtableDisplayName,sortType);
+                    const posts = isLoading ? [] : (data || []).map((item) => {
+                        const { author, ...postDetails } = item;
+                        return {
+                            post: postDetails, // Spread the rest of the post properties (includes 'body')
+                            author: author
+                        };
+                    });
+                    setPosts(posts);      
+                } catch (error) {
+                    console.error("Lỗi khi lấy dữ liệu bài viết:", error);
+                }
+                finally {
+                    setPostsLoading(false);
+                }
+            };
+    
+            fetchPosts();
+        }, [sortType, subtableDisplayName]); // Add isLoading to dependencies
 
-    /*
-    // Alternative mapping if PostCore strictly needs 'content':
-    const posts = isLoading ? [] : (postsData || []).map((item) => {
-        const { author, body, ...otherPostDetails } = item; // Extract body explicitly
-        return {
-            post: { ...otherPostDetails, content: body }, // Map body to content
-            author: author
-        };
-     });
-    */
     // Let's proceed with the user's request to keep 'body' and assume PostCore will be adapted or already handles it.
 
     // --- Render Loading State ---
-    if (isLoading) {
+    if (postsLoading) {
         return <LoadingSpinner message={`Loading s/${subtableNameFromParams}...`} />;
     }
     //console.log("subtable",subtableInfo)
@@ -229,12 +240,10 @@ export default function SubtableView() {
                                 tooltipPlacement="top"
                                 padding="2"
                                 addClass="mostPost">
-                                Best <Icon name="down" size="12px" addClass="ms-1" />
+                                {selectedSort} <Icon name="down" size="12px" addClass="ms-1" />
                             </Button>
                             <ul className="dropdown-menu resizeDropdown1">
                                 <li className="sort d-flex justify-content-center align-items-center">Sort by</li>
-                                {/* <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
-                                    href="#">Best</a></li> */}
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
                                     onClick={(e) => {e.preventDefault(); handleSortChange('hot');}} href="#">Hot</a></li>
                                 <li><a className="dropdown-item item d-flex justify-content-center align-items-center"
