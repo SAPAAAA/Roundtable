@@ -438,6 +438,35 @@ class SubtableService {
                 return { sortBy: 'score' }; 
         }
     }
+    async updateSubtable(subtableName, subtableData) {
+        if (!subtableName || typeof subtableName !== 'string' || subtableName.trim() === '') {
+            throw new BadRequestError("Subtable name is required and must be a non-empty string.");
+        }
+
+        try {
+            // Fetch existing subtable to ensure it exists
+            const existingSubtable = await this.subtableDao.getByName(subtableName.trim());
+            if (!existingSubtable) {
+                throw new NotFoundError(`Subtable '${subtableName}' not found.`);
+            }
+            // console.log("name service be:", subtableData.name);
+            // console.log("description service be:", subtableData.description);
+            // console.log("iconFile service be:", subtableData.iconFile);
+            // console.log("bannerFile service be:", subtableData.bannerFile);
+            // console.log("iconId service be:", subtableData.iconId);
+            // console.log("bannerId service be:", subtableData.bannerId);
+            await this.mediaDAO.update(subtableData.iconId, {url:subtableData.iconFile.path, mimeType: subtableData.iconFile.mimetype, fileSize: subtableData.iconFile.size});
+            await this.mediaDAO.update(subtableData.bannerId, {url:subtableData.bannerFile.path, mimeType: subtableData.bannerFile.mimetype, fileSize: subtableData.bannerFile.size});
+            return await this.subtableDao.update(subtableName,{name:subtableData.name,description:subtableData.description});
+
+        } catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+            console.error(`[SubtableService:updateSubtable] Error for ${subtableName}:`, error);
+            throw new InternalServerError("An error occurred while updating the subtable.");
+        }
+    }
 }
 
 // Inject dependencies when creating the instance

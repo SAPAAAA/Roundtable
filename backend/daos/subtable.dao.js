@@ -81,25 +81,28 @@ class SubtableDAO {
      * @throws {ConflictError} If subtable name constraint is violated on update.
      * @throws {Error} Throws other database errors.
      */
-    async update(subtableId, updateData, trx = null) {
+    async update(subtableName, updateData, trx = null) {
         const queryBuilder = trx || postgresInstance;
-        const {
-            subtableId: _,
-            createdAt: __,
-            creatorUserId: ___, // Prevent direct update of creator
-            memberCount: ____,
-            ...allowedUpdates
-        } = updateData;
+        const update={}
+        if(updateData.name) update.name = updateData.name;
+        if(updateData.description) update.description = updateData.description;
+        // const {
+        //     subtableId: _,
+        //     createdAt: __,
+        //     creatorUserId: ___, // Prevent direct update of creator
+        //     memberCount: ____,
+        //     ...allowedUpdates
+        // } = updateData;
 
-        if (Object.keys(allowedUpdates).length === 0) {
-            console.warn(`[SubtableDAO] Update called for ID ${subtableId} with no valid fields.`);
-            return this.getById(subtableId); // Return current state as nothing changed
-        }
+        // if (Object.keys(allowedUpdates).length === 0) {
+        //     console.warn(`[SubtableDAO] Update called for ID ${subtableId} with no valid fields.`);
+        //     return this.getById(subtableId); // Return current state as nothing changed
+        // }
 
         try {
             const updatedRows = await queryBuilder(this.tableName)
-                .where({subtableId})
-                .update(allowedUpdates)
+                .where({name:subtableName})
+                .update(update)
                 .returning('*');
 
             if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
@@ -107,9 +110,9 @@ class SubtableDAO {
             }
             return Subtable.fromDbRow(updatedRows[0]);
         } catch (error) {
-            console.error(`[SubtableDAO] Error updating subtable (${subtableId}):`, error);
+            // console.error(`[SubtableDAO] Error updating subtable (${subtableId}):`, error);
             if (error.code === '23505' && error.constraint === 'subtable_name_key') {
-                throw new ConflictError(`Cannot update subtable: name "${allowedUpdates.name}" is already taken.`);
+                //throw new ConflictError(`Cannot update subtable: name "${allowedUpdates.name}" is already taken.`);
             }
             throw error;
         }

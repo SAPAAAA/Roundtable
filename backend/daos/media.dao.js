@@ -48,5 +48,25 @@ class MediaDAO {
             throw new InternalServerError('Database error');
         }
     }
+    async update(mediaId, updateData, trx = null) {
+        const queryBuilder = trx || postgresInstance;
+        const update={}
+        if (updateData.url) update.url = updateData.url;
+        if (updateData.mimeType) update.mimeType = updateData.mimeType;
+        if (updateData.fileSize) update.fileSize = updateData.fileSize;
+        try {
+            const updatedRows = await queryBuilder(this.tableName)
+                                    .where({ mediaId })
+                                    .update(update)
+                                    .returning('*');
+            if (updatedRows.length === 0) {
+                throw new Error('Media not found');
+            }
+            return Media.fromDbRow(updatedRows[0]);
+        } catch (error) {
+            console.error('Error updating media:', error);
+            throw new InternalServerError('Database error');
+        }
+    }
 }
 export default new MediaDAO();

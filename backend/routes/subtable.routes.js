@@ -23,5 +23,9 @@ router.get('/:subtableName/posts', SubtableController.getSubtablePosts);
 router.get('/:subtableName/:mediaId', SubtableController.getSubtableMedia);
 
 router.get('/sort/:subtableName/:sortType', SubtableController.getSubtablePostsBySortType);
+router.patch('/:subtableName',isAuthenticated,upload.fields([
+        { name: 'iconFile', maxCount: 1 },
+        { name: 'bannerFile', maxCount: 1 }
+    ]),SubtableController.updateSubtable)
 
 export default router;

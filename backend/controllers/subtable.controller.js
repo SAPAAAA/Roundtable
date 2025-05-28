@@ -390,6 +390,54 @@ class SubtableController {
             });
         }
     };
+    updateSubtable = async(req,res)=>{
+        try {
+            const { subtableName } = req.params;
+            const { name, description } = req.body;
+            const iconFile = req.files?.iconFile?.[0]; // Assuming multer is used for file uploads
+            const bannerFile = req.files?.bannerFile?.[0]; // Assuming multer is used for file uploads
+            const iconId = req.body.iconId; // Assuming iconId is passed in the body
+            const bannerId = req.body.bannerId; // Assuming bannerId is passed in the body
+
+            // console.log("name update:", name);
+            // console.log("description update:", description);
+            // console.log("icon update:", iconFile);
+            // console.log("banner update:", bannerFile);
+            // console.log("iconId update:", iconId);
+            // console.log("bannerId update:", bannerId);
+
+            const updatedSubtable = await this.subtableService.updateSubtable(subtableName, {
+                name,
+                description,
+                iconFile,
+                bannerFile,
+                iconId,
+                bannerId
+            });
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: "Subtable updated successfully.",
+                data: updatedSubtable
+            });
+        } catch (error) {
+            console.error(`[SubtableController:updateSubtable] Error for ${req.params?.subtableName}:`, error.message);
+            if (error instanceof NotFoundError) {
+                return res.status(HTTP_STATUS.NOT_FOUND).json({success: false, message: error.message});
+            }
+            if (error instanceof BadRequestError) {
+                return res.status(HTTP_STATUS.BAD_REQUEST).json({success: false, message: error.message});
+            }
+            if (error instanceof InternalServerError) {
+                return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({success: false, message: error.message});
+            }
+            console.error(error.stack || error);
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: "An unexpected error occurred while updating subtable."
+            });
+        }
+    }
 }
 
 export default new SubtableController(subtableService);
