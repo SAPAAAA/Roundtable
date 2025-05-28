@@ -153,7 +153,29 @@ class SubtableService {
         }
 
         return response.data;
-    }    
+    }
+    async updateSubtable(subtableName, subtableData) {
+        const baseUrl = `/api/s/${subtableName}`;
+        console.log('Updating subtable with data:', subtableData);
+        for (let pair of subtableData.entries()) {
+            console.log(`service ${pair[0]}:`, pair[1]);
+        }
+        const response = await fetch(baseUrl, {
+            method: 'PATCH',
+            body: subtableData,
+            headers: {
+                'Accept': 'application/json',
+                // 'Content-Type': 'multipart/form-data' // Do not set this header when using FormData
+            },
+            credentials: 'include',
+        });
+        const responseData = await response.json();
+
+        if (!responseData.success) {
+            throw new Error(`Failed to update subtable: ${response.status} ${response.statusText}`);
+        }
+        return responseData;
+    }   
 
     
 }
