@@ -1,0 +1,60 @@
+/* --- Button Styles in Footer --- */
+
+/* Base styles for footer buttons */
+.write-comment-button {
+    padding: 6px 16px; /* Adjust padding */
+    font-size: 0.85rem;
+    border-radius: 15px; /* Rounded pill shape */
+    font-weight: 600; /* Bolder font */
+    border: 1px solid transparent; /* Start with transparent border */
+    transition: all 0.2s ease-in-out;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.write-comment-button:focus-visible {
+    outline: 2px solid var(--var-steel-blue);
+    outline-offset: 2px;
+}
+
+/* Cancel Button */
+.write-comment-button.cancel-button {
+    background-color: transparent;
+    color: var(--var-space-cadet);
+    border-color: var(--var-azureish-white); /* Use light border */
+}
+
+.write-comment-button.cancel-button:hover,
+.write-comment-button.cancel-button:focus {
+    background-color: var(--var-azureish-white); /* Fill on hover */
+    border-color: var(--var-azureish-white);
+    color: var(--var-space-cadet); /* Keep text dark */
+}
+
+/* Reset Button ("Xóa") */
+.write-comment-button.reset-button {
+    background-color: transparent;
+    color: var(--var-deer); /* Use deer color for text */
+    border-color: var(--var-deer); /* Use deer color for border */
+}
+
+.write-comment-button.reset-button:hover,
+.write-comment-button.reset-button:focus {
+    background-color: rgba(var(--var-deer-rgb), 0.1); /* Subtle deer background fill */
+    border-color: var(--var-deer);
+    color: var(--var-deer);
+}
+
+/* Submit Button ("Gửi") */
+.write-comment-button.submit-button {
+    background-color: var(--var-steel-blue);
+    color: var(--var-cultured); /* Light text on dark blue */
+    border-color: var(--var-steel-blue);
+}
+
+.write-comment-button.submit-button:hover,
+.write-comment-button.submit-button:focus {
+    background-color: var(--var-steel-blue);
+    border-color: var(--var-steel-blue);
+    opacity: 0.85; /* Slightly fade on hover */
+}
