@@ -174,9 +174,19 @@ const ChatProvider = ({children}) => {
                 console.log(`[ChatProvider] Message ${newMessage.messageId} already exists for ${otherPrincipalId}, skipping add.`);
                 return prev;
             }
-            const updated = [...existing, newMessage].sort(
+            
+            // Đảm bảo messageCreatedAt là đối tượng Date hợp lệ
+            const messageDate = new Date(newMessage.messageCreatedAt);
+            const validMessage = {
+                ...newMessage,
+                messageCreatedAt: isNaN(messageDate.getTime()) ? new Date().toISOString() : newMessage.messageCreatedAt
+            };
+            
+            // Sắp xếp tin nhắn theo thời gian tăng dần (từ cũ đến mới)
+            const updated = [...existing, validMessage].sort(
                 (a, b) => new Date(a.messageCreatedAt).getTime() - new Date(b.messageCreatedAt).getTime()
             );
+            
             console.log(`[ChatProvider] Added message ${newMessage.messageId} to conversation ${otherPrincipalId}'s message list.`);
             return {...prev, [otherPrincipalId]: updated};
         });

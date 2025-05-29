@@ -32,7 +32,7 @@ class ChatService {
             return [];
         }
         try {
-            const url = `/api/chats/${encodeURIComponent(partnerPrincipalId)}/messages`;
+            const url = `/api/chats/${encodeURIComponent(partnerPrincipalId)}/messages?order=asc`;
             const response = await sendApiRequest(url, {method: 'GET'});
             if (response.success && Array.isArray(response.data)) {
                 return response.data;
