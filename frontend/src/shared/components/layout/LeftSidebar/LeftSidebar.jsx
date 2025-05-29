@@ -10,7 +10,7 @@ import Link from '#shared/components/Navigation/Link/Link';
 
 export default function LeftSidebar(props) {
     const [resourcesExpanded, setResourcesExpanded] = useState(true);
-    const [communitiesExpanded, setCommunitiesExpanded] = useState(false);
+    const [communitiesExpanded, setCommunitiesExpanded] = useState(true);
     const [RecentExpanded, setRecentExpanded] = useState(false);
     const [communityList, setCommunityList] = useState([]);
     const [communitiesLoading, setCommunitiesLoading] = useState(false);
@@ -106,20 +106,11 @@ export default function LeftSidebar(props) {
                     <hr/>
                     <ul className="nav nav-pills flex-column mb-auto">
                         <li className="nav-item">
-                            <a href="/" className="nav-link active d-flex align-items-center">
+                            <a href="/" className="nav-link text-dark d-flex align-items-center">
                                 <Icon name="home" size="16" className="me-2"/>&nbsp;Home
                             </a>
                         </li>
-                        <li>
-                            <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                <Icon name="fire" size="16" className="me-2"/>&nbsp;Popular
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                <Icon name="globe" size="16" className="me-2"/>&nbsp;All
-                            </a>
-                        </li>
+                     
                     </ul>
                     <hr/>
 
@@ -166,50 +157,7 @@ export default function LeftSidebar(props) {
                         )}
                     </div>
 
-                    {/* Recent section */}
-                    <div className="dropdown-section">
-                        <div 
-                            className="d-flex justify-content-between align-items-center text-muted mb-2 section-header"
-                            onClick={toggleRecent}
-                        >
-                            <h6 className="text-muted mb-0">&nbsp;RECENT</h6>
-                            <Icon name={RecentExpanded ? "chevron-up" : "chevron-down"} size="16px" />
-                        </div>
-                        {RecentExpanded && (
-                            <ul className="nav flex-column mb-3 recent-section">
-                                <li className="d-flex align-items-center recent-item">
-                                    <span className="icon-wrapper"/> {/* empty span for alignment */}
-                                    <Identifier
-                                        type="subtable"
-                                        href="#"
-                                        className="nav-link text-dark flex-grow-1"
-                                        namespace="reactjs"
-                                    />
-                                </li>
-
-                                <li className="d-flex align-items-center recent-item">
-                                    <span className="icon-wrapper"/> {/* empty span for alignment */}
-                                    <Identifier
-                                        type="subtable"
-                                        href="#"
-                                        className="nav-link text-dark flex-grow-1"
-                                        namespace="webdev"
-                                    />
-                                </li>
-
-                                <li className="d-flex align-items-center recent-item">
-                                    <span className="icon-wrapper"/> {/* empty span for alignment */}
-                                    <Identifier
-                                        type="subtable"
-                                        href="#"
-                                        className="nav-link text-dark flex-grow-1"
-                                        namespace="KitDev"
-                                    />
-                                </li>
-
-                            </ul>
-                        )}
-                    </div>
+                   
 
                     {/* Resources dropdown section */}
                     <div className="dropdown-section">
@@ -228,37 +176,13 @@ export default function LeftSidebar(props) {
                                         <Icon name="info" size="16" className="me-2"/>&nbsp;About Roundtable
                                     </Link>
                                 </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="megaphone" size="16" className="me-2"/>&nbsp;Advertise
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="chart-up" size="16" className="me-2"/>&nbsp;Reddit&nbsp;Pro
-                                        <span className="beta-tag ms-1">BETA</span>
-                                    </a>
-                                </li>
+                             
                                 <li>
                                     <Link href="/help" className="nav-link text-dark d-flex align-items-center">
                                         <Icon name="question" size="16" className="me-2"/>&nbsp;Help
                                     </Link>
                                 </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="pencil" size="16" className="me-2"/>&nbsp;Blog
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="briefcase" size="16" className="me-2"/>&nbsp;Careers
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                                        <Icon name="newspaper" size="16" className="me-2"/>&nbsp;Press
-                                    </a>
-                                </li>
+                             
                             </ul>
                         )}
                     </div>
@@ -285,26 +209,7 @@ export default function LeftSidebar(props) {
                 </div>
             </aside>
             <hr />
-                <ul className="nav flex-column mb-3">
-                <li>
-                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                    <Icon name="community" size="16" className="me-2" />
-                    &nbsp;Communities
-                    </a>
-                </li>
-                <li>
-                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                    <Icon name="chart" size="16" className="me-2" />
-                    &nbsp;Best of Reddit
-                    </a>
-                </li>
-                <li>
-                    <a href="#" className="nav-link text-dark d-flex align-items-center">
-                    <Icon name="topic" size="16" className="me-2" />
-                    &nbsp;Topics
-                    </a>
-                </li>
-                </ul>
+             
         </div>
     );
 }
