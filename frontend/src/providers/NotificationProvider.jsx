@@ -1,14 +1,49 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState, useRef} from "react";
 import NotificationContext from "#contexts/NotificationContext.jsx";
 import useAuth from "#hooks/useAuth.jsx";
 import notificationService from "#services/notificationService.jsx";
+import WebSocketSubject from "#subjects/WebsocketSubject.jsx";
+import NotificationObserver from "#observers/NotificationObserver.jsx";
 
 const NotificationProvider = ({children}) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoadingCount, setIsLoadingCount] = useState(true);
+    const observerRef = useRef(null);
 
     const {user} = useAuth();
+
+    // Kết nối WebSocket và đăng ký observer khi component mount
+    useEffect(() => {
+        let isMounted = true;
+        
+        // Chỉ kết nối khi đã đăng nhập
+        if (user?.userId) {
+            // Tạo observer nếu chưa có
+            if (!observerRef.current && addNotification) {
+                observerRef.current = new NotificationObserver(addNotification);
+            }
+            
+            // Kết nối WebSocket và đăng ký observer
+            WebSocketSubject.connect(user.userId)
+                .then(() => {
+                    if (isMounted) {
+                        WebSocketSubject.subscribe(observerRef.current);
+                    }
+                })
+                .catch(err => {
+                    console.error('[NotificationProvider] WebSocket connection failed:', err?.message || err);
+                });
+        }
+        
+        return () => {
+            isMounted = false;
+            // Hủy đăng ký observer khi unmount
+            if (observerRef.current) {
+                WebSocketSubject.unsubscribe(observerRef.current);
+            }
+        };
+    }, [user]);
 
     useEffect(() => {
         let isMounted = true;

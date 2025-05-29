@@ -5,6 +5,7 @@ import useAuth from "#hooks/useAuth.jsx";
 import useWebSocketNotifications from "#hooks/useWebSocketNotifications.jsx";
 import ChatAppWrapper from "#features/chats/components/ChatAppWrapper/ChatAppWrapper";
 import useWebSocketChat from "#hooks/useWebSocketChat.jsx";
+import useChat from "#hooks/useChat.jsx"; // Thêm import này
 import {useLoaderData, useLocation, useNavigate } from 'react-router';
 
 // Lazy load components
@@ -67,9 +68,10 @@ export default function MainLayout() {
 
 
 
-    // --- Activate WebSocket listener hook ---
-    useWebSocketNotifications();
+    // --- Activate WebSocket listener hooks ---
+    useWebSocketNotifications(); // Đã bỏ comment để kích hoạt cả hai hook
     useWebSocketChat();
+    const { addMessage } = useChat(); // Thêm dòng này để đảm bảo hook useChat được sử dụng đúng cách
 
     // --- Handlers ---
     const toggleSidebar = () => setSidebarVisible(prev => !prev);

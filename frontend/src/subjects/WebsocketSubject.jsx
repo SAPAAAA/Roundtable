@@ -143,13 +143,27 @@ class WebsocketSubject {
         resolve(this.socket);
     }
 
+    // Sửa phương thức _handleMessage để đảm bảo tin nhắn được xử lý đúng cách
     _handleMessage(event) {
         try {
             if (event.data === 'pong') {
                 return;
             }
+            
             const data = JSON.parse(event.data);
-            this.notify(data);
+            console.log("[WebsocketSubject] Received message:", data);
+            
+            // Thông báo cho tất cả observers ngay lập tức
+            if (this.observers.size > 0) {
+                // Đảm bảo thông báo được gửi đến tất cả observers
+                setTimeout(() => {
+                    this.notify(data);
+                }, 0);
+            } else {
+                console.warn("[WebsocketSubject] Message received but no observers registered:", data);
+                // Lưu tin nhắn vào bộ đệm để xử lý sau khi có observer
+                this._bufferMessage(data);
+            }
         } catch (error) {
             console.error("[WebsocketSubject] Error parsing message:", error, "Raw data:", event.data);
         }
